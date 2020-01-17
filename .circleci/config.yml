@@ -142,7 +142,7 @@ jobs:
           command: |
               . /opt/conda/etc/profile.d/conda.sh
               conda activate pypg
-              pytest internal pypolygames --durations=10 --verbose
+              pytest pypolygames --durations=10 --verbose
 
       - run:
           name: Run training
