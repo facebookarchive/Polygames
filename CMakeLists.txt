@@ -60,7 +60,6 @@ target_include_directories(polygames PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/torchRL)
 target_link_libraries(polygames PUBLIC _tube _mcts _games)
 
 # add Minesweeper benchmarks
-add_subdirectory(games/minesweeper_csp_pgms)
 add_subdirectory(games/minesweeper_csp_vkms)
 
 # tests
