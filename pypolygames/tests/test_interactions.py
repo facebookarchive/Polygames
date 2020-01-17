@@ -11,7 +11,7 @@ from pathlib import Path
 from pprint import pprint
 from unittest import SkipTest
 import pytest
-from internal.regression import GameSettings
+from ..utils import listings
 
 
 class FileStream:
@@ -45,7 +45,7 @@ GAME_ACTIONS = {"Breakthrough": ["1", "blublu"],
 
 
 @pytest.mark.parametrize(
-    "game_name", [game_name for game_name in GameSettings.list_games(olympiads=True)]
+    "game_name", [game_name for game_name in listings.games(olympiads=True)]
 )
 
 def test_game_interactions(game_name: str):

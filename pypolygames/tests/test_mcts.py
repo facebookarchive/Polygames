@@ -8,13 +8,13 @@ import random
 from unittest import SkipTest
 from pathlib import Path
 import pytest
-from internal.regression import GameSettings
 from .. import params
 from .. import evaluation
+from .. import utils
 
 
 @pytest.mark.parametrize(
-    "game_name", [game_name for game_name in GameSettings.list_games()]
+    "game_name", [game_name for game_name in utils.listings.games()]
 )
 def test_mcts(game_name) -> None:
     #
@@ -25,11 +25,7 @@ def test_mcts(game_name) -> None:
     # also, for some games, we must add some tolerance (they dont win at 100%)
     #
     crashing = []
-    one_player_games = [
-        game_name
-        for game_name in GameSettings.list_games()
-        if "asterm" in game_name or "ineswee" in game_name or "WeakSchur" in game_name
-    ]
+    is_one_player_game = any(x in game_name for x in ["asterm", "ineswee", "WeakSchur"])
     too_slow = [
         "GameOfTheAmazons",
         "Connect6",
@@ -46,9 +42,9 @@ def test_mcts(game_name) -> None:
     if "inesweeper" in game_name and "4_4_4" not in game_name:
         raise SkipTest(f"Skipping {game_name}")
     if "astermind" in game_name and "4_4_6" not in game_name:
-        raise SkipTest(f"Skipping {game_name}")    
+        raise SkipTest(f"Skipping {game_name}")
     if "WeakSchur" in game_name and "WeakSchur_3_20" not in game_name:
-         raise SkipTest(f"Skipping {game_name}")           
+        raise SkipTest(f"Skipping {game_name}")
     # for allowing some tolerance to winning all games with larger rollouts, add here:
     tolerance = {
         "TicTacToe": 4,
@@ -102,7 +98,6 @@ def test_mcts(game_name) -> None:
     score = sum(v > 0 for v in get_eval_reward())
     expected = 0 if case else eval_params.num_game_eval
     msg = f"Wrong score for random case {case}, expected {expected} with tol {tolerance} but got {score}."
-    if game_name in too_bad + one_player_games:
-        raise SkipTest(f"Skipping evaluation of {game_name} (not very good)")
-    else:
-        assert abs(score - expected) <= tolerance, msg
+    if is_one_player_game or game_name in too_bad:
+        raise SkipTest(f"Skipping evaluation of {game_name} (not very good, or one player)")
+    assert abs(score - expected) <= tolerance, msg

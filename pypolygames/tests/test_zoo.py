@@ -3,22 +3,13 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# from internal.regtools import list_models
 from unittest import SkipTest
 import pytest
+import torch
 from .. import model_zoo
 from ..model_zoo.utils import get_game_info
 from .. import params
 from .. import utils
-import torch
-from internal.regression import GameSettings
-
-
-def test_models_list() -> None:  # make sure "internal" (which cannot import pypolygames) is in sync
-    missing = set(model_zoo.MODELS) - set(GameSettings.list_models())
-    additional = set(GameSettings.list_models()) - set(model_zoo.MODELS)
-    assert not missing, "Missing models"
-    assert not additional, "Additional models"
 
 
 @pytest.mark.parametrize("model_name", [n for n in model_zoo.MODELS])
