@@ -1,0 +1,10 @@
+AccessModifierOffset: -1
+AllowShortFunctionsOnASingleLine: false
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+BinPackParameters: false
+BreakConstructorInitializersBeforeComma: true
+PenaltyBreakBeforeFirstCallParameter: 0
+PenaltyReturnTypeOnItsOwnLine: 200
+PointerBindsToType: true
+SpacesBeforeTrailingComments: 2

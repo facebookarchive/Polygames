@@ -1,0 +1,62 @@
+actions: ['0', 'blublu']
+######################################################################
+#                         HUMAN-PLAYED GAME                          #
+######################################################################
+setting-up pseudo-random generator...
+creating human-played environment
+playing against a human player...
+
+Last Action:  p ->  r-A4
+
+Current board:
+   A| B| C| D| E
+5   | g| k| s| t
+4  r|  |  |  |  
+3   |  |  |  |  
+2   |  |  |  |  
+1  T| S| K| G| P
+
+Legal Actions:
+Action 0:  T ->  L-B2
+Action 1:  T ->  L-A2
+Action 2:  S ->  B-C2
+Action 3:  S ->  B-B2
+Action 4:  S ->  B-A2
+Action 5:  K ->  K-D2
+Action 6:  K ->  K-C2
+Action 7:  K ->  K-B2
+Action 8:  G -> KN-E2
+Action 9:  G -> KN-D2
+Action 10:  G -> KN-C2
+Action 11:  P ->  R-E2
+
+Input format : action index e.g. 0
+
+Input action:  applying action... 
+
+Last Action:  r ->  p-A1
+
+Current board:
+   A| B| C| D| E
+5   | g| k| s| t
+4   |  |  |  |  
+3   |  |  |  |  
+2   | L|  |  |  
+1  p| S| K| G| P
+
+Legal Actions:
+Action 0:  L ->  T-B3
+Action 1:  L ->  T-B4
+Action 2:  L ->  T-B5
+Action 3:  S ->  B-C2
+Action 4:  S ->  B-A2
+Action 5:  K ->  K-D2
+Action 6:  K ->  K-C2
+Action 7:  G -> KN-E2
+Action 8:  G -> KN-D2
+Action 9:  G -> KN-C2
+Action 10:  P ->  R-E2
+
+Input format : action index e.g. 0
+
+Input action: Input action: 

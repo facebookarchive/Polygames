@@ -1,0 +1,156 @@
+# Python CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-python/ for more details
+#
+version: 2
+jobs:
+  build:
+    docker:
+      # specify the version you desire here
+      # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
+      #- image: circleci/python:3.6.1
+      #- image: singularityware/singularity:3.1-slim  # would be faster but interacts badly with cuda docker image loading
+      - image : nvidia/cuda:10.0-cudnn7-devel-ubuntu18.04
+
+    # machine: true
+    working_directory: ~/repo
+    # resource_class: xlarge  # not activated for the project
+
+    steps:
+      - checkout
+
+        #- run:
+        #-   name: Install singularity
+        #-   command: |
+        #-       #chmod u+x ~/repo/.circleci/*.sh
+        #-       #/bin/bash ~/repo/.circleci/install_singularity.sh
+        #-       sudo wget -O- http://neuro.debian.net/lists/xenial.us-ca.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list && \
+        #-           sudo apt-key adv --recv-keys --keyserver hkp://pool.sks-keyservers.net:80 0xA5D32F012649A5A9 && \
+        #-           sudo apt-get update
+        #-       sudo apt-get install -y singularity-container
+
+      - restore_cache:
+          keys:
+          - tag3-conda-{{ checksum "singularity/environment.yml" }}-pytorch
+          - tag3-conda-{{ checksum "singularity/environment.yml" }}
+          - tag1-conda
+
+      - run:
+          name: Install miniconda and clone pytorch
+          command: |
+              apt-get update
+              apt-get install -y \
+                  build-essential \
+                  libzmq3-dev \
+                  cmake \
+                  wget \
+                  vim \
+                  git \
+                  ca-certificates \
+                  libjpeg-dev \
+                  libpng-dev
+              rm -rf /var/lib/apt/lists/
+              CHECKPATH=/opt/conda
+              if [ -d "$CHECKPATH" ]; then
+                  echo "$CHECKPATH already exists"
+              else
+                  wget -O ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+                  bash ~/miniconda.sh -b -p /opt/conda
+                  rm ~/miniconda.sh
+                  git clone --recursive https://github.com/pytorch/pytorch --branch=v1.1.0 ~/pytorch
+              fi
+
+      - save_cache:
+          paths:
+            - /opt/conda
+            - ~/pytorch
+          key: tag1-conda
+
+      - run:
+          name: Install conda environment
+          command: |
+              CHECKPATH=/opt/conda/envs/pypg
+              . /opt/conda/etc/profile.d/conda.sh
+              if [ -d "$CHECKPATH" ]; then
+                  echo "$CHECKPATH already exists"
+                  # conda env update -f singularity/environment.yml --name pypg
+              else
+                  conda env create -f singularity/environment.yml --name pypg
+                  conda activate pypg
+                  pip install mypy>=0.630 pytest>=4.3.0 pytest-cov>=2.6.1  # only required for testing
+              fi
+
+      - save_cache:
+          paths:
+            - /opt/conda
+            - ~/pytorch
+          key: tag3-conda-{{ checksum "singularity/environment.yml" }}
+
+      - run:
+          name: Install pytorch
+          command: |
+              CHECKPATH=~/pytorch/done
+              if [ -f "$CHECKPATH" ]; then
+                      echo "pytorch already exists"
+              else
+                  . /opt/conda/etc/profile.d/conda.sh
+                  conda activate pypg
+                  which pip
+                  pip install -U pip
+                  cd ~/pytorch
+                  export CMAKE_PREFIX_PATH=${CONDA_PREFIX:-"$(dirname $(which conda))/../"}
+                  # export MAX_JOBS=$(cat /proc/cpuinfo | grep -c processor)
+                  # if (( $MAX_JOBS < 4 ));
+                  #     then MAX_JOBS=4;
+                  # fi;
+                  export MAX_JOBS=4  # calibrate for circleci resources...
+                  echo "Using $MAX_JOBS jobs for pytorch compilation"
+                  # # set cuda arch list so that the built binary can be run on both pascal and volta
+                  MAX_JOBS=$MAX_JOBS TORCH_CUDA_ARCH_LIST='6.0;7.0' pip install . -v
+                  touch $CHECKPATH
+              fi
+
+      - save_cache:
+          paths:
+            - /opt/conda
+            - ~/pytorch
+          key: tag3-conda-{{ checksum "singularity/environment.yml" }}-pytorch
+
+      - run:
+          name: Build polygames
+          command: |
+              . /opt/conda/etc/profile.d/conda.sh
+              conda activate pypg
+              mkdir build
+              cd build
+              cmake ..
+              make -j 2
+
+      - run:
+          name: Test games
+          command: |
+              ./build/test_state
+
+      - run:
+          name: Test Mcts
+          command: |
+              ./build/torchRL/mcts/test_mcts 1 100
+              ./build/torchRL/mcts/test_mcts 4 50
+
+      - run:
+          name: Test python
+          command: |
+              . /opt/conda/etc/profile.d/conda.sh
+              conda activate pypg
+              pytest internal pypolygames --durations=10 --verbose
+
+      - run:
+          name: Run training
+          command: |
+              . /opt/conda/etc/profile.d/conda.sh
+              conda activate pypg
+              python -m pypolygames traineval --act_batchsize=2 \
+                  --batchsize=2 --replay_capacity=16  --replay_warmup=2 \
+                  --num_epoch=1 --num_game=12 --model_name=NanoFCLogitModel \
+                  --epoch_len=1 --device=cpu --game_name=TicTacToe --sync_period=1  --device_eval=cpu \
+                  --num_actor_eval=2 --num_rollouts_opponent=50 --num_game_eval=4

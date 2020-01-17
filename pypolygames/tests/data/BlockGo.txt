@@ -1,0 +1,360 @@
+actions: ['0', 'blublu']
+######################################################################
+#                         HUMAN-PLAYED GAME                          #
+######################################################################
+setting-up pseudo-random generator...
+creating human-played environment
+playing against a human player...
+
+Last Action: 35, 8, 9
+
+Current board:
+ | | | | | | | | | | | | 
+ | | | | | | | | | | | | 
+ | | | | | | | | | | | | 
+ | | | | | | | | | | | | 
+ | | | | | | | | | | | | 
+ | | | | | | | | | | | | 
+ | | | | | | | | | | | | 
+ | | | | | | | |x| | | | 
+ | | | | | | | |x| | | | 
+ | | | | | | | |x|x| | | 
+ | | | | | | | | | | | | 
+ | | | | | | | | | | | | 
+ | | | | | | | | | | | | 
+
+Legal Actions:
+Action 0: 0, 3, 3
+Action 1: 4, 3, 3
+Action 2: 8, 3, 3
+Action 3: 8, 2, 3
+Action 4: 8, 3, 2
+Action 5: 8, 2, 2
+Action 6: 12, 3, 3
+Action 7: 12, 2, 3
+Action 8: 12, 1, 3
+Action 9: 12, 0, 3
+Action 10: 13, 3, 3
+Action 11: 13, 3, 2
+Action 12: 13, 3, 1
+Action 13: 13, 3, 0
+Action 14: 16, 3, 3
+Action 15: 16, 2, 3
+Action 16: 16, 2, 2
+Action 17: 16, 1, 2
+Action 18: 17, 3, 3
+Action 19: 17, 3, 2
+Action 20: 17, 4, 2
+Action 21: 17, 4, 1
+Action 22: 20, 3, 3
+Action 23: 20, 2, 3
+Action 24: 20, 2, 4
+Action 25: 20, 1, 4
+Action 26: 21, 3, 3
+Action 27: 21, 3, 2
+Action 28: 21, 2, 2
+Action 29: 21, 2, 1
+Action 30: 24, 3, 3
+Action 31: 24, 2, 3
+Action 32: 24, 1, 3
+Action 33: 24, 2, 2
+Action 34: 25, 3, 3
+Action 35: 25, 3, 2
+Action 36: 25, 3, 1
+Action 37: 25, 4, 2
+Action 38: 26, 3, 3
+Action 39: 26, 4, 3
+Action 40: 26, 5, 3
+Action 41: 26, 4, 4
+Action 42: 27, 3, 3
+Action 43: 27, 3, 4
+Action 44: 27, 3, 5
+Action 45: 27, 2, 4
+Action 46: 28, 3, 3
+Action 47: 28, 2, 3
+Action 48: 28, 1, 3
+Action 49: 28, 1, 2
+Action 50: 29, 3, 3
+Action 51: 29, 3, 2
+Action 52: 29, 3, 1
+Action 53: 29, 4, 1
+Action 54: 30, 3, 3
+Action 55: 30, 4, 3
+Action 56: 30, 5, 3
+Action 57: 30, 5, 4
+Action 58: 31, 3, 3
+Action 59: 31, 3, 4
+Action 60: 31, 3, 5
+Action 61: 31, 2, 5
+Action 62: 32, 3, 3
+Action 63: 32, 2, 3
+Action 64: 32, 1, 3
+Action 65: 32, 3, 2
+Action 66: 33, 3, 3
+Action 67: 33, 3, 2
+Action 68: 33, 3, 1
+Action 69: 33, 4, 3
+Action 70: 34, 3, 3
+Action 71: 34, 4, 3
+Action 72: 34, 5, 3
+Action 73: 34, 3, 4
+Action 74: 35, 3, 3
+Action 75: 35, 3, 4
+Action 76: 35, 3, 5
+Action 77: 35, 2, 3
+Action 78: 0, 9, 3
+Action 79: 4, 9, 3
+Action 80: 8, 9, 3
+Action 81: 8, 8, 3
+Action 82: 8, 9, 2
+Action 83: 8, 8, 2
+Action 84: 12, 9, 3
+Action 85: 12, 8, 3
+Action 86: 12, 7, 3
+Action 87: 12, 6, 3
+Action 88: 13, 9, 3
+Action 89: 13, 9, 2
+Action 90: 13, 9, 1
+Action 91: 13, 9, 0
+Action 92: 16, 9, 3
+Action 93: 16, 8, 3
+Action 94: 16, 8, 2
+Action 95: 16, 7, 2
+Action 96: 17, 9, 3
+Action 97: 17, 9, 2
+Action 98: 17, 10, 2
+Action 99: 17, 10, 1
+Action 100: 20, 9, 3
+Action 101: 20, 8, 3
+Action 102: 20, 8, 4
+Action 103: 20, 7, 4
+Action 104: 21, 9, 3
+Action 105: 21, 9, 2
+Action 106: 21, 8, 2
+Action 107: 21, 8, 1
+Action 108: 24, 9, 3
+Action 109: 24, 8, 3
+Action 110: 24, 7, 3
+Action 111: 24, 8, 2
+Action 112: 25, 9, 3
+Action 113: 25, 9, 2
+Action 114: 25, 9, 1
+Action 115: 25, 10, 2
+Action 116: 26, 9, 3
+Action 117: 26, 10, 3
+Action 118: 26, 11, 3
+Action 119: 26, 10, 4
+Action 120: 27, 9, 3
+Action 121: 27, 9, 4
+Action 122: 27, 9, 5
+Action 123: 27, 8, 4
+Action 124: 28, 9, 3
+Action 125: 28, 8, 3
+Action 126: 28, 7, 3
+Action 127: 28, 7, 2
+Action 128: 29, 9, 3
+Action 129: 29, 9, 2
+Action 130: 29, 9, 1
+Action 131: 29, 10, 1
+Action 132: 30, 9, 3
+Action 133: 30, 10, 3
+Action 134: 30, 11, 3
+Action 135: 30, 11, 4
+Action 136: 31, 9, 3
+Action 137: 31, 9, 4
+Action 138: 31, 9, 5
+Action 139: 31, 8, 5
+Action 140: 32, 9, 3
+Action 141: 32, 8, 3
+Action 142: 32, 7, 3
+Action 143: 32, 9, 2
+Action 144: 33, 9, 3
+Action 145: 33, 9, 2
+Action 146: 33, 9, 1
+Action 147: 33, 10, 3
+Action 148: 34, 9, 3
+Action 149: 34, 10, 3
+Action 150: 34, 11, 3
+Action 151: 34, 9, 4
+Action 152: 35, 9, 3
+Action 153: 35, 9, 4
+Action 154: 35, 9, 5
+Action 155: 35, 8, 3
+Action 156: 0, 3, 9
+Action 157: 4, 3, 9
+Action 158: 8, 3, 9
+Action 159: 8, 2, 9
+Action 160: 8, 3, 8
+Action 161: 8, 2, 8
+Action 162: 12, 3, 9
+Action 163: 12, 2, 9
+Action 164: 12, 1, 9
+Action 165: 12, 0, 9
+Action 166: 13, 3, 9
+Action 167: 13, 3, 8
+Action 168: 13, 3, 7
+Action 169: 13, 3, 6
+Action 170: 16, 3, 9
+Action 171: 16, 2, 9
+Action 172: 16, 2, 8
+Action 173: 16, 1, 8
+Action 174: 17, 3, 9
+Action 175: 17, 3, 8
+Action 176: 17, 4, 8
+Action 177: 17, 4, 7
+Action 178: 20, 3, 9
+Action 179: 20, 2, 9
+Action 180: 20, 2, 10
+Action 181: 20, 1, 10
+Action 182: 21, 3, 9
+Action 183: 21, 3, 8
+Action 184: 21, 2, 8
+Action 185: 21, 2, 7
+Action 186: 24, 3, 9
+Action 187: 24, 2, 9
+Action 188: 24, 1, 9
+Action 189: 24, 2, 8
+Action 190: 25, 3, 9
+Action 191: 25, 3, 8
+Action 192: 25, 3, 7
+Action 193: 25, 4, 8
+Action 194: 26, 3, 9
+Action 195: 26, 4, 9
+Action 196: 26, 5, 9
+Action 197: 26, 4, 10
+Action 198: 27, 3, 9
+Action 199: 27, 3, 10
+Action 200: 27, 3, 11
+Action 201: 27, 2, 10
+Action 202: 28, 3, 9
+Action 203: 28, 2, 9
+Action 204: 28, 1, 9
+Action 205: 28, 1, 8
+Action 206: 29, 3, 9
+Action 207: 29, 3, 8
+Action 208: 29, 3, 7
+Action 209: 29, 4, 7
+Action 210: 30, 3, 9
+Action 211: 30, 4, 9
+Action 212: 30, 5, 9
+Action 213: 30, 5, 10
+Action 214: 31, 3, 9
+Action 215: 31, 3, 10
+Action 216: 31, 3, 11
+Action 217: 31, 2, 11
+Action 218: 32, 3, 9
+Action 219: 32, 2, 9
+Action 220: 32, 1, 9
+Action 221: 32, 3, 8
+Action 222: 33, 3, 9
+Action 223: 33, 3, 8
+Action 224: 33, 3, 7
+Action 225: 33, 4, 9
+Action 226: 34, 3, 9
+Action 227: 34, 4, 9
+Action 228: 34, 5, 9
+Action 229: 34, 3, 10
+Action 230: 35, 3, 9
+Action 231: 35, 3, 10
+Action 232: 35, 3, 11
+Action 233: 35, 2, 9
+
+Input action:  applying action... 
+
+Last Action: 31, 2, 11
+
+Current board:
+ | | | | | | | | | | | | 
+ | | | | | | | | | | | | 
+ | | | | | | | | | | | | 
+ | | |o| | | | | | | | | 
+ | | | | | | | | | | | | 
+ | | | | | | | | | | | | 
+ | | | | | | | | | | | | 
+ | | | | | | | |x| | | | 
+ | | | | | | | |x| | | | 
+ | |x|x| | | | |x|x| | | 
+ | |x| | | | | | | | | | 
+ | |x| | | | | | | | | | 
+ | | | | | | | | | | | | 
+
+Legal Actions:
+Action 0: 4, 9, 3
+Action 1: 8, 9, 3
+Action 2: 8, 8, 3
+Action 3: 8, 9, 2
+Action 4: 8, 8, 2
+Action 5: 12, 9, 3
+Action 6: 12, 8, 3
+Action 7: 12, 7, 3
+Action 8: 12, 6, 3
+Action 9: 13, 9, 3
+Action 10: 13, 9, 2
+Action 11: 13, 9, 1
+Action 12: 13, 9, 0
+Action 13: 16, 9, 3
+Action 14: 16, 8, 3
+Action 15: 16, 8, 2
+Action 16: 16, 7, 2
+Action 17: 17, 9, 3
+Action 18: 17, 9, 2
+Action 19: 17, 10, 2
+Action 20: 17, 10, 1
+Action 21: 20, 9, 3
+Action 22: 20, 8, 3
+Action 23: 20, 8, 4
+Action 24: 20, 7, 4
+Action 25: 21, 9, 3
+Action 26: 21, 9, 2
+Action 27: 21, 8, 2
+Action 28: 21, 8, 1
+Action 29: 24, 9, 3
+Action 30: 24, 8, 3
+Action 31: 24, 7, 3
+Action 32: 24, 8, 2
+Action 33: 25, 9, 3
+Action 34: 25, 9, 2
+Action 35: 25, 9, 1
+Action 36: 25, 10, 2
+Action 37: 26, 9, 3
+Action 38: 26, 10, 3
+Action 39: 26, 11, 3
+Action 40: 26, 10, 4
+Action 41: 27, 9, 3
+Action 42: 27, 9, 4
+Action 43: 27, 9, 5
+Action 44: 27, 8, 4
+Action 45: 28, 9, 3
+Action 46: 28, 8, 3
+Action 47: 28, 7, 3
+Action 48: 28, 7, 2
+Action 49: 29, 9, 3
+Action 50: 29, 9, 2
+Action 51: 29, 9, 1
+Action 52: 29, 10, 1
+Action 53: 30, 9, 3
+Action 54: 30, 10, 3
+Action 55: 30, 11, 3
+Action 56: 30, 11, 4
+Action 57: 31, 9, 3
+Action 58: 31, 9, 4
+Action 59: 31, 9, 5
+Action 60: 31, 8, 5
+Action 61: 32, 9, 3
+Action 62: 32, 8, 3
+Action 63: 32, 7, 3
+Action 64: 32, 9, 2
+Action 65: 33, 9, 3
+Action 66: 33, 9, 2
+Action 67: 33, 9, 1
+Action 68: 33, 10, 3
+Action 69: 34, 9, 3
+Action 70: 34, 10, 3
+Action 71: 34, 11, 3
+Action 72: 34, 9, 4
+Action 73: 35, 9, 3
+Action 74: 35, 9, 4
+Action 75: 35, 9, 5
+Action 76: 35, 8, 3
+
+Input action: Input action: 

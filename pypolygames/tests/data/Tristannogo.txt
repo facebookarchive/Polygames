@@ -1,0 +1,287 @@
+actions: ['0', 'blublu']
+######################################################################
+#                         HUMAN-PLAYED GAME                          #
+######################################################################
+setting-up pseudo-random generator...
+creating human-played environment
+playing against a human player...
+
+Last Action: 0, 8, 8
+
+Current board:
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 1
+
+
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+
+
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+
+
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 0
+
+
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 0
+
+Legal Actions:
+Action 0: 0, 0, 0
+Action 1: 0, 1, 0
+Action 2: 0, 2, 0
+Action 3: 0, 3, 0
+Action 4: 0, 4, 0
+Action 5: 0, 5, 0
+Action 6: 0, 6, 0
+Action 7: 0, 7, 0
+Action 8: 0, 8, 0
+Action 9: 0, 0, 1
+Action 10: 0, 1, 1
+Action 11: 0, 2, 1
+Action 12: 0, 3, 1
+Action 13: 0, 4, 1
+Action 14: 0, 5, 1
+Action 15: 0, 6, 1
+Action 16: 0, 7, 1
+Action 17: 0, 8, 1
+Action 18: 0, 0, 2
+Action 19: 0, 1, 2
+Action 20: 0, 2, 2
+Action 21: 0, 3, 2
+Action 22: 0, 4, 2
+Action 23: 0, 5, 2
+Action 24: 0, 6, 2
+Action 25: 0, 7, 2
+Action 26: 0, 8, 2
+Action 27: 0, 0, 3
+Action 28: 0, 1, 3
+Action 29: 0, 2, 3
+Action 30: 0, 3, 3
+Action 31: 0, 4, 3
+Action 32: 0, 5, 3
+Action 33: 0, 6, 3
+Action 34: 0, 7, 3
+Action 35: 0, 8, 3
+Action 36: 0, 0, 4
+Action 37: 0, 1, 4
+Action 38: 0, 2, 4
+Action 39: 0, 3, 4
+Action 40: 0, 4, 4
+Action 41: 0, 5, 4
+Action 42: 0, 6, 4
+Action 43: 0, 7, 4
+Action 44: 0, 8, 4
+Action 45: 0, 0, 5
+Action 46: 0, 1, 5
+Action 47: 0, 2, 5
+Action 48: 0, 3, 5
+Action 49: 0, 4, 5
+Action 50: 0, 5, 5
+Action 51: 0, 6, 5
+Action 52: 0, 7, 5
+Action 53: 0, 8, 5
+Action 54: 0, 0, 6
+Action 55: 0, 1, 6
+Action 56: 0, 2, 6
+Action 57: 0, 3, 6
+Action 58: 0, 4, 6
+Action 59: 0, 5, 6
+Action 60: 0, 6, 6
+Action 61: 0, 7, 6
+Action 62: 0, 8, 6
+Action 63: 0, 0, 7
+Action 64: 0, 1, 7
+Action 65: 0, 2, 7
+Action 66: 0, 3, 7
+Action 67: 0, 4, 7
+Action 68: 0, 5, 7
+Action 69: 0, 6, 7
+Action 70: 0, 7, 7
+Action 71: 0, 8, 7
+Action 72: 0, 0, 8
+Action 73: 0, 1, 8
+Action 74: 0, 2, 8
+Action 75: 0, 3, 8
+Action 76: 0, 4, 8
+Action 77: 0, 5, 8
+Action 78: 0, 6, 8
+Action 79: 0, 7, 8
+
+Input action:  applying action... 
+
+Last Action: 0, 7, 8
+
+Current board:
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 1 1
+
+
+1 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+
+
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+
+
+0 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 0 0
+
+
+0 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 0 0
+
+Legal Actions:
+Action 0: 0, 1, 0
+Action 1: 0, 2, 0
+Action 2: 0, 3, 0
+Action 3: 0, 4, 0
+Action 4: 0, 5, 0
+Action 5: 0, 6, 0
+Action 6: 0, 7, 0
+Action 7: 0, 8, 0
+Action 8: 0, 0, 1
+Action 9: 0, 1, 1
+Action 10: 0, 2, 1
+Action 11: 0, 3, 1
+Action 12: 0, 4, 1
+Action 13: 0, 5, 1
+Action 14: 0, 6, 1
+Action 15: 0, 7, 1
+Action 16: 0, 8, 1
+Action 17: 0, 0, 2
+Action 18: 0, 1, 2
+Action 19: 0, 2, 2
+Action 20: 0, 3, 2
+Action 21: 0, 4, 2
+Action 22: 0, 5, 2
+Action 23: 0, 6, 2
+Action 24: 0, 7, 2
+Action 25: 0, 8, 2
+Action 26: 0, 0, 3
+Action 27: 0, 1, 3
+Action 28: 0, 2, 3
+Action 29: 0, 3, 3
+Action 30: 0, 4, 3
+Action 31: 0, 5, 3
+Action 32: 0, 6, 3
+Action 33: 0, 7, 3
+Action 34: 0, 8, 3
+Action 35: 0, 0, 4
+Action 36: 0, 1, 4
+Action 37: 0, 2, 4
+Action 38: 0, 3, 4
+Action 39: 0, 4, 4
+Action 40: 0, 5, 4
+Action 41: 0, 6, 4
+Action 42: 0, 7, 4
+Action 43: 0, 8, 4
+Action 44: 0, 0, 5
+Action 45: 0, 1, 5
+Action 46: 0, 2, 5
+Action 47: 0, 3, 5
+Action 48: 0, 4, 5
+Action 49: 0, 5, 5
+Action 50: 0, 6, 5
+Action 51: 0, 7, 5
+Action 52: 0, 8, 5
+Action 53: 0, 0, 6
+Action 54: 0, 1, 6
+Action 55: 0, 2, 6
+Action 56: 0, 3, 6
+Action 57: 0, 4, 6
+Action 58: 0, 5, 6
+Action 59: 0, 6, 6
+Action 60: 0, 7, 6
+Action 61: 0, 8, 6
+Action 62: 0, 0, 7
+Action 63: 0, 1, 7
+Action 64: 0, 2, 7
+Action 65: 0, 3, 7
+Action 66: 0, 4, 7
+Action 67: 0, 5, 7
+Action 68: 0, 6, 7
+Action 69: 0, 7, 7
+Action 70: 0, 8, 7
+Action 71: 0, 0, 8
+Action 72: 0, 1, 8
+Action 73: 0, 2, 8
+Action 74: 0, 3, 8
+Action 75: 0, 4, 8
+Action 76: 0, 5, 8
+Action 77: 0, 6, 8
+
+Input action: Input action: 

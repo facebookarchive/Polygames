@@ -1,0 +1,46 @@
+actions: ['1', '1', 'blublu']
+######################################################################
+#                         HUMAN-PLAYED GAME                          #
+######################################################################
+setting-up pseudo-random generator...
+creating human-played environment
+playing against a human player...
+
+Last Action:  b-D3
+
+Current board:
+   A| B| C| D| E
+5  r|  | s| g| k
+4   |  |  |  | p
+3   |  |  | b|  
+2  P|  |  |  |  
+1  K| G| S| B| R
+
+Legal Actions:
+Action 0:  B-E2
+Action 1:  R-E2
+Action 2:  R-E3
+Action 3:  R-E4
+
+Input format : action index e.g. 0
+
+Input action:  applying action... 
+Random outcome ?
+
+Last Action:  r-A2
+
+Current board:
+   A| B| C| D| E
+5   |  | s| g| k
+4   |  |  |  | p
+3   |  |  | b|  
+2  r|  |  |  | R
+1  K| G| S| B|  
+
+Legal Actions:
+Action 0:  S-D2
+Action 1:  R-D2
+
+Input format : action index e.g. 0
+
+Input action: Input action: 

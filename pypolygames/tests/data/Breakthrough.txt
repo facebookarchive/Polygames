@@ -1,0 +1,84 @@
+actions: ['1', 'blublu']
+######################################################################
+#                         HUMAN-PLAYED GAME                          #
+######################################################################
+setting-up pseudo-random generator...
+creating human-played environment
+playing against a human player...
+
+Last Action: 1, 7, 6
+
+Current board:
+x|x|x|x|x|x|x|x
+x|x|x|x|x|x|x|x
+ | | | | | | | 
+ | | | | | | | 
+ | | | | | | | 
+ | | | | | | |o
+o|o|o|o|o|o|o| 
+o|o|o|o|o|o|o|o
+
+Legal Actions:
+Action 0: 2, 0, 1
+Action 1: 1, 0, 1
+Action 2: 2, 1, 1
+Action 3: 0, 1, 1
+Action 4: 1, 1, 1
+Action 5: 2, 2, 1
+Action 6: 0, 2, 1
+Action 7: 1, 2, 1
+Action 8: 2, 3, 1
+Action 9: 0, 3, 1
+Action 10: 1, 3, 1
+Action 11: 2, 4, 1
+Action 12: 0, 4, 1
+Action 13: 1, 4, 1
+Action 14: 2, 5, 1
+Action 15: 0, 5, 1
+Action 16: 1, 5, 1
+Action 17: 2, 6, 1
+Action 18: 0, 6, 1
+Action 19: 1, 6, 1
+Action 20: 0, 7, 1
+Action 21: 1, 7, 1
+
+Input action:  applying action... 
+
+Last Action: 1, 7, 7
+
+Current board:
+x|x|x|x|x|x|x|x
+ |x|x|x|x|x|x|x
+x| | | | | | | 
+ | | | | | | | 
+ | | | | | | | 
+ | | | | | | |o
+o|o|o|o|o|o|o|o
+o|o|o|o|o|o|o| 
+
+Legal Actions:
+Action 0: 1, 0, 0
+Action 1: 2, 0, 2
+Action 2: 1, 0, 2
+Action 3: 0, 1, 0
+Action 4: 2, 1, 1
+Action 5: 1, 1, 1
+Action 6: 2, 2, 1
+Action 7: 0, 2, 1
+Action 8: 1, 2, 1
+Action 9: 2, 3, 1
+Action 10: 0, 3, 1
+Action 11: 1, 3, 1
+Action 12: 2, 4, 1
+Action 13: 0, 4, 1
+Action 14: 1, 4, 1
+Action 15: 2, 5, 1
+Action 16: 0, 5, 1
+Action 17: 1, 5, 1
+Action 18: 2, 6, 1
+Action 19: 0, 6, 1
+Action 20: 1, 6, 1
+Action 21: 0, 7, 1
+Action 22: 1, 7, 1
+
+Input action: Input action: 

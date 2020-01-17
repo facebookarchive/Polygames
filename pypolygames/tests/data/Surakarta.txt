@@ -1,0 +1,78 @@
+actions: ['A5-B4', 'blublu']
+######################################################################
+#                         HUMAN-PLAYED GAME                          #
+######################################################################
+setting-up pseudo-random generator...
+creating human-played environment
+playing against a human player...
+
+Last Action: F2-E3
+
+Current board:
+  A|B|C|D|E|F
+6 x|x|x|x|x|x
+5 x|x|x|x|x|x
+4  | | | | | 
+3  | | | |o| 
+2 o|o|o|o|o| 
+1 o|o|o|o|o|o
+
+Legal Actions:
+Action 0: A5-B4
+Action 1: A5-A4
+Action 2: B5-C4
+Action 3: B5-B4
+Action 4: B5-A4
+Action 5: C5-D4
+Action 6: C5-C4
+Action 7: C5-B4
+Action 8: D5-E4
+Action 9: D5-D4
+Action 10: D5-C4
+Action 11: E5-F4
+Action 12: E5-E4
+Action 13: E5-D4
+Action 14: F5-F4
+Action 15: F5-E4
+
+Input format : <Alphabet><Digit>-<Alphabet><Digit> e.g. A1-A2
+
+Input action:  applying action... 
+
+Last Action: F1-F2
+
+Current board:
+  A|B|C|D|E|F
+6 x|x|x|x|x|x
+5  |x|x|x|x|x
+4  |x| | | | 
+3  | | | |o| 
+2 o|o|o|o|o|o
+1 o|o|o|o|o| 
+
+Legal Actions:
+Action 0: A6-A5
+Action 1: B4-C4
+Action 2: B4-C3
+Action 3: B4-B3
+Action 4: B4-A3
+Action 5: B4-A4
+Action 6: B4-A5
+Action 7: B5-C4
+Action 8: B5-A4
+Action 9: B5-A5
+Action 10: B6-A5
+Action 11: C5-D4
+Action 12: C5-C4
+Action 13: D5-E4
+Action 14: D5-D4
+Action 15: D5-C4
+Action 16: E5-F4
+Action 17: E5-E4
+Action 18: E5-D4
+Action 19: F5-F4
+Action 20: F5-E4
+
+Input format : <Alphabet><Digit>-<Alphabet><Digit> e.g. A1-A2
+
+Input action: Input action: 
