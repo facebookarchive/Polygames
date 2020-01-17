@@ -1,4 +1,4 @@
-[![CircleCI](https://circleci.com/gh/facebookexternal/polygames/tree/master.svg?style=svg&circle-token=a33850af4c21714875fe08f01aa808bf47e469a3)](https://circleci.com/gh/facebookexternal/polygames/tree/master)
+[![CircleCI](https://circleci.com/gh/facebookincubator/Polygames.svg?style=svg)](https://circleci.com/gh/facebookincubator/Polygames)
 
 # Polygames
 
