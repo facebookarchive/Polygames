@@ -497,12 +497,12 @@ class ChannelAssembler {
   }
 
   void setIsTournamentOpponent(bool mode) {
-    isTournamentOpponent_ = true;
+    isTournamentOpponent_ = mode;
   }
   bool isTournamentOpponent() const {
     return isTournamentOpponent_;
   }
-  bool setDontRequestModelUpdates(bool v) {
+  void setDontRequestModelUpdates(bool v) {
     dontRequestModelUpdates_ = v;
   }
 

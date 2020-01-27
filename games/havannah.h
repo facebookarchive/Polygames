@@ -9,6 +9,7 @@
 
 #include "game_player.h"
 
+#include <cstring>
 #include <optional>
 #include <random>
 #include <set>
@@ -387,6 +388,7 @@ template <int SIZE, bool PIE> void Havannah::Board<SIZE, PIE>::play(int index) {
         _paths[_pathsEnd] =
             PathInfo(_pathsEnd, _currentColor, borders, corners);
         _pathsEnd++;
+      _pathBoard[index] = mainPathIndex;
       }
       // if the cell is connected to an existing path, then update paths
       // and check end of game
@@ -406,6 +408,7 @@ template <int SIZE, bool PIE> void Havannah::Board<SIZE, PIE>::play(int index) {
               _paths[k] = mainPath;
           }
         }
+      _pathBoard[index] = mainPathIndex;
   
         // update winner
         if (isWinningPath(mainPath, mainPathIndex, index))
@@ -413,7 +416,6 @@ template <int SIZE, bool PIE> void Havannah::Board<SIZE, PIE>::play(int index) {
       }
 
       // end turn and prepare for next one
-      _pathBoard[index] = mainPathIndex;
       _nbEmptyIndices--;
       _lastIndex = index;
       _currentColor = _currentColor == COLOR_BLACK ? COLOR_WHITE : COLOR_BLACK;

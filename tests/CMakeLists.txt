@@ -22,6 +22,7 @@ include_directories( ${GTEST_INCLUDE_DIRS} )
 include_directories(
  ../games
  ../torchRL
+ ../torchRL/third_party/fmt/include
  ../torchRL/tube/src_cpp
  )
 

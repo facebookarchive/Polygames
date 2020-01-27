@@ -2,13 +2,16 @@
 
 # Polygames
 
+This README is a work in progress, please feel very free to post issues - we are happy to help.
+Save up computational power: you can find checkpoints here: http://dl.fbaipublicfiles.com/polygames/checkpoints/list.txt (feel free to open an issue for discussing which checkpoint you should use for which game/problem!).
+
 ## Requirement:
 ```
 C++14 compatible compiler
 miniconda3
 ```
 
-## Compilation Guide:
+## Compilation Guide using modules:
 
 ### First install conda and pytorch
 
@@ -66,9 +69,9 @@ On devfair, you may need to ```sudo ln -s /public/apps/cuda/10.0
 #### Troubleshooting
 1. Undefined references to several BLAS methods, e.g.
    ```
-   /private/home/xavierm/.conda/envs/polygames/lib/python3.7/site-packages/torch/lib/libcaffe2.so: undefined reference to `cblas_sgemm_pack_get_size'
-   /private/home/xavierm/.conda/envs/polygames/lib/python3.7/site-packages/torch/lib/libcaffe2.so: undefined reference to `cblas_gemm_s8u8s32_compute'
-   /private/home/xavierm/.conda/envs/polygames/lib/python3.7/site-packages/torch/lib/libcaffe2.so: undefined reference to `cblas_gemm_s8u8s32_pack_get_size'
+   /private/home/xxx/.conda/envs/polygames/lib/python3.7/site-packages/torch/lib/libcaffe2.so: undefined reference to `cblas_sgemm_pack_get_size'
+   /private/home/xxx/.conda/envs/polygames/lib/python3.7/site-packages/torch/lib/libcaffe2.so: undefined reference to `cblas_gemm_s8u8s32_compute'
+   /private/home/xxx/.conda/envs/polygames/lib/python3.7/site-packages/torch/lib/libcaffe2.so: undefined reference to `cblas_gemm_s8u8s32_pack_get_size'
    ```
    * **Solution 1**: prioritize `mkl` from your environment (e.g. over the one in `/public/apps/anaconda3/5.0.1/lib`). For that
      - check that `mkl` from the environment contains the required methods:
@@ -107,9 +110,7 @@ On devfair, you may need to ```sudo ln -s /public/apps/cuda/10.0
          std::terminate();
      }
      ```
-## Compilation Guide for external user:
-
-This is an example for external users out of facebook
+## Compilation Guide without modules:
 
 ### First install conda and pytorch
 create a fresh conda environment with python3

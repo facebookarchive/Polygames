@@ -31,6 +31,14 @@ namespace Hex {
 
     BoardTest() : Board<SIZE, PIE>() {}
 
+    int getNbIndices() const {
+        return Board<SIZE, PIE>::_nbIndices;
+    }
+
+    int getNbEmptyIndices() const {
+        return Board<SIZE, PIE>::_nbEmptyIndices;
+    }
+
     void computeBorderConnection(int index, Color color, 
       bool & isConnectedBorder1, bool & isConnectedBorder2) const {
      return Board<SIZE, PIE>::computeBorderConnection(index, color, 
@@ -50,10 +58,6 @@ namespace Hex {
      return Board<SIZE, PIE>::_paths;
     }
 
-    bool & getCanPie() {
-     return Board<SIZE, PIE>::_canPie;
-    }
-
     int & getPathsEnd() {
      return Board<SIZE, PIE>::_pathsEnd;
     }
@@ -61,6 +65,36 @@ namespace Hex {
     std::array<int, SIZE*SIZE> & getPathBoard() {
      return Board<SIZE, PIE>::_pathBoard;
     }
+
+    int findNthEmptyIndex(int n) const {
+     assert(n < (Board<SIZE,PIE>::_nbEmptyIndices));
+     assert(n >= 0);
+   
+     int nbEmpty = 0;
+     int i = 0;
+     while (true) {
+       if (Board<SIZE, PIE>::_pathBoard[i] == 0) {
+         if (nbEmpty == n)
+           break;
+         else
+           nbEmpty++;
+       }
+       i++;
+     }
+     return i;
+   }
+
+   std::vector<int> findEmptyIndices() const {
+     std::vector<int> emptyIndices;
+     emptyIndices.reserve(Board<SIZE, PIE>::_nbEmptyIndices);
+     for (int k = 0; k < Board<SIZE, PIE>::_nbFullIndices; k++)
+       if (Board<SIZE, PIE>::_pathBoard[k] == 0)
+         emptyIndices.push_back(k);
+     if (Board<SIZE, PIE>::canPie() and
+         Board<SIZE, PIE>::_nbEmptyIndices == Board<SIZE, PIE>::_nbIndices - 1)
+       emptyIndices.push_back(*(Board<SIZE, PIE>::_lastIndex));
+     return emptyIndices;
+   }
 
   };
 
@@ -211,7 +245,11 @@ TEST(HexGroup, resetPathBoard) {
  b.reset();
  for (int i=0; i<25; i++) {
   ASSERT_EQ(b.getPathBoard()[i], 0); 
-  ASSERT_EQ(b.getColorAtIndex(i), Hex::COLOR_NONE);
+  int pathIndex;
+  Hex::Color color;
+  b.getPathIndexAndColorAtIndex(i, pathIndex, color);
+  ASSERT_EQ(pathIndex, 0);
+  ASSERT_EQ(color, Hex::COLOR_NONE);
  }
 }
 
@@ -273,28 +311,28 @@ TEST(HexGroup, computeBorderConnection0) {
 
  // left
  index = b.convertCellToIndex(Hex::Cell(7, 0));
- b.computeBorderConnection(index, Hex::COLOR_BLACK, 
+ b.computeBorderConnection(index, Hex::COLOR_WHITE, 
    isConnectedBorder1, isConnectedBorder2);
  ASSERT_EQ(isConnectedBorder1, true);
  ASSERT_EQ(isConnectedBorder2, false);
 
  // right
  index = b.convertCellToIndex(Hex::Cell(7, 11));
- b.computeBorderConnection(index, Hex::COLOR_BLACK, 
+ b.computeBorderConnection(index, Hex::COLOR_WHITE, 
    isConnectedBorder1, isConnectedBorder2);
  ASSERT_EQ(isConnectedBorder1, false);
  ASSERT_EQ(isConnectedBorder2, true);
 
  // top
  index = b.convertCellToIndex(Hex::Cell(0, 7));
- b.computeBorderConnection(index, Hex::COLOR_BLACK, 
+ b.computeBorderConnection(index, Hex::COLOR_WHITE, 
    isConnectedBorder1, isConnectedBorder2);
  ASSERT_EQ(isConnectedBorder1, false);
  ASSERT_EQ(isConnectedBorder2, false);
 
  // bottom
  index = b.convertCellToIndex(Hex::Cell(11, 7));
- b.computeBorderConnection(index, Hex::COLOR_BLACK, 
+ b.computeBorderConnection(index, Hex::COLOR_WHITE, 
    isConnectedBorder1, isConnectedBorder2);
  ASSERT_EQ(isConnectedBorder1, false);
  ASSERT_EQ(isConnectedBorder2, false);
@@ -310,28 +348,28 @@ TEST(HexGroup, computeBorderConnection1) {
 
  // left
  index = b.convertCellToIndex(Hex::Cell(7, 0));
- b.computeBorderConnection(index, Hex::COLOR_WHITE, 
+ b.computeBorderConnection(index, Hex::COLOR_BLACK, 
    isConnectedBorder1, isConnectedBorder2);
  ASSERT_EQ(isConnectedBorder1, false);
  ASSERT_EQ(isConnectedBorder2, false);
 
  // right
  index = b.convertCellToIndex(Hex::Cell(7, 11));
- b.computeBorderConnection(index, Hex::COLOR_WHITE, 
+ b.computeBorderConnection(index, Hex::COLOR_BLACK, 
    isConnectedBorder1, isConnectedBorder2);
  ASSERT_EQ(isConnectedBorder1, false);
  ASSERT_EQ(isConnectedBorder2, false);
 
  // top
  index = b.convertCellToIndex(Hex::Cell(0, 7));
- b.computeBorderConnection(index, Hex::COLOR_WHITE, 
+ b.computeBorderConnection(index, Hex::COLOR_BLACK, 
    isConnectedBorder1, isConnectedBorder2);
  ASSERT_EQ(isConnectedBorder1, true);
  ASSERT_EQ(isConnectedBorder2, false);
 
  // bottom
  index = b.convertCellToIndex(Hex::Cell(11, 7));
- b.computeBorderConnection(index, Hex::COLOR_WHITE, 
+ b.computeBorderConnection(index, Hex::COLOR_BLACK, 
    isConnectedBorder1, isConnectedBorder2);
  ASSERT_EQ(isConnectedBorder1, false);
  ASSERT_EQ(isConnectedBorder2, true);
@@ -415,25 +453,25 @@ TEST(HexGroup, play0) {
  ASSERT_EQ(b.getPathBoard()[index], 1);
  CheckHexPathInfo(b.getPaths()[1], Hex::COLOR_BLACK, true, false, 1);
 
- index = b.convertCellToIndex(Hex::Cell(2, 0));
+ index = b.convertCellToIndex(Hex::Cell(0, 2));
  b.play(index);
  ASSERT_EQ(b.getPathsEnd(), 3);
  ASSERT_EQ(b.getPathBoard()[index], 2);
  CheckHexPathInfo(b.getPaths()[2], Hex::COLOR_WHITE, false, false, 2);
 
- index = b.convertCellToIndex(Hex::Cell(0, 3));
+ index = b.convertCellToIndex(Hex::Cell(3, 0));
  b.play(index);
  ASSERT_EQ(b.getPathsEnd(), 4);
  ASSERT_EQ(b.getPathBoard()[index], 3);
  CheckHexPathInfo(b.getPaths()[3], Hex::COLOR_BLACK, false, false, 3);
 
- index = b.convertCellToIndex(Hex::Cell(1, 2));
+ index = b.convertCellToIndex(Hex::Cell(2, 1));
  b.play(index);
  ASSERT_EQ(b.getPathsEnd(), 5);
  ASSERT_EQ(b.getPathBoard()[index], 4);
  CheckHexPathInfo(b.getPaths()[4], Hex::COLOR_WHITE, false, false, 4);
 
- index = b.convertCellToIndex(Hex::Cell(1, 0));
+ index = b.convertCellToIndex(Hex::Cell(0, 1));
  b.play(index);
  ASSERT_EQ(b.getPathsEnd(), 5);
  ASSERT_EQ(b.getPathBoard()[index], 1);
@@ -445,43 +483,43 @@ TEST(HexGroup, play0) {
  ASSERT_EQ(b.getPathBoard()[index], 4);
  CheckHexPathInfo(b.getPaths()[4], Hex::COLOR_WHITE, false, false, 4);
 
- index = b.convertCellToIndex(Hex::Cell(4, 2));
+ index = b.convertCellToIndex(Hex::Cell(2, 4));
  b.play(index);
  ASSERT_EQ(b.getPathsEnd(), 6);
  ASSERT_EQ(b.getPathBoard()[index], 5);
  CheckHexPathInfo(b.getPaths()[5], Hex::COLOR_BLACK, false, false, 5);
 
- index = b.convertCellToIndex(Hex::Cell(2, 4));
+ index = b.convertCellToIndex(Hex::Cell(4, 2));
  b.play(index);
  ASSERT_EQ(b.getPathsEnd(), 7);
  ASSERT_EQ(b.getPathBoard()[index], 6);
  CheckHexPathInfo(b.getPaths()[6], Hex::COLOR_WHITE, false, false, 6);
 
- index = b.convertCellToIndex(Hex::Cell(0, 1));
+ index = b.convertCellToIndex(Hex::Cell(1, 0));
  b.play(index);
  ASSERT_EQ(b.getPathsEnd(), 7);
  ASSERT_EQ(b.getPathBoard()[index], 1);
  CheckHexPathInfo(b.getPaths()[1], Hex::COLOR_BLACK, true, false, 1);
 
- index = b.convertCellToIndex(Hex::Cell(0, 4));
+ index = b.convertCellToIndex(Hex::Cell(4, 0));
  b.play(index);
  ASSERT_EQ(b.getPathsEnd(), 8);
  ASSERT_EQ(b.getPathBoard()[index], 7);
  CheckHexPathInfo(b.getPaths()[7], Hex::COLOR_WHITE, true, false, 7);
 
- index = b.convertCellToIndex(Hex::Cell(3, 1));
+ index = b.convertCellToIndex(Hex::Cell(1, 3));
  b.play(index);
  ASSERT_EQ(b.getPathsEnd(), 9);
  ASSERT_EQ(b.getPathBoard()[index], 8);
  CheckHexPathInfo(b.getPaths()[8], Hex::COLOR_BLACK, false, false, 8);
 
- index = b.convertCellToIndex(Hex::Cell(0, 2));
+ index = b.convertCellToIndex(Hex::Cell(2, 0));
  b.play(index);
  ASSERT_EQ(b.getPathsEnd(), 9);
  ASSERT_EQ(b.getPathBoard()[index], 4);
  CheckHexPathInfo(b.getPaths()[4], Hex::COLOR_WHITE, true, false, 4);
 
- index = b.convertCellToIndex(Hex::Cell(2, 3));
+ index = b.convertCellToIndex(Hex::Cell(3, 2));
  b.play(index);
  ASSERT_EQ(b.getPathsEnd(), 10);
  ASSERT_EQ(b.getPathBoard()[index], 9);
@@ -500,13 +538,13 @@ TEST(HexGroup, play0) {
  CheckHexPathInfo(b.getPaths()[5], Hex::COLOR_BLACK, false, false, 5);
  ASSERT_EQ(b.getPaths()[9]._mainPathIndex, 5);
 
- index = b.convertCellToIndex(Hex::Cell(4, 1));
+ index = b.convertCellToIndex(Hex::Cell(1, 4));
  b.play(index);
  ASSERT_EQ(b.getPathsEnd(), 12);
  ASSERT_EQ(b.getPathBoard()[index], 11);
  CheckHexPathInfo(b.getPaths()[11], Hex::COLOR_WHITE, false, true, 11);
 
- index = b.convertCellToIndex(Hex::Cell(3, 2));
+ index = b.convertCellToIndex(Hex::Cell(2, 3));
  b.play(index);
  ASSERT_EQ(b.getPathsEnd(), 12);
  ASSERT_EQ(b.getPathBoard()[index], 5);
@@ -514,7 +552,7 @@ TEST(HexGroup, play0) {
  ASSERT_EQ(b.getPaths()[8]._mainPathIndex, 5);
  ASSERT_EQ(b.getPaths()[9]._mainPathIndex, 5);
 
- index = b.convertCellToIndex(Hex::Cell(4, 0));
+ index = b.convertCellToIndex(Hex::Cell(0, 4));
  b.play(index);
  ASSERT_EQ(b.getPathsEnd(), 12);
  ASSERT_EQ(b.getPathBoard()[index], 11);
@@ -526,26 +564,26 @@ TEST(HexGroup, play0) {
  ASSERT_EQ(b.getPathBoard()[index], 1);
  CheckHexPathInfo(b.getPaths()[1], Hex::COLOR_BLACK, true, false, 1);
 
- index = b.convertCellToIndex(Hex::Cell(4, 3));
+ index = b.convertCellToIndex(Hex::Cell(3, 4));
  b.play(index);
  ASSERT_EQ(b.getPathsEnd(), 12);
  ASSERT_EQ(b.getPathBoard()[index], 10);
  CheckHexPathInfo(b.getPaths()[10], Hex::COLOR_WHITE, false, true, 10);
 
- index = b.convertCellToIndex(Hex::Cell(3, 4));
+ index = b.convertCellToIndex(Hex::Cell(4, 3));
  b.play(index);
  ASSERT_EQ(b.getPathsEnd(), 12);
  ASSERT_EQ(b.getPathBoard()[index], 5);
  CheckHexPathInfo(b.getPaths()[5], Hex::COLOR_BLACK, false, true, 5);
 
- index = b.convertCellToIndex(Hex::Cell(3, 0));
+ index = b.convertCellToIndex(Hex::Cell(0, 3));
  b.play(index);
  ASSERT_EQ(b.getPathsEnd(), 12);
  ASSERT_EQ(b.getPathBoard()[index], 2);
  CheckHexPathInfo(b.getPaths()[2], Hex::COLOR_WHITE, false, true, 2);
  ASSERT_EQ(b.getPaths()[11]._mainPathIndex, 2);
 
- index = b.convertCellToIndex(Hex::Cell(1, 3));
+ index = b.convertCellToIndex(Hex::Cell(3, 1));
  b.play(index);
  ASSERT_EQ(b.getPathsEnd(), 12);
  ASSERT_EQ(b.getPathBoard()[index], 3);
@@ -554,14 +592,14 @@ TEST(HexGroup, play0) {
  ASSERT_EQ(b.getPaths()[8]._mainPathIndex, 3);
  ASSERT_EQ(b.getPaths()[9]._mainPathIndex, 3);
 
- index = b.convertCellToIndex(Hex::Cell(1, 4));
+ index = b.convertCellToIndex(Hex::Cell(4, 1));
  b.play(index);
  ASSERT_EQ(b.getPathsEnd(), 12);
  ASSERT_EQ(b.getPathBoard()[index], 6);
  CheckHexPathInfo(b.getPaths()[6], Hex::COLOR_WHITE, true, false, 6);
  ASSERT_EQ(b.getPaths()[7]._mainPathIndex, 6);
 
- index = b.convertCellToIndex(Hex::Cell(2, 1));
+ index = b.convertCellToIndex(Hex::Cell(1, 2));
  b.play(index);
  ASSERT_EQ(b.getPathsEnd(), 12);
  ASSERT_EQ(b.getPathBoard()[index], 1);
@@ -666,6 +704,7 @@ TEST(HexGroup, findWinnerPath) {
 
  // play cells
  std::vector<Hex::Cell> gameCells = {
+  Hex::Cell(4, 4),
   Hex::Cell(1, 1), Hex::Cell(2, 0), Hex::Cell(2, 3), Hex::Cell(3, 2), Hex::Cell(4, 2), 
   Hex::Cell(1, 2), Hex::Cell(0, 4), Hex::Cell(3, 0), Hex::Cell(1, 0), Hex::Cell(3, 3), 
   Hex::Cell(1, 3), Hex::Cell(0, 0), Hex::Cell(2, 1), Hex::Cell(1, 4), Hex::Cell(2, 2)
@@ -674,7 +713,7 @@ TEST(HexGroup, findWinnerPath) {
   int index = b.convertCellToIndex(c);
   b.play(index);
  }
- ASSERT_EQ(b.getWinnerColor(), Hex::COLOR_BLACK);
+ ASSERT_EQ(b.getWinnerColor(), Hex::COLOR_WHITE);
 
  // test cells in winner path
  std::vector<int> winIndices = b.findWinnerPath();
@@ -755,7 +794,7 @@ TEST(HexGroup, winner_white) {
     Hex::BoardTest<9,true> b;
     b.reset();
     std::vector<int> gameIndices = {
-        37, 21,
+        0, 37, 21,
         47, 23,
         40, 24,
         50, 67,
@@ -769,7 +808,7 @@ TEST(HexGroup, winner_white) {
     };
     for (int i : gameIndices)
         b.play(i);
-    ASSERT_EQ(b.getWinnerColor(), Hex::COLOR_BLACK);
+    ASSERT_EQ(b.getWinnerColor(), Hex::COLOR_WHITE);
     ASSERT_EQ(b.isGameFinished(), true);
 }
 
@@ -785,13 +824,13 @@ TEST(HexGroup, playPie1) {
  index = b.convertCellToIndex(Hex::Cell(2, 1));
  b.play(index);
  ASSERT_EQ(b.getNbEmptyIndices(), 24);
- ASSERT_EQ(b.getCanPie(), true);
+ ASSERT_EQ(b.canPie(), true);
  ASSERT_EQ(b.findEmptyIndices().size(), 25);
 
  index = b.convertCellToIndex(Hex::Cell(1, 1));
  b.play(index);
  ASSERT_EQ(b.getNbEmptyIndices(), 23);
- ASSERT_EQ(b.getCanPie(), true);
+ ASSERT_EQ(b.canPie(), false);
  ASSERT_EQ(b.findEmptyIndices().size(), 23);
 }
 
@@ -807,13 +846,13 @@ TEST(HexGroup, playPie2) {
  index = b.convertCellToIndex(Hex::Cell(2, 1));
  b.play(index);
  ASSERT_EQ(b.getNbEmptyIndices(), 24);
- ASSERT_EQ(b.getCanPie(), true);
+ ASSERT_EQ(b.canPie(), true);
  ASSERT_EQ(b.findEmptyIndices().size(), 25);
 
  index = b.convertCellToIndex(Hex::Cell(2, 1));
  b.play(index);
  ASSERT_EQ(b.getNbEmptyIndices(), 24);
- ASSERT_EQ(b.getCanPie(), false);
+ ASSERT_EQ(b.canPie(), false);
  ASSERT_EQ(b.findEmptyIndices().size(), 24);
 }
 
@@ -821,23 +860,32 @@ TEST(HexGroup, winner_pie) {
     Hex::BoardTest<9,true> b;
     b.reset();
     std::vector<int> gameIndices = {
-        37, 
-        37, 21,
-        47, 23,
-        40, 24,
-        50, 67,
-        43, 69,
-        35, 51,
-        42, 41,
-        49, 48,
-        39, 38,
-        46, 45,
-        36
+      13, 
+      13, 29,
+      23, 47,
+      40, 56,
+      50, 43,
+      67, 61,
+      75, 59,
+      58, 49,
+      41, 32,
+      31, 22,
+      14, 5,
+      4
     };
+
     for (int i : gameIndices)
         b.play(i);
     ASSERT_EQ(b.getWinnerColor(), Hex::COLOR_BLACK);
     ASSERT_EQ(b.isGameFinished(), true);
-}
 
+    /*
+    for (int i : gameIndices) {
+        auto c = b.convertIndexToCell(i);
+        std::swap(c.first, c.second);
+        std::cout << b.convertCellToIndex(c) << std::endl;
+    }
+    */
+
+}
 

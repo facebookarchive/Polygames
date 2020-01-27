@@ -572,8 +572,6 @@ void Game::step() {
 }
 
 void Game::setReward(const State& state, int resigned) {
-  assert(state.terminated());
-
   for (int i = 0; i < (int)players_.size(); ++i) {
     assert(v_[i].len() <= pi_[i].len() && pi_[i].len() == feature_[i].len());
     while (v_[i].len() < pi_[i].len()) {

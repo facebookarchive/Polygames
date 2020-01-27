@@ -12,8 +12,6 @@
 #include <hex_state.h>
 
 
-/*
-
 ///////////////////////////////////////////////////////////////////////////////
 // helpers
 ///////////////////////////////////////////////////////////////////////////////
@@ -66,7 +64,7 @@ TEST(HexStateGroup, play_1) {
 
  Hex::StateTest<7,true> state(0, 0, false);
 
- Hex::Action<7> a(2, 3);
+ Hex::Action<7> a(2, 3, 2*7+3);
  state.ApplyAction(a);
 
  ASSERT_EQ(GameStatus::player1Turn, state.GetStatus());
@@ -126,7 +124,7 @@ TEST(HexStateGroup, clone_1) {
   ASSERT_EQ(49, state.GetLegalActions().size());
   ASSERT_EQ(49, ptrClone->GetLegalActions().size());
 
-  Hex::Action<7> a(2, 3);
+  Hex::Action<7> a(2, 3, -1);
   state.ApplyAction(a);
 
   ASSERT_EQ(49, state.GetLegalActions().size());
@@ -148,8 +146,8 @@ TEST(HexStateGroup, features_1) {
  ASSERT_EQ((std::vector<int64_t>{1, 3, 3}), state.GetActionSize());
 
  std::vector<Hex::Action<3>> actions {{
-     {1,0},
-     {0,0}
+     {1,0,-1},
+     {0,0,-1}
  }};
 
  auto currentPlayer = GameStatus::player0Turn;
@@ -196,15 +194,17 @@ TEST(HexStateGroup, features_1) {
      0.f, 0.f, 0.f,
      0.f, 0.f, 0.f,
 
-     1.f, 1.f, 1.f,
-     1.f, 1.f, 1.f,
-     1.f, 1.f, 1.f
+     0.f, 0.f, 0.f,
+     0.f, 0.f, 0.f,
+     0.f, 0.f, 0.f
 
  };
 
  // DEBUG
- // printPlanes<std::vector<float>>(state.GetFeatures(), 7, 3, 3);
+ // std::cout << "*** expected ***" << std::endl;
  // printPlanes<std::vector<float>>(expectedFeatures, 7, 3, 3);
+ // std::cout << "*** actual ***" << std::endl;
+ // printPlanes<std::vector<float>>(state.GetFeatures(), 7, 3, 3);
 
  ASSERT_EQ(expectedFeatures, state.GetFeatures());
 
@@ -220,9 +220,9 @@ TEST(HexStateGroup, features_2) {
  ASSERT_EQ((std::vector<int64_t>{1, 3, 3}), state.GetActionSize());
 
  std::vector<Hex::Action<3>> actions {{
-     {1,1}, {0,0},
-     {2,2}, {2,0},
-     {1,0}
+     {1,1,-1}, {0,0,-1},
+     {2,2,-1}, {2,0,-1},
+     {1,0,-1}
  }};
 
  auto currentPlayer = GameStatus::player0Turn;
@@ -244,39 +244,48 @@ TEST(HexStateGroup, features_2) {
 
  std::vector<float> expectedFeatures {
 
+     // history - 2, player 0
      0.f, 0.f, 0.f,
      0.f, 1.f, 0.f,
      0.f, 0.f, 1.f,
 
+     // history - 2, player 1
      1.f, 0.f, 0.f,
      0.f, 0.f, 0.f,
      0.f, 0.f, 0.f,
 
+     // history - 1, player 0
      0.f, 0.f, 0.f,
      0.f, 1.f, 0.f,
      0.f, 0.f, 1.f,
 
+     // history - 1, player 1
      1.f, 0.f, 0.f,
      0.f, 0.f, 0.f,
      1.f, 0.f, 0.f,
 
+     // history - 1, player 0
      0.f, 0.f, 0.f,
      1.f, 1.f, 0.f,
      0.f, 0.f, 1.f,
 
+     // history - 0, player 1
      1.f, 0.f, 0.f,
      0.f, 0.f, 0.f,
      1.f, 0.f, 0.f,
 
-     0.f, 0.f, 0.f,
-     0.f, 0.f, 0.f,
-     0.f, 0.f, 0.f
+     // turn
+     1.f, 1.f, 1.f,
+     1.f, 1.f, 1.f,
+     1.f, 1.f, 1.f
 
  };
 
  // DEBUG
- // printPlanes<std::vector<float>>(state.GetFeatures(), 7, 3, 3);
+ // std::cout << "*** expected ***" << std::endl;
  // printPlanes<std::vector<float>>(expectedFeatures, 7, 3, 3);
+ // std::cout << "*** actual ***" << std::endl;
+ // printPlanes<std::vector<float>>(state.GetFeatures(), 7, 3, 3);
 
  ASSERT_EQ(expectedFeatures, state.GetFeatures());
 
@@ -284,30 +293,34 @@ TEST(HexStateGroup, features_2) {
 
 
 TEST(HexStateGroup, features_3) {
+ const int history = 2;
+ const int size = 9;
+ const bool turnFeatures = true;
+ const int nbChannels = 2*(1 + history) + (turnFeatures ? 1 : 0);
 
- Hex::StateTest<9,false> state(0, 2, true);
+ Hex::StateTest<size,false> state(0, history, turnFeatures);
 
  // apply actions
 
- ASSERT_EQ((std::vector<int64_t>{1, 9, 9}), state.GetActionSize());
+ ASSERT_EQ((std::vector<int64_t>{1, size, size}), state.GetActionSize());
 
- std::vector<Hex::Action<9>> actions {{
-   {4,1}, {2,3},
-   {5,2}, {2,5},
-   {4,4}, {2,6},
-   {5,5}, {7,4},
-   {4,7}, {7,6},
-   {3,8}, {5,6},
-   {4,6}, {4,5},
-   {5,4}, {5,3},
-   {4,3}, {4,2},
-   {5,1}, {5,0},
-   {4,0}
+ std::vector<Hex::Action<size>> actions {{
+   {0,0,-1}, {4,1,-1},
+   {2,3,-1}, {5,2,-1},
+   {2,5,-1}, {4,4,-1},
+   {2,6,-1}, {5,5,-1},
+   {7,4,-1}, {4,7,-1},
+   {7,6,-1}, {3,8,-1},
+   {5,6,-1}, {4,6,-1},
+   {4,5,-1}, {5,4,-1},
+   {5,3,-1}, {4,3,-1},
+   {4,2,-1}, {5,1,-1},
+   {5,0,-1}, {4,0,-1}
  }};
 
  auto currentPlayer = GameStatus::player0Turn;
  auto nextPlayer = GameStatus::player1Turn;
- int k = 9*9;
+ int k = size*size;
  for (const auto & a : actions) {
      ASSERT_EQ(currentPlayer, state.GetStatus());
      ASSERT_EQ(k, state.GetLegalActions().size());
@@ -317,25 +330,16 @@ TEST(HexStateGroup, features_3) {
      ASSERT_EQ(k, state.GetLegalActions().size());
      // std::cout << a.to_string() << std::endl;
  }
- ASSERT_EQ(GameStatus::player0Win, state.GetStatus());
+ ASSERT_EQ(GameStatus::player1Win, state.GetStatus());
 
  // check features
 
- ASSERT_EQ((std::vector<int64_t>{7, 9, 9}), state.GetFeatureSize());
+ ASSERT_EQ((std::vector<int64_t>{nbChannels, size, size}), state.GetFeatureSize());
 
  std::vector<float> expectedFeatures {
 
-     0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
-     0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
-     0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
-     0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 1.f,
-     0.f, 1.f, 0.f, 1.f, 1.f, 0.f, 1.f, 1.f, 0.f,
-     0.f, 1.f, 1.f, 0.f, 1.f, 1.f, 0.f, 0.f, 0.f,
-     0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
-     0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
-     0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
-
-     0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
+     // history - 2, player 0
+     1.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
      0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
      0.f, 0.f, 0.f, 1.f, 0.f, 1.f, 1.f, 0.f, 0.f,
      0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
@@ -345,6 +349,7 @@ TEST(HexStateGroup, features_3) {
      0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 1.f, 0.f, 0.f,
      0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
 
+     // history - 2, player 1
      0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
      0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
      0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
@@ -355,7 +360,8 @@ TEST(HexStateGroup, features_3) {
      0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
      0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
 
-     0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
+     // history - 1, player 0
+     1.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
      0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
      0.f, 0.f, 0.f, 1.f, 0.f, 1.f, 1.f, 0.f, 0.f,
      0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
@@ -365,6 +371,29 @@ TEST(HexStateGroup, features_3) {
      0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 1.f, 0.f, 0.f,
      0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
 
+     // history - 1, player 1
+     0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
+     0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
+     0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
+     0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 1.f,
+     0.f, 1.f, 0.f, 1.f, 1.f, 0.f, 1.f, 1.f, 0.f,
+     0.f, 1.f, 1.f, 0.f, 1.f, 1.f, 0.f, 0.f, 0.f,
+     0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
+     0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
+     0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
+
+     // history - 0, player 0
+     1.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
+     0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
+     0.f, 0.f, 0.f, 1.f, 0.f, 1.f, 1.f, 0.f, 0.f,
+     0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
+     0.f, 0.f, 1.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f,
+     1.f, 0.f, 0.f, 1.f, 0.f, 0.f, 1.f, 0.f, 0.f,
+     0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
+     0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 1.f, 0.f, 0.f,
+     0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
+
+     // history - 0, player 1
      0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
      0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
      0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
@@ -375,16 +404,7 @@ TEST(HexStateGroup, features_3) {
      0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
      0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
 
-     0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
-     0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
-     0.f, 0.f, 0.f, 1.f, 0.f, 1.f, 1.f, 0.f, 0.f,
-     0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
-     0.f, 0.f, 1.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f,
-     1.f, 0.f, 0.f, 1.f, 0.f, 0.f, 1.f, 0.f, 0.f,
-     0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
-     0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 1.f, 0.f, 0.f,
-     0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
-
+     // turn
      0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
      0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
      0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
@@ -399,8 +419,10 @@ TEST(HexStateGroup, features_3) {
  };
 
  // DEBUG
- // printPlanes<std::vector<float>>(state.GetFeatures(), 7, 9, 9);
- // printPlanes<std::vector<float>>(expectedFeatures, 7, 9, 9);
+ // std::cout << "*** expected ***" << std::endl;
+ // printPlanes<std::vector<float>>(expectedFeatures, nbChannels, size, size);
+ // std::cout << "*** actual ***" << std::endl;
+ // printPlanes<std::vector<float>>(state.GetFeatures(), nbChannels, size, size);
 
  ASSERT_EQ(expectedFeatures, state.GetFeatures());
 
@@ -427,6 +449,4 @@ TEST(HexStateGroup, features_3) {
  // }
 
 }
-
-*/
 

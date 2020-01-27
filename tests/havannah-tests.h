@@ -15,9 +15,9 @@
 // helpers
 ///////////////////////////////////////////////////////////////////////////////
 
-static void CheckHavannahPathInfo(const Havannah::PathInfo & path, PLAYER player,
+static void CheckHavannahPathInfo(const Havannah::PathInfo & path, Havannah::Color color,
   unsigned borders, unsigned corners, int m) {
- ASSERT_EQ(path._player, player);
+ ASSERT_EQ(path._color, color);
  ASSERT_EQ(path._borders, borders);
  ASSERT_EQ(path._corners, corners);
  ASSERT_EQ(path._mainPathIndex, m);
@@ -25,36 +25,43 @@ static void CheckHavannahPathInfo(const Havannah::PathInfo & path, PLAYER player
 
 namespace Havannah {
 
- template<int SIZE>
-  class BoardTest : public Board<SIZE> {
+ template<int SIZE, bool PIE>
+  class BoardTest : public Board<SIZE, PIE> {
 
    public:
 
-    BoardTest() : Board<SIZE>() {}
+    BoardTest() : Board<SIZE, PIE>() {}
 
-    void getPathIndexAndPlayerAtIndex(int index, int & pathIndex, 
-      PLAYER & player) const {
-     return Board<SIZE>::getPathIndexAndPlayerAtIndex(index, pathIndex, player);
+    int getNbIndices() const {
+        return Board<SIZE, PIE>::_nbIndices;
+    }
+
+    int getNbEmptyIndices() const {
+        return Board<SIZE, PIE>::_nbEmptyIndices;
+    }
+
+    void getPathIndexAndColorAtIndex(int index, int& pathIndex, Color& color) const {
+     return Board<SIZE, PIE>::getPathIndexAndColorAtIndex(index, pathIndex, color);
     }
 
     const std::array<std::array<int,7>,fullsize(SIZE)*fullsize(SIZE)> & getNeighboursBoard() const {
-     return Board<SIZE>::_neighboursBoard;
+     return Board<SIZE, PIE>::_neighboursBoard;
     }
 
     std::array<PathInfo, fullsize(SIZE)*fullsize(SIZE)> & getPaths() {
-     return Board<SIZE>::_paths;
+     return Board<SIZE, PIE>::_paths;
     }
 
     int & getPathsEnd() {
-     return Board<SIZE>::_pathsEnd;
+     return Board<SIZE, PIE>::_pathsEnd;
     }
 
     std::array<int, fullsize(SIZE)*fullsize(SIZE)> & getPathBoard() {
-     return Board<SIZE>::_pathBoard;
+     return Board<SIZE, PIE>::_pathBoard;
     }
 
-    unsigned computeBorders(int index) const { return Board<SIZE>::computeBorders(index); }
-    unsigned computeCorners(int index) const { return Board<SIZE>::computeCorners(index); }
+    unsigned computeBorders(int index) const { return Board<SIZE, PIE>::computeBorders(index); }
+    unsigned computeCorners(int index) const { return Board<SIZE, PIE>::computeCorners(index); }
 
   };
 
@@ -74,48 +81,48 @@ TEST(HavannahGroup, fullsize) {
 }
 
 TEST(HavannahGroup, reset_8) {
- Havannah::Board<8> b;
+ Havannah::BoardTest<8, true> b;
  b.reset();
  ASSERT_EQ(b.getNbIndices(), 15*15-7*8);
  ASSERT_EQ(b.getCurrentPlayer(), PLAYER_0);
  ASSERT_EQ(b.getWinnerPlayer(), PLAYER_NULL);
- ASSERT_EQ(b.getLastIndex(), -1);
+ ASSERT_EQ(b.getLastIndex(), std::optional<int>());
  ASSERT_EQ(b.getNbEmptyIndices(), 15*15-7*8);
 }
 
 TEST(HavannahGroup, reset_7) {
- Havannah::Board<7> b;
+ Havannah::BoardTest<7, true> b;
  b.reset();
  ASSERT_EQ(b.getNbIndices(), 13*13-6*7);
  ASSERT_EQ(b.getCurrentPlayer(), PLAYER_0);
  ASSERT_EQ(b.getWinnerPlayer(), PLAYER_NULL);
- ASSERT_EQ(b.getLastIndex(), -1);
+ ASSERT_EQ(b.getLastIndex(), std::optional<int>());
  ASSERT_EQ(b.getNbEmptyIndices(), 13*13-6*7);
 }
 
 TEST(HavannahGroup, reset_5) {
- Havannah::Board<5> b;
+ Havannah::BoardTest<5, true> b;
  b.reset();
  ASSERT_EQ(b.getNbIndices(), 9*9-4*5);
  ASSERT_EQ(b.getCurrentPlayer(), PLAYER_0);
  ASSERT_EQ(b.getWinnerPlayer(), PLAYER_NULL);
- ASSERT_EQ(b.getLastIndex(), -1);
+ ASSERT_EQ(b.getLastIndex(), std::optional<int>());
  ASSERT_EQ(b.getNbEmptyIndices(), 9*9-4*5);
 }
 
 TEST(HavannahGroup, copyConstructor) {
- Havannah::BoardTest<5> b0;
+ Havannah::BoardTest<5, true> b0;
  b0.reset();
- Havannah::BoardTest<5> b(b0);
+ Havannah::BoardTest<5, true> b(b0);
  ASSERT_EQ(b.getNbIndices(), 61);
  ASSERT_EQ(b.getCurrentPlayer(), PLAYER_0);
  ASSERT_EQ(b.getWinnerPlayer(), PLAYER_NULL);
- ASSERT_EQ(b.getLastIndex(), -1);
+ ASSERT_EQ(b.getLastIndex(), std::optional<int>());
  ASSERT_EQ(b.getNbEmptyIndices(), 61);
 }
 
 TEST(HavannahGroup, resetNeighboursTopLeft) {
- Havannah::BoardTest<5> b;
+ Havannah::BoardTest<5, true> b;
  b.reset();
  int index = b.convertCellToIndex(Havannah::Cell(0, 4));
  const std::array<int, 7> refNeighbourIndices = b.getNeighboursBoard()[index];
@@ -126,7 +133,7 @@ TEST(HavannahGroup, resetNeighboursTopLeft) {
 }
 
 TEST(HavannahGroup, resetNeighboursTopCenter) {
- Havannah::BoardTest<5> b;
+ Havannah::BoardTest<5, true> b;
  b.reset();
  int index = b.convertCellToIndex(Havannah::Cell(0, 6));
  const std::array<int, 7> refNeighbourIndices = b.getNeighboursBoard()[index];
@@ -138,7 +145,7 @@ TEST(HavannahGroup, resetNeighboursTopCenter) {
 }
 
 TEST(HavannahGroup, resetNeighboursTopRight) {
- Havannah::BoardTest<5> b;
+ Havannah::BoardTest<5, true> b;
  b.reset();
  int index = b.convertCellToIndex(Havannah::Cell(0, 8));
  const std::array<int, 7> refNeighbourIndices = b.getNeighboursBoard()[index];
@@ -149,7 +156,7 @@ TEST(HavannahGroup, resetNeighboursTopRight) {
 }
 
 TEST(HavannahGroup, resetNeighboursMiddleRight) {
- Havannah::BoardTest<5> b;
+ Havannah::BoardTest<5, true> b;
  b.reset();
  int index = b.convertCellToIndex(Havannah::Cell(4, 8));
  const std::array<int, 7> refNeighbourIndices = b.getNeighboursBoard()[index];
@@ -160,7 +167,7 @@ TEST(HavannahGroup, resetNeighboursMiddleRight) {
 }
 
 TEST(HavannahGroup, resetNeighboursMiddleRight2) {
- Havannah::BoardTest<5> b;
+ Havannah::BoardTest<5, true> b;
  b.reset();
  int index = b.convertCellToIndex(Havannah::Cell(6, 6));
  const std::array<int, 7> refNeighbourIndices = b.getNeighboursBoard()[index];
@@ -172,7 +179,7 @@ TEST(HavannahGroup, resetNeighboursMiddleRight2) {
 }
 
 TEST(HavannahGroup, resetNeighboursBottomRight) {
- Havannah::BoardTest<5> b;
+ Havannah::BoardTest<5, true> b;
  b.reset();
  int index = b.convertCellToIndex(Havannah::Cell(8, 4));
  const std::array<int, 7> refNeighbourIndices = b.getNeighboursBoard()[index];
@@ -183,7 +190,7 @@ TEST(HavannahGroup, resetNeighboursBottomRight) {
 }
 
 TEST(HavannahGroup, resetNeighboursBottomCenter) {
- Havannah::BoardTest<5> b;
+ Havannah::BoardTest<5, true> b;
  b.reset();
  int index = b.convertCellToIndex(Havannah::Cell(8, 2));
  const std::array<int, 7> refNeighbourIndices = b.getNeighboursBoard()[index];
@@ -195,7 +202,7 @@ TEST(HavannahGroup, resetNeighboursBottomCenter) {
 }
 
 TEST(HavannahGroup, resetNeighboursBottomLeft) {
- Havannah::BoardTest<5> b;
+ Havannah::BoardTest<5, true> b;
  b.reset();
  int index = b.convertCellToIndex(Havannah::Cell(8, 0));
  const std::array<int, 7> refNeighbourIndices = b.getNeighboursBoard()[index];
@@ -206,7 +213,7 @@ TEST(HavannahGroup, resetNeighboursBottomLeft) {
 }
 
 TEST(HavannahGroup, resetNeighboursMiddleLeft) {
- Havannah::BoardTest<5> b;
+ Havannah::BoardTest<5, true> b;
  b.reset();
  int index = b.convertCellToIndex(Havannah::Cell(4, 0));
  const std::array<int, 7> refNeighbourIndices = b.getNeighboursBoard()[index];
@@ -217,7 +224,7 @@ TEST(HavannahGroup, resetNeighboursMiddleLeft) {
 }
 
 TEST(HavannahGroup, resetNeighboursMiddleCenter) {
- Havannah::BoardTest<5> b;
+ Havannah::BoardTest<5, true> b;
  b.reset();
  int index = b.convertCellToIndex(Havannah::Cell(4, 4));
  const std::array<int, 7> refNeighbourIndices = b.getNeighboursBoard()[index];
@@ -231,37 +238,37 @@ TEST(HavannahGroup, resetNeighboursMiddleCenter) {
 }
 
 TEST(HavannahGroup, resetPaths) {
- Havannah::BoardTest<5> b;
+ Havannah::BoardTest<5, true> b;
  b.reset();
  ASSERT_EQ(b.getPathsEnd(), 1);
  const Havannah::PathInfo & p0 = b.getPaths()[0];
- ASSERT_EQ(p0._player, PLAYER_NULL);
+ ASSERT_EQ(p0._color, Havannah::Color::COLOR_NONE);
  ASSERT_EQ(p0._borders, 0);
  ASSERT_EQ(p0._corners, 0);
  ASSERT_EQ(p0._mainPathIndex, 0);
 }
 
 TEST(HavannahGroup, resetPathBoard) {
- Havannah::BoardTest<5> b;
+ Havannah::BoardTest<5, true> b;
  b.reset();
  for (int i=0; i<61; i++) {
   ASSERT_EQ(b.getPathBoard()[i], 0); 
-  ASSERT_EQ(b.getPlayerAtIndex(i), PLAYER_NULL);
+  ASSERT_EQ(b.getColorAtIndex(i), Havannah::Color::COLOR_NONE);
  }
 }
 
 TEST(HavannahGroup, resetGetters1) {
- Havannah::BoardTest<5> b;
+ Havannah::BoardTest<5, true> b;
  b.reset();
  ASSERT_EQ(b.getNbIndices(), 61);
  ASSERT_EQ(b.getNbEmptyIndices(), 61);
- ASSERT_EQ(b.getLastIndex(), -1);
+ ASSERT_EQ(b.getLastIndex(), std::optional<int>());
  ASSERT_EQ(b.getCurrentPlayer(), PLAYER_0);
  ASSERT_EQ(b.getWinnerPlayer(), PLAYER_NULL);
 }
 
 TEST(HavannahGroup, isValid1) {
- Havannah::BoardTest<5> b;
+ Havannah::BoardTest<5, true> b;
  b.reset();
 
  ASSERT_EQ(b.isValidIndex(12), true);
@@ -285,7 +292,7 @@ TEST(HavannahGroup, isValid1) {
 }
 
 TEST(HavannahGroup, convertIndexToCell) {
- Havannah::BoardTest<8> b;
+ Havannah::BoardTest<8, true> b;
  b.reset();
  ASSERT_EQ(b.convertIndexToCell(3), Havannah::Cell(0, 3));
  ASSERT_EQ(b.convertIndexToCell(19), Havannah::Cell(1, 4));
@@ -293,7 +300,7 @@ TEST(HavannahGroup, convertIndexToCell) {
 }
 
 TEST(HavannahGroup, convertCellToIndex) {
- Havannah::BoardTest<10> b;
+ Havannah::BoardTest<10, true> b;
  b.reset();
  ASSERT_EQ(b.convertCellToIndex(Havannah::Cell(0, 2)), 2);
  ASSERT_EQ(b.convertCellToIndex(Havannah::Cell(1, 0)), 19);
@@ -301,7 +308,7 @@ TEST(HavannahGroup, convertCellToIndex) {
 }
 
 TEST(HavannahGroup, computeBorderCorner_center) {
- Havannah::BoardTest<8> b;
+ Havannah::BoardTest<8, true> b;
  b.reset();
  int index;
  index = b.convertCellToIndex(Havannah::Cell(7, 7));
@@ -310,7 +317,7 @@ TEST(HavannahGroup, computeBorderCorner_center) {
 }
 
 TEST(HavannahGroup, computeBorderCorner_topleft) {
- Havannah::BoardTest<8> b;
+ Havannah::BoardTest<8, true> b;
  b.reset();
  int index;
  index = b.convertCellToIndex(Havannah::Cell(0, 7));
@@ -325,7 +332,7 @@ TEST(HavannahGroup, computeBorderCorner_topleft) {
 }
 
 TEST(HavannahGroup, computeBorderCorner_topright) {
- Havannah::BoardTest<8> b;
+ Havannah::BoardTest<8, true> b;
  b.reset();
  int index;
  index = b.convertCellToIndex(Havannah::Cell(0, 14));
@@ -340,7 +347,7 @@ TEST(HavannahGroup, computeBorderCorner_topright) {
 }
 
 TEST(HavannahGroup, computeBorderCorner_middleright) {
- Havannah::BoardTest<8> b;
+ Havannah::BoardTest<8, true> b;
  b.reset();
  int index;
  index = b.convertCellToIndex(Havannah::Cell(7, 14));
@@ -355,7 +362,7 @@ TEST(HavannahGroup, computeBorderCorner_middleright) {
 }
 
 TEST(HavannahGroup, computeBorderCorner_bottomright) {
- Havannah::BoardTest<8> b;
+ Havannah::BoardTest<8, true> b;
  b.reset();
  int index;
  index = b.convertCellToIndex(Havannah::Cell(14, 7));
@@ -370,7 +377,7 @@ TEST(HavannahGroup, computeBorderCorner_bottomright) {
 }
 
 TEST(HavannahGroup, computeBorderCorner_bottomleft) {
- Havannah::BoardTest<8> b;
+ Havannah::BoardTest<8, true> b;
  b.reset();
  int index;
  index = b.convertCellToIndex(Havannah::Cell(14, 0));
@@ -385,7 +392,7 @@ TEST(HavannahGroup, computeBorderCorner_bottomleft) {
 }
 
 TEST(HavannahGroup, computeBorderCorner_middleleft) {
- Havannah::BoardTest<8> b;
+ Havannah::BoardTest<8, true> b;
  b.reset();
  int index;
  index = b.convertCellToIndex(Havannah::Cell(7, 0));
@@ -401,11 +408,11 @@ TEST(HavannahGroup, computeBorderCorner_middleleft) {
 
 
 TEST(HavannahGroup, getPathIndexAndPlayerAtIndex) {
- Havannah::BoardTest<7> b;
+ Havannah::BoardTest<7, true> b;
  b.reset();
  b.getPathsEnd() = 3;
- b.getPaths()[1] = Havannah::PathInfo(1, PLAYER_0, 0, 0);
- b.getPaths()[2] = Havannah::PathInfo(2, PLAYER_1, 0, 0);
+ b.getPaths()[1] = Havannah::PathInfo(1, Havannah::Color::COLOR_BLACK, 0, 0);
+ b.getPaths()[2] = Havannah::PathInfo(2, Havannah::Color::COLOR_WHITE, 0, 0);
 
  int index_1_1 = b.convertCellToIndex(Havannah::Cell(1, 1));
  int index_3_1 = b.convertCellToIndex(Havannah::Cell(3, 1));
@@ -415,23 +422,23 @@ TEST(HavannahGroup, getPathIndexAndPlayerAtIndex) {
  b.getPathBoard()[index_2_3] = 2;
 
  int pathIndex;
- PLAYER player;
+ Havannah::Color color;
 
- b.getPathIndexAndPlayerAtIndex(index_1_1, pathIndex, player);
+ b.getPathIndexAndColorAtIndex(index_1_1, pathIndex, color);
  ASSERT_EQ(pathIndex, 0);
- ASSERT_EQ(player, PLAYER_NULL);
+ ASSERT_EQ(color, Havannah::Color::COLOR_NONE);
 
- b.getPathIndexAndPlayerAtIndex(index_3_1, pathIndex, player);
+ b.getPathIndexAndColorAtIndex(index_3_1, pathIndex, color);
  ASSERT_EQ(pathIndex, 1);
- ASSERT_EQ(player, PLAYER_0);
+ ASSERT_EQ(color, Havannah::Color::COLOR_BLACK);
 
- b.getPathIndexAndPlayerAtIndex(index_2_3, pathIndex, player);
+ b.getPathIndexAndColorAtIndex(index_2_3, pathIndex, color);
  ASSERT_EQ(pathIndex, 2);
- ASSERT_EQ(player, PLAYER_1);
+ ASSERT_EQ(color, Havannah::Color::COLOR_WHITE);
 }
 
 TEST(HavannahGroup, play1) {
- Havannah::BoardTest<8> b;
+ Havannah::BoardTest<8, true> b;
  b.reset();
  int index;
 
@@ -439,7 +446,7 @@ TEST(HavannahGroup, play1) {
  b.play(index);
  ASSERT_EQ(b.getPathsEnd(), 2);
  ASSERT_EQ(b.getPathBoard()[index], 1);
- ASSERT_EQ(b.getPaths()[1]._player, PLAYER_0);
+ ASSERT_EQ(b.getPaths()[1]._color, Havannah::Color::COLOR_BLACK);
  ASSERT_EQ(b.getPaths()[1]._borders, 0);
  ASSERT_EQ(b.getPaths()[1]._corners, 0);
  ASSERT_EQ(b.getPaths()[1]._mainPathIndex, 1);
@@ -448,7 +455,7 @@ TEST(HavannahGroup, play1) {
  b.play(index);
  ASSERT_EQ(b.getPathsEnd(), 3);
  ASSERT_EQ(b.getPathBoard()[index], 2);
- ASSERT_EQ(b.getPaths()[2]._player, PLAYER_1);
+ ASSERT_EQ(b.getPaths()[2]._color, Havannah::Color::COLOR_WHITE);
  ASSERT_EQ(b.getPaths()[2]._borders, 0);
  ASSERT_EQ(b.getPaths()[2]._corners, 0);
  ASSERT_EQ(b.getPaths()[2]._mainPathIndex, 2);
@@ -457,14 +464,14 @@ TEST(HavannahGroup, play1) {
  b.play(index);
  ASSERT_EQ(b.getPathsEnd(), 3);
  ASSERT_EQ(b.getPathBoard()[index], 1);
- ASSERT_EQ(b.getPaths()[1]._player, PLAYER_0);
+ ASSERT_EQ(b.getPaths()[1]._color, Havannah::Color::COLOR_BLACK);
  ASSERT_EQ(b.getPaths()[1]._borders, 0);
  ASSERT_EQ(b.getPaths()[1]._corners, 0);
  ASSERT_EQ(b.getPaths()[1]._mainPathIndex, 1);
 }
 
 TEST(HavannahGroup, play2) {
- Havannah::BoardTest<5> b;
+ Havannah::BoardTest<5, true> b;
  b.reset();
  int index;
 
@@ -477,21 +484,21 @@ TEST(HavannahGroup, play2) {
 
  ASSERT_EQ(b.getPathsEnd(), 3);
  ASSERT_EQ(b.getPathBoard()[index], 1);
- ASSERT_EQ(b.getPaths()[1]._player, PLAYER_0);
+ ASSERT_EQ(b.getPaths()[1]._color, Havannah::Color::COLOR_BLACK);
  ASSERT_EQ(b.getPaths()[1]._borders, 0);
  ASSERT_EQ(b.getPaths()[1]._corners, 0);
  ASSERT_EQ(b.getPaths()[1]._mainPathIndex, 1);
 }
 
 TEST(HavannahGroup, play3) {
- Havannah::BoardTest<5> b;
+ Havannah::BoardTest<5, true> b;
  b.reset();
  int index;
 
  ASSERT_EQ(b.getNbIndices(), 61);
 
  ASSERT_EQ(b.getNbEmptyIndices(), 61);
- ASSERT_EQ(b.getLastIndex(), -1);
+ ASSERT_EQ(b.getLastIndex(), std::optional<int>());
  ASSERT_EQ(b.getCurrentPlayer(), PLAYER_0);
  ASSERT_EQ(b.getWinnerPlayer(), PLAYER_NULL);
 
@@ -518,7 +525,7 @@ TEST(HavannahGroup, play3) {
 }
 
 TEST(HavannahGroup, findWinnerPath) {
- Havannah::BoardTest<5> b;
+ Havannah::BoardTest<5, true> b;
  b.reset();
 
  // play cells
@@ -562,7 +569,7 @@ TEST(HavannahGroup, findWinnerPath) {
 }
 
 TEST(HavannahGroup, winner_white_fork) {
- Havannah::BoardTest<5> b;
+ Havannah::BoardTest<5, true> b;
  b.reset();
  std::vector<int> gameIndices = {
   28, 21,
@@ -584,7 +591,7 @@ TEST(HavannahGroup, winner_white_fork) {
 }
 
 TEST(HavannahGroup, winner_white_ring) {
- Havannah::BoardTest<5> b;
+ Havannah::BoardTest<5, true> b;
  b.reset();
  std::vector<int> gameIndices = {
   37, 22,
@@ -600,7 +607,7 @@ TEST(HavannahGroup, winner_white_ring) {
 }
 
 TEST(HavannahGroup, winner_white_bridge) {
- Havannah::BoardTest<5> b;
+ Havannah::BoardTest<5, true> b;
  b.reset();
  std::vector<int> gameIndices = {
   72, 47,
@@ -616,7 +623,7 @@ TEST(HavannahGroup, winner_white_bridge) {
 }
 
 TEST(HavannahGroup, winner_black_fork) {
- Havannah::BoardTest<5> b;
+ Havannah::BoardTest<5, true> b;
  b.reset();
  std::vector<int> gameIndices = {
   39, 6,
@@ -635,7 +642,7 @@ TEST(HavannahGroup, winner_black_fork) {
 }
 
 TEST(HavannahGroup, winner_black_bridge) {
- Havannah::BoardTest<5> b;
+ Havannah::BoardTest<5, true> b;
  b.reset();
  std::vector<int> gameIndices = {
   21, 44,
@@ -651,7 +658,7 @@ TEST(HavannahGroup, winner_black_bridge) {
 }
 
 TEST(HavannahGroup, winner_black_ring) {
- Havannah::BoardTest<5> b;
+ Havannah::BoardTest<5, true> b;
  b.reset();
  std::vector<int> gameIndices = {
   29, 32,
@@ -666,5 +673,42 @@ TEST(HavannahGroup, winner_black_ring) {
  for (int i : gameIndices)
   b.play(i);
  ASSERT_EQ(b.getWinnerPlayer(), PLAYER_1);
+}
+
+// https://github.com/facebookexternal/polygames/commit/fdf094d1ab9a0bcc60422e03c44b59d1c2df9f3e#diff-9367f7a48f6ff9d5d578838ec92885baR406
+// https://www.littlegolem.net/jsp/game/game.jsp?gid=2130971
+TEST(HavannahGroup, littlegolem_lorentz_ttrttr) {
+ Havannah::BoardTest<8, true> b;
+ b.reset();
+ std::vector<Havannah::Cell> gameCells = {
+     {7,7}, {7,7},
+     {3,6}, {3,11}, {2,8}, {7,2},
+     {9,3}, {4,10}, {5,5}, {8,3},
+     {8,5}, {7,5}, {6,6}, {7,6},
+     {5,8}, {3,9}, {6,9}, {3,8},
+     {5,11}, {8,4}, {3,7}, {9,2},
+     {4,7}, {6,5}, {6,4}, {6,1},
+     {9,4}, {10,2}, {12,3}, {5,6},
+     {5,7}, {13,1}, {12,1}, {10,3},
+     {13,4}, {10,4}, {10,5}, {9,5},
+     {8,6}, {9,6}, {8,7}, {12,2},
+     {14,1}, {11,5}, {11,4}, {14,0},
+     {7,0}, {13,2}, {14,2}, {13,3},
+     {14,3}, {9,1}, {12,4}, {8,1},
+     {7,3}, {10,6}, {12,6}, {8,0},
+     {10,7}, {12,5}, {13,5}, {7,8},
+     {9,9}, {6,8}, {5,9}, {7,11},
+     {7,10}, {7,9}, {5,10}, {6,10},
+     {5,12}, {9,7}, {8,8}, {4,5},
+     {8,9}, {6,11}, {2,6}, {1,7},
+     {1,8}, {7,13}, {0,8}, {8,13},
+     {1,6}, {7,12}, {0,7}
+ };
+ std::vector<int> gameIndices(gameCells.size());
+ std::transform(gameCells.begin(), gameCells.end(), gameIndices.begin(),
+         [&](const Havannah::Cell & c) { return b.convertCellToIndex(c); });
+ for (int i : gameIndices)
+  b.play(i);
+ ASSERT_EQ(b.getWinnerPlayer(), PLAYER_0);
 }
 
