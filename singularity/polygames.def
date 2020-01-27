@@ -1,0 +1,90 @@
+# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
+#
+# This source code is licensed under the MIT license found in the
+# LICENSE file in the root directory of this source tree.
+
+Bootstrap: docker
+
+From: nvidia/cuda:10.0-cudnn7-devel-ubuntu18.04
+# chosen among: https://hub.docker.com/r/nvidia/cuda/
+
+%runscript
+
+    # init file loads conda environment
+    #exec bash --init-file /opt/sing_bash_init_file
+    exec $@
+
+%files
+
+    singularity/environment.yml environment.yml
+
+%environment
+
+    SHELL=/bin/bash
+    PATH="/opt/conda/bin:$PATH"
+    export OMP_NUM_THREADS=1
+    # export CUDNN paths to avoid finding the external one
+    export CUDNN_LIB_DIR=/usr/lib/x86_64-linux-gnu/libcudnn.so
+    export CUDNN_INCLUDE_DIR=/usr/include
+    export CUDNN_ROOT_DIR=""
+    . /opt/conda/etc/profile.d/conda.sh
+    conda activate pypg
+
+
+%labels
+
+   AUTHOR Facebook AI Research
+
+%post
+
+    # inspired from https://github.com/pytorch/pytorch/blob/master/docker/pytorch/Dockerfile
+
+    # install depencies
+    apt-get update
+    apt-get install -y \
+        build-essential \
+        libzmq3-dev \
+        cmake \
+        wget \
+        vim \
+        git \
+        ca-certificates \
+        libjpeg-dev \
+        libpng-dev
+    rm -rf /var/lib/apt/lists/
+    mkdir /checkpoint  # for future bindings
+    mkdir /public  # for future bindings
+    mkdir /scratch  # for future bindings
+
+    # install miniconda and the pypg environment
+    wget -O ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+    bash ~/miniconda.sh -b -p /opt/conda
+    rm ~/miniconda.sh
+    . /opt/conda/etc/profile.d/conda.sh
+    conda init bash zsh
+    echo '. /opt/conda/etc/profile.d/conda.sh; conda activate pypg' > /opt/sing_bash_init_file
+    conda env create -f environment.yml --name pypg 
+    # conda create -n pypg pip
+    conda activate pypg
+    pip install pytest pytest-cov mypy ipython psutil nevergrad pyzmq # convenient to have
+
+    # # the environment contains all this
+    # conda create --name pypg python=3.7 pip -y
+    # conda activate pypg
+    # pip install tube
+    # conda install numpy ninja pyyaml mkl mkl-include setuptools cmake cffi typing -y
+    # conda install -c pytorch magma-cuda100 -y
+    # conda install -c conda-forge tensorboardx -y
+    # # it was exported with `conda env export > environment.yml`
+
+    # download and install pytorch from source (in circleci: 2 cpus)
+    export MAX_JOBS=$(cat /proc/cpuinfo | grep -c processor)
+    if (( $MAX_JOBS < 4 ));
+        then MAX_JOBS=4;
+    fi;
+    echo "Using $MAX_JOBS jobs for pytorch compilation"
+    git clone --recursive https://github.com/pytorch/pytorch --branch=v1.1.0 ~/pytorch
+    cd ~/pytorch
+    export CMAKE_PREFIX_PATH=${CONDA_PREFIX:-"$(dirname $(which conda))/../"}
+    # # set cuda arch list so that the built binary can be run on both pascal and volta
+    MAX_JOBS=$MAX_JOBS TORCH_CUDA_ARCH_LIST='6.0;7.0' pip install . -v

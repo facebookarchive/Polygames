@@ -1,0 +1,51 @@
+actions: ['0', 'blublu']
+######################################################################
+#                         HUMAN-PLAYED GAME                          #
+######################################################################
+setting-up pseudo-random generator...
+creating human-played environment
+playing against a human player...
+
+Last Action: 0, 5, 6
+
+Current board:
+ | | | | | | | | | 
+ | | | | | | | | | 
+ | | | | | | | | | 
+ | | | | | | | | | 
+ | | | |o|x| | | | 
+ | | | |x|x| | | | 
+ | | | | |x| | | | 
+ | | | | | | | | | 
+ | | | | | | | | | 
+ | | | | | | | | | 
+
+Legal Actions:
+Action 0: 0, 6, 4
+Action 1: 0, 4, 6
+Action 2: 0, 6, 6
+
+Input action:  applying action... 
+
+Last Action: 0, 7, 3
+
+Current board:
+ | | | | | | | | | 
+ | | | | | | | | | 
+ | | | | | | | | | 
+ | | | | | | |x| | 
+ | | | |o|o|x| | | 
+ | | | |x|x| | | | 
+ | | | | |x| | | | 
+ | | | | | | | | | 
+ | | | | | | | | | 
+ | | | | | | | | | 
+
+Legal Actions:
+Action 0: 0, 7, 4
+Action 1: 0, 3, 6
+Action 2: 0, 4, 6
+Action 3: 0, 6, 6
+Action 4: 0, 5, 7
+
+Input action: Input action: 

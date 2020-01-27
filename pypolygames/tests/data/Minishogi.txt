@@ -1,0 +1,67 @@
+actions: ['0', 'blublu']
+######################################################################
+#                         HUMAN-PLAYED GAME                          #
+######################################################################
+setting-up pseudo-random generator...
+creating human-played environment
+playing against a human player...
+
+Last Action:  p-E3
+
+Current board:
+   A| B| C| D| E
+5  r| b| s| g| k
+4   |  |  |  |  
+3   |  |  |  | p
+2  P|  |  |  |  
+1  K| G| S| B| R
+
+Legal Actions:
+Action 0:  K-B2
+Action 1:  G-C2
+Action 2:  G-B2
+Action 3:  S-D2
+Action 4:  S-C2
+Action 5:  S-B2
+Action 6:  B-E2
+Action 7:  B-C2
+Action 8:  B-B3
+Action 9:  B-A4
+Action 10:  R-E2
+Action 11:  R-E3
+Action 12:  P-A3
+
+Input format : action index e.g. 0
+
+Input action:  applying action... 
+
+Last Action:  p-E2
+
+Current board:
+   A| B| C| D| E
+5  r| b| s| g| k
+4   |  |  |  |  
+3   |  |  |  |  
+2  P| K|  |  | p
+1   | G| S| B| R
+
+Legal Actions:
+Action 0:  K-C2
+Action 1:  K-C3
+Action 2:  K-B3
+Action 3:  K-A3
+Action 4:  K-A1
+Action 5:  G-C2
+Action 6:  G-A1
+Action 7:  S-D2
+Action 8:  S-C2
+Action 9:  B-E2
+Action 10:  B-C2
+Action 11:  B-B3
+Action 12:  B-A4
+Action 13:  R-E2
+Action 14:  P-A3
+
+Input format : action index e.g. 0
+
+Input action: Input action: 
