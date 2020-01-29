@@ -405,7 +405,7 @@ Notes:
 
 ## Contributing
 
-We welcome contributions! Please check basic instructutions [here](.github/CONTRIBUTING)
+We welcome contributions! Please check basic instructutions [here](.github/CONTRIBUTING.md)
 
 ## Initial contributors
 
