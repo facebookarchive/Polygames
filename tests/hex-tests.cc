@@ -7,9 +7,9 @@
 
 // Unit tests for the Hex game.
 
-#pragma once
-
 #include <hex.h>
+#include <gtest/gtest.h>
+#include "utils.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // helpers

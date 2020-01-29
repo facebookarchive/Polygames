@@ -7,9 +7,9 @@
 
 // Unit tests for the Havannah game.
 
-#pragma once
-
 #include <havannah.h>
+#include <gtest/gtest.h>
+#include "utils.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // helpers
