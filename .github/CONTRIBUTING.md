@@ -15,7 +15,7 @@ We actively welcome your pull requests.
 ## Our Development Process
 
 Any pull request will trigger continuous integration. Its configuration is
-available [here](../.circleci/config).
+available [here](../.circleci/config.yml).
 In particular it defines tests that you should try to run locally as well:
 - testing mcts and state C++ code
 ``` 
