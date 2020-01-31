@@ -7,10 +7,9 @@
 
 // Unit tests for Hex Action/State.
 
-#pragma once
-
 #include <hex_state.h>
-
+#include <gtest/gtest.h>
+#include "utils.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // helpers

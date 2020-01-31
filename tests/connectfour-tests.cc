@@ -9,8 +9,8 @@
 // with an already implemented game. It may be interesting to write "real" unit
 // tests.
 
-#pragma once
-
+#include <gtest/gtest.h>
+#include "utils.h"
 #include <connectfour.h>
 
 TEST(Connectfour, init_1) {

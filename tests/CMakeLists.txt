@@ -34,6 +34,12 @@ add_executable( polygames-tests
  ../torchRL/tube/src_cpp/data_channel.cc
  ../torchRL/tube/src_cpp/replay_buffer.cc
  tests.cc
+ # Include your tests here.
+ connectfour-tests.cc
+ havannah-state-tests.cc
+ havannah-tests.cc
+ hex-state-tests.cc
+ hex-tests.cc
  )
 
 target_link_libraries( polygames-tests 

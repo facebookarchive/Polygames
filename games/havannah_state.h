@@ -8,6 +8,7 @@
 #pragma once
 
 #include "havannah.h"
+#include "../core/state.h"
 
 #include <algorithm>
 #include <chrono>

@@ -7,9 +7,9 @@
 
 // Unit tests for Havannah Action/State.
 
-#pragma once
-
 #include <havannah_state.h>
+#include <gtest/gtest.h>
+#include "utils.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // helpers
