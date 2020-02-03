@@ -9,6 +9,8 @@
 
 #include "game_player.h"
 
+#include <array>
+#include <cassert>
 #include <cstring>
 #include <optional>
 #include <random>
