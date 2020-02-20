@@ -19,7 +19,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include "games/ludii/jni_utils.h"
+#include "jni_utils.h"
 
 #include <cstring>
 #include <iostream>
@@ -35,7 +35,7 @@ JNIEnv *JNIUtils::GetEnv() const { return env; }
 
 void JNIUtils::InitJVM(std::string jar_location) {
   std::cout << "intializing JVM" << std::endl;
-  if (jar_location.empty()) then jar_location = "ludii/Ludii.jar"
+  if (jar_location.empty()) jar_location = "ludii/Ludii.jar";
 #ifdef JNI_VERSION_1_2
   JavaVMInitArgs vm_args;
   JavaVMOption options[1];
