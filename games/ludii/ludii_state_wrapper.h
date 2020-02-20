@@ -13,7 +13,7 @@
 
 #pragma once
 
-#include "jni.h"  // NOLINT
+#include <jni.h>  // NOLINT
 #include <algorithm>
 #include <array>
 #include <memory>

@@ -48,6 +48,7 @@ jobs:
                   git \
                   ca-certificates \
                   libjpeg-dev \
+                  openjdk-8-jdk \
                   libpng-dev
               rm -rf /var/lib/apt/lists/
               CHECKPATH=/opt/conda

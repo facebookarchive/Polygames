@@ -28,7 +28,7 @@ SOFTWARE.
 #include <cstring>
 #include <string>
 
-#include "jni.h"  // NOLINT
+#include <jni.h>  // NOLINT
 
 namespace Ludii {
 

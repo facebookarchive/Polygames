@@ -26,6 +26,9 @@ if( Boost_FOUND )
 include_directories( ${Boost_INCLUDE_DIRS})
 endif()
 
+find_package(JNI REQUIRED)
+include_directories( ${JNI_INCLUDE_DIRS})
+
 message(STATUS "Adding PyTorch compilation flags: ${TORCH_CXX_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
@@ -56,6 +59,7 @@ add_library(_games
 target_include_directories(_games PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/torchRL)
 target_include_directories(_games SYSTEM PUBLIC ${TORCH_INCLUDE_DIRS})
 target_include_directories(_games PUBLIC ${PYTHON_INCLUDE_DIRS})
+target_include_directories(_games PUBLIC ${JNI_INCLUDE_DIRS})
 
 pybind11_add_module(polygames core/pybind.cc core/game.cc core/state.cc)
 
