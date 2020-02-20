@@ -22,6 +22,7 @@
 #include "../games/havannah_state.h"
 #include "../games/hex_state.h"
 #include "../games/kyotoshogi_state.h"
+#include "../games/ludii/jni_utils.h"
 #include "../games/mastermind_state.h"
 #include "../games/minesweeper_state.h"
 #include "../games/minishogi.h"
