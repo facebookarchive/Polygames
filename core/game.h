@@ -219,7 +219,7 @@ to look into this) if the strategy is identical to knuth’s.
         // Get JNI environment variable
         // Ludii GameLoader object
         // Load a Ludii game
-        ludii_game_name = gameName.substr(5);
+        auto ludii_game_name = gameName.substr(5);
         ludii::JNIUtils jni_utils = ludii::JNIUtils(""); //no argv[1], we just use the default
         ludii::JNIEnv* env = jni_utils.GetEnv();
         ludii::GameWrapper game_wrapper = LudiiGameWrapper(ludii_game_name, env);
