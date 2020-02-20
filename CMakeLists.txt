@@ -39,6 +39,9 @@ add_subdirectory(torchRL/mcts)
 
 add_library(_games
   games/gomoku_swap2.cc
+  games/ludii/jni_utils.cc
+  games/ludii/ludii_game_wrapper.cc
+  games/ludii/ludii_state_wrapper.cc
   games/othello_opt.cc
   games/mastermind_state.cc
   games/amazons.cc
