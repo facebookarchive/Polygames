@@ -214,6 +214,20 @@ to look into this) if the strategy is identical to knuth’s.
       state_ = std::make_unique<Havannah::State<10, false, false>>(seed);
     } else if (isGameNameMatched({"Breakthrough"})) {
       state_ = std::make_unique<StateForBreakthrough>(seed);
+    } else if (gameName.rfind("Ludii" ,0) == 0) {
+        // Create the JNI utils
+        // Get JNI environment variable
+        // Ludii GameLoader object
+        // Load a Ludii game
+        ludii_game_name = gameName.substr(5);
+        ludii::JNIUtils jni_utils = ludii::JNIUtils(""); //no argv[1], we just use the default
+        ludii::JNIEnv* env = jni_utils.GetEnv();
+        ludii::GameWrapper game_wrapper = LudiiGameWrapper(ludii_game_name, env);
+        /*const ludii::JNIEnv* jni_env = jni_utils.GetEnv();
+        const ludii::GameLoader gameLoader = ludii::GameLoader(jni_env);
+        const ludii::Game ludii_game = gameLoader.LoadGame(TODO "board/space/blocking/Amazons.lud" find the lud file corresponding to LUDII_GAME_NAME); // static
+        */
+        state_ = std::make_unique<Ludii::State<SOMETHING>>();
     } else if (isGameNameMatched({"Tristannogo"})) {
       state_ = std::make_unique<StateForTristannogo>(seed);
     } else if (isGameNameMatched({"OuterOpenGomoku", "OOGomoku"})) {
