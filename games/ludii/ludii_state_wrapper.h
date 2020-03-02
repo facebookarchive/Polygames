@@ -40,7 +40,7 @@ public:
 	 * @param jenv Our JNI environment
 	 * @param ludiiGameWrapperJavaObject The Java object for the game for which we're creating a state
 	 */
-	LudiiStateWrapper(const JNIEnv* const jenv, const std::shared_ptr<LudiiGameWrapper> ludiiGameWrapper);
+	LudiiStateWrapper(JNIEnv* jenv, const std::shared_ptr<LudiiGameWrapper> ludiiGameWrapper);
 
 	/**
 	 * Copy constructor; calls the Java copy constructor for LudiiStateWrappers
@@ -48,7 +48,7 @@ public:
 	 * @param jenv Our JNI environment
 	 * @param other The LudiiStateWrapper object of which we wish to create a deep copy
 	 */
-	LudiiStateWrapper(const JNIEnv* const jenv, const LudiiStateWrapper& other);
+	LudiiStateWrapper(JNIEnv* jenv, const LudiiStateWrapper& other);
 
 
 	/**
@@ -97,7 +97,7 @@ private:
 	LudiiStateWrapper& operator=(LudiiStateWrapper const&) = delete;
 
 	/** Pointer to the JNI environment, allows for communication with Ludii's Java code */
-	const JNIEnv* jenv;
+	JNIEnv* jenv;
 
 	/** Pointer to our Game wrapper */
 	const std::shared_ptr<LudiiGameWrapper> ludiiGameWrapper;

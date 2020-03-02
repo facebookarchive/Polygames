@@ -19,7 +19,7 @@ namespace Ludii {
 //
 // javap -s <ClassName.class>
 
-LudiiGameWrapper::LudiiGameWrapper(const JNIEnv* const jenv, const std::string lud_path) : jenv(jenv) {
+LudiiGameWrapper::LudiiGameWrapper(JNIEnv* jenv, const std::string lud_path) : jenv(jenv) {
 	// Find our LudiiGameWrapper Java class
 	ludiiGameWrapperClass = jenv->FindClass("utils/LudiiGameWrapper");
 
@@ -40,7 +40,7 @@ LudiiGameWrapper::LudiiGameWrapper(const JNIEnv* const jenv, const std::string l
 }
 
 LudiiGameWrapper::LudiiGameWrapper(
-		const JNIEnv* const jenv, const std::string lud_path,
+		JNIEnv* jenv, const std::string lud_path,
 		const std::vector<std::string> game_options) : jenv(jenv) {
 
 	// Find our LudiiGameWrapper Java class
@@ -69,42 +69,42 @@ LudiiGameWrapper::LudiiGameWrapper(
 	moveTensorsShapeMethodID = jenv->GetMethodID(ludiiGameWrapperClass, "moveTensorsShape", "()[I");
 }
 
-std::unique_ptr<int[]> LudiiGameWrapper::StateTensorsShape() const {
+int* LudiiGameWrapper::StateTensorsShape() {
 	if (stateTensorsShape.get() == nullptr) {
 		// Get our array of Java ints
-		const jintArray jint_array = jenv->CallObjectMethod(ludiiGameWrapperJavaObject, stateTensorsShapeMethodID);
-		const jint* jints = jenv->GetIntArrayElements(jint_array, nullptr);
+		const jintArray jint_array = static_cast<jintArray>(jenv->CallObjectMethod(ludiiGameWrapperJavaObject, stateTensorsShapeMethodID));
+		jint* jints = jenv->GetIntArrayElements(jint_array, nullptr);
 
 		// Create our C++ array of 3 ints
-		stateTensorsShape = std::unique_ptr<int[]>(new int[3]);
+		stateTensorsShape = std::make_unique<int[]>(3);
 		for (size_t i = 0; i < 3; ++i) {
 			stateTensorsShape.get()[i] = (int) jints[i];
 		}
 
 		// Allow JVM to clean up memory now that we have our own ints
-		jenv->ReleaseIntArrayElements(jint_array, jints, nullptr);
+		jenv->ReleaseIntArrayElements(jint_array, jints, 0);
 	}
 
-	return stateTensorsShape;
+	return stateTensorsShape.get();
 }
 
-std::unique_ptr<int[]> LudiiGameWrapper::MoveTensorsShape() const {
+int* LudiiGameWrapper::MoveTensorsShape() {
 	if (moveTensorsShape.get() == nullptr) {
 		// Get our array of Java ints
-		const jintArray jint_array = jenv->CallObjectMethod(ludiiGameWrapperJavaObject, moveTensorsShapeMethodID);
-		const jint* jints = jenv->GetIntArrayElements(jint_array, nullptr);
+		const jintArray jint_array = static_cast<jintArray>(jenv->CallObjectMethod(ludiiGameWrapperJavaObject, moveTensorsShapeMethodID));
+		jint* jints = jenv->GetIntArrayElements(jint_array, nullptr);
 
 		// Create our C++ array of 3 ints
-		moveTensorsShape(std::make_shared<int[]>(new int[3]));
+		moveTensorsShape = std::make_unique<int[]>(3);
 		for (size_t i = 0; i < 3; ++i) {
-			shape.get()[i] = (int) jints[i];
+			moveTensorsShape.get()[i] = (int) jints[i];
 		}
 
 		// Allow JVM to clean up memory now that we have our own ints
-		jenv->ReleaseIntArrayElements(jint_array, jints, nullptr);
+		jenv->ReleaseIntArrayElements(jint_array, jints, 0);
 	}
 
-	return moveTensorsShape;
+	return moveTensorsShape.get();
 }
 
 }	// namespace Ludii

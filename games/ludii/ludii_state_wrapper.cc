@@ -19,7 +19,7 @@ namespace Ludii {
 //
 // javap -s <ClassName.class>
 
-LudiiStateWrapper::LudiiStateWrapper(const JNIEnv* const jenv, const std::shared_ptr<LudiiGameWrapper> ludiiGameWrapper)
+LudiiStateWrapper::LudiiStateWrapper(JNIEnv* jenv, const std::shared_ptr<LudiiGameWrapper> ludiiGameWrapper)
 	: jenv(jenv), ludiiGameWrapper(ludiiGameWrapper) {
 
 	// Find our LudiiStateWrapper Java class
@@ -43,7 +43,7 @@ LudiiStateWrapper::LudiiStateWrapper(const JNIEnv* const jenv, const std::shared
 	toTensorMethodID = jenv->GetMethodID(ludiiStateWrapperClass, "toTensor", "()[[[F");
 }
 
-LudiiStateWrapper::LudiiStateWrapper(const JNIEnv* const jenv, const LudiiStateWrapper& other)
+LudiiStateWrapper::LudiiStateWrapper(JNIEnv* jenv, const LudiiStateWrapper& other)
 	: jenv(jenv), ludiiGameWrapper(other.ludiiGameWrapper) {
 
 	// Find our LudiiStateWrapper Java class

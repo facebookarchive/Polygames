@@ -35,7 +35,7 @@ public:
 	 * @param jenv Our JNI environment
 	 * @param lud_path String describing the path of the game to load. Should end in .lud
 	 */
-	LudiiGameWrapper(const JNIEnv* const jenv, const std::string lud_path);
+	LudiiGameWrapper(JNIEnv* jenv, const std::string lud_path);
 
 	/**
 	 * Constructor; calls the LudiiGameWrapper Java constructor
@@ -44,18 +44,18 @@ public:
 	 * @param lud_path String describing the path of the game to load. Should end in .lud
 	 * @param game_options Vector of additiona options to pass into Ludii, describing variant of game to load.
 	 */
-	LudiiGameWrapper(const JNIEnv* const jenv, const std::string lud_path, const std::vector<std::string> game_options);
+	LudiiGameWrapper(JNIEnv* jenv, const std::string lud_path, const std::vector<std::string> game_options);
 
 
 	/**
 	 * @return Array of 3 ints describing the shape of state tensors; [channels, x, y]
 	 */
-	std::unique_ptr<int[]> StateTensorsShape() const;
+	int* StateTensorsShape();
 
 	/**
 	 * @return Array of 3 ints describing the shape of move tensors; [channels, x, y]
 	 */
-	std::unique_ptr<int[]> MoveTensorsShape() const;
+	int* MoveTensorsShape();
 
 	/** Our object of Java's LudiiGameWrapper type */
 	jobject ludiiGameWrapperJavaObject;
@@ -67,7 +67,7 @@ private:
 	LudiiGameWrapper& operator=(LudiiGameWrapper const&) = delete;
 
 	/** Pointer to the JNI environment, allows for communication with Ludii's Java code */
-	const JNIEnv* jenv;
+	JNIEnv* jenv;
 
 	/** Our LudiiGameWrapper class in Java */
 	jclass ludiiGameWrapperClass;
