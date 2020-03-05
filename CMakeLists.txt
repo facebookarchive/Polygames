@@ -64,7 +64,7 @@ target_include_directories(_games PUBLIC ${JNI_INCLUDE_DIRS})
 pybind11_add_module(polygames core/pybind.cc core/game.cc core/state.cc)
 
 target_include_directories(polygames PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/torchRL)
-target_link_libraries(polygames PUBLIC _tube _mcts _games)
+target_link_libraries(polygames PUBLIC _tube _mcts _games ${JNI_LIBRARIES})
 
 # add Minesweeper benchmarks
 add_subdirectory(games/minesweeper_csp_vkms)
