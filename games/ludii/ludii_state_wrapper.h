@@ -21,15 +21,27 @@
 #include <vector>
 
 #include "ludii_game_wrapper.h"
+#include "../../core/state.h"
 
 namespace Ludii {
+
+class Action : public ::_Action {
+ public:
+  Action(int i, int j, int k);
+};
 
 /**
  * C++ wrapper around Ludii's "LudiiStateWrapper" class.
  *
  * This class takes care of calling all the required Java methods from Ludii states.
  */
-class LudiiStateWrapper {
+class LudiiStateWrapper : public ::State {
+
+ public:
+  void Initialize();
+  std::unique_ptr<mcts::State> clone_() const;
+  void ApplyAction(const _Action& action);
+  void DoGoodAction();
 
 public:
 
@@ -39,15 +51,14 @@ public:
 	 * @param jenv Our JNI environment
 	 * @param ludiiGameWrapperJavaObject The Java object for the game for which we're creating a state
 	 */
-	LudiiStateWrapper(JNIEnv* jenv, const std::shared_ptr<LudiiGameWrapper> ludiiGameWrapper);
+	LudiiStateWrapper(int seed, JNIEnv* jenv, const std::shared_ptr<LudiiGameWrapper> ludiiGameWrapper);
 
 	/**
-	 * Copy constructor; calls the Java copy constructor for LudiiStateWrappers
+	 * Copy constructor; calls the Java copy constructor for LudiiStateWrapper
 	 *
-	 * @param jenv Our JNI environment
 	 * @param other The LudiiStateWrapper object of which we wish to create a deep copy
 	 */
-	LudiiStateWrapper(JNIEnv* jenv, const LudiiStateWrapper& other);
+	LudiiStateWrapper(const LudiiStateWrapper& other);
 
 
 	/**
@@ -92,7 +103,6 @@ public:
 private:
 	// We don't want to be accidentally coyping objects of this class
 	// (without having implemented our own, correct copy constructor or assignment operator)
-	LudiiStateWrapper(LudiiStateWrapper const&) = delete;
 	LudiiStateWrapper& operator=(LudiiStateWrapper const&) = delete;
 
 	/** Pointer to the JNI environment, allows for communication with Ludii's Java code */

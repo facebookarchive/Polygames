@@ -14,13 +14,36 @@
 
 namespace Ludii {
 
+Action::Action(int i, int j, int k) {
+    _loc[0] = i;
+    _loc[1] = j;
+    _loc[2] = k;
+    _hash = uint32_t(0);  // TODO
+}
+
+void LudiiStateWrapper::Initialize() {
+    // TODO
+}
+
+std::unique_ptr<mcts::State> LudiiStateWrapper::clone_() const {
+  return std::make_unique<LudiiStateWrapper>(*this);
+}
+
+void LudiiStateWrapper::ApplyAction(const _Action& action) {
+    // TODO
+}
+
+void LudiiStateWrapper::DoGoodAction() {
+ return DoRandomAction();
+}
+
 // NOTE: String descriptions of signatures of Java methods can be found by navigating
 // to directory containing the .class files and using:
 //
 // javap -s <ClassName.class>
 
-LudiiStateWrapper::LudiiStateWrapper(JNIEnv* jenv, const std::shared_ptr<LudiiGameWrapper> ludiiGameWrapper)
-	: jenv(jenv), ludiiGameWrapper(ludiiGameWrapper) {
+LudiiStateWrapper::LudiiStateWrapper(int seed, JNIEnv* jenv, const std::shared_ptr<LudiiGameWrapper> ludiiGameWrapper)
+	: ::State(seed), jenv(jenv), ludiiGameWrapper(ludiiGameWrapper) {
 
 	// Find our LudiiStateWrapper Java class
 	ludiiStateWrapperClass = jenv->FindClass("utils/LudiiStateWrapper");
@@ -42,8 +65,8 @@ LudiiStateWrapper::LudiiStateWrapper(JNIEnv* jenv, const std::shared_ptr<LudiiGa
 	toTensorMethodID = jenv->GetMethodID(ludiiStateWrapperClass, "toTensor", "()[[[F");
 }
 
-LudiiStateWrapper::LudiiStateWrapper(JNIEnv* jenv, const LudiiStateWrapper& other)
-	: jenv(jenv), ludiiGameWrapper(other.ludiiGameWrapper) {
+LudiiStateWrapper::LudiiStateWrapper(const LudiiStateWrapper& other)
+	: ::State(other), jenv(other.jenv), ludiiGameWrapper(other.ludiiGameWrapper) {
 
 	// Find our LudiiStateWrapper Java class
 	ludiiStateWrapperClass = jenv->FindClass("utils/LudiiStateWrapper");
@@ -69,12 +92,12 @@ std::vector<std::array<int, 3>> LudiiStateWrapper::LegalMovesTensors() const {
 	const jobjectArray javaArrOuter = static_cast<jobjectArray>(jenv->CallObjectMethod(ludiiStateWrapperJavaObject, legalMovesTensorsMethodID));
 	const jsize numLegalMoves = jenv->GetArrayLength(javaArrOuter);
 
-	const std::vector<std::array<int, 3>> matrix(numLegalMoves);
+	std::vector<std::array<int, 3>> matrix(numLegalMoves);
 	for (jsize i = 0; i < numLegalMoves; ++i) {
 		const jintArray inner = static_cast<jintArray>(jenv->GetObjectArrayElement(javaArrOuter, i));
 		jint* jints = jenv->GetIntArrayElements(inner, nullptr);
 
-		std::copy(jints, jints + 3, matrix[i].begin());
+        matrix[i] = {jints[0], jints[1], jints[2]};
 
 		// Allow JVM to clean up memory now that we have our own ints
 		jenv->ReleaseIntArrayElements(inner, jints, 0);

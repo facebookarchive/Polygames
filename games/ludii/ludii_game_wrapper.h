@@ -13,6 +13,7 @@
 
 #pragma once
 
+#include <array>
 #include <jni.h>  // NOLINT
 #include <memory>
 #include <string>
@@ -45,7 +46,12 @@ public:
 	 * @param game_options Vector of additiona options to pass into Ludii, describing variant of game to load.
 	 */
 	LudiiGameWrapper(JNIEnv* jenv, const std::string lud_path, const std::vector<std::string> game_options);
-
+	/**
+	 * Copy constructor; calls the Java copy constructor for LudiiGameWrapper
+	 *
+	 * @param other The LudiiGameWrapper object of which we wish to create a deep copy
+	 */
+	LudiiGameWrapper(LudiiGameWrapper const&);
 
 	/**
 	 * @return Array of 3 ints describing the shape of state tensors; [channels, x, y]
@@ -63,7 +69,6 @@ public:
 private:
 	// We don't want to be accidentally coyping objects of this class
 	// (without having implemented our own, correct copy constructor or assignment operator)
-	LudiiGameWrapper(LudiiGameWrapper const&) = delete;
 	LudiiGameWrapper& operator=(LudiiGameWrapper const&) = delete;
 
 	/** Pointer to the JNI environment, allows for communication with Ludii's Java code */
@@ -82,13 +87,13 @@ private:
 	 * Shape for state tensors.
 	 * This remains constant throughout episodes, so can just compute it once and store
 	 */
-	std::unique_ptr<int[]> stateTensorsShape = std::unique_ptr<int[]>(nullptr);
+	std::unique_ptr<std::array<int,3>> stateTensorsShape;
 
 	/**
 	 * Shape for state tensors.
 	 * This remains constant throughout episodes, so can just compute it once and store
 	 */
-	std::unique_ptr<int[]> moveTensorsShape = std::unique_ptr<int[]>(nullptr);
+	std::unique_ptr<std::array<int,3>> moveTensorsShape;
 
 };
 
