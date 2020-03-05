@@ -20,10 +20,9 @@
 #include <string>
 #include <vector>
 
-namespace Ludii {
+#include "ludii_game_wrapper.h"
 
-/** Defined in LudiiGameWrapper. */
-class LudiiGameWrapper;
+namespace Ludii {
 
 /**
  * C++ wrapper around Ludii's "LudiiStateWrapper" class.

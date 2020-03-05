@@ -33,7 +33,6 @@ LudiiStateWrapper::LudiiStateWrapper(JNIEnv* jenv, const std::shared_ptr<LudiiGa
 	ludiiStateWrapperJavaObject =
 			jenv->NewObject(ludiiStateWrapperClass, ludiiStateWrapperConstructor, ludiiGameWrapper->ludiiGameWrapperJavaObject);
 
-
 	// Find method IDs for all the Java methods we may want to call
 	legalMovesTensorsMethodID = jenv->GetMethodID(ludiiStateWrapperClass, "legalMovesTensors", "()[[I");
 	numLegalMovesMethodID = jenv->GetMethodID(ludiiStateWrapperClass, "numLegalMoves", "()I");
@@ -67,18 +66,18 @@ LudiiStateWrapper::LudiiStateWrapper(JNIEnv* jenv, const LudiiStateWrapper& othe
 }
 
 std::vector<std::array<int, 3>> LudiiStateWrapper::LegalMovesTensors() const {
-	const jobjectArray javaArrOuter = jenv->CallObjectMethod(ludiiStateWrapperJavaObject, legalMovesTensorsMethodID);
+	const jobjectArray javaArrOuter = static_cast<jobjectArray>(jenv->CallObjectMethod(ludiiStateWrapperJavaObject, legalMovesTensorsMethodID));
 	const jsize numLegalMoves = jenv->GetArrayLength(javaArrOuter);
 
 	const std::vector<std::array<int, 3>> matrix(numLegalMoves);
 	for (jsize i = 0; i < numLegalMoves; ++i) {
 		const jintArray inner = static_cast<jintArray>(jenv->GetObjectArrayElement(javaArrOuter, i));
-		const jint* jints = jenv->GetIntArrayElements(inner, nullptr);
+		jint* jints = jenv->GetIntArrayElements(inner, nullptr);
 
 		std::copy(jints, jints + 3, matrix[i].begin());
 
 		// Allow JVM to clean up memory now that we have our own ints
-		jenv->ReleaseIntArrayElements(inner, jints, nullptr);
+		jenv->ReleaseIntArrayElements(inner, jints, 0);
 	}
 
 	return matrix;
@@ -101,10 +100,10 @@ bool LudiiStateWrapper::IsTerminal() const {
 }
 
 std::vector<std::vector<std::vector<float>>> LudiiStateWrapper::ToTensor() const {
-	const jobjectArray channelsArray = jenv->CallObjectMethod(ludiiStateWrapperJavaObject, toTensorMethodID);
+	const jobjectArray channelsArray = static_cast<jobjectArray>(jenv->CallObjectMethod(ludiiStateWrapperJavaObject, toTensorMethodID));
 	const jsize numChannels = jenv->GetArrayLength(channelsArray);
 
-	const std::vector<std::vector<std::vector<float>>> tensor(numChannels);
+	std::vector<std::vector<std::vector<float>>> tensor(numChannels);
 	for (jsize c = 0; c < numChannels; ++c) {
 		const jobjectArray xArray = static_cast<jobjectArray>(jenv->GetObjectArrayElement(channelsArray, c));
 		const jsize numXCoords = jenv->GetArrayLength(xArray);
@@ -113,12 +112,12 @@ std::vector<std::vector<std::vector<float>>> LudiiStateWrapper::ToTensor() const
 		for (jsize x = 0; x < numChannels; ++x) {
 			const jfloatArray yArray = static_cast<jfloatArray>(jenv->GetObjectArrayElement(xArray, x));
 			const jsize numYCoords = jenv->GetArrayLength(yArray);
-			const jfloat* jfloats = jenv->GetFloatArrayElements(yArray, nullptr);
+			jfloat* jfloats = jenv->GetFloatArrayElements(yArray, nullptr);
 
 			std::copy(jfloats, jfloats + numYCoords, tensor[c][x].begin());
 
 			// Allow JVM to clean up memory now that we have our own ints
-			jenv->ReleaseFloatArrayElements(yArray, jfloats, nullptr);
+			jenv->ReleaseFloatArrayElements(yArray, jfloats, 0);
 		}
 	}
 
