@@ -69,7 +69,13 @@ LudiiGameWrapper::LudiiGameWrapper(
 	moveTensorsShapeMethodID = jenv->GetMethodID(ludiiGameWrapperClass, "moveTensorsShape", "()[I");
 }
 
-int* LudiiGameWrapper::StateTensorsShape() {
+/*
+LudiiGameWrapper::LudiiGameWrapper(LudiiGameWrapper const& other) {
+    // TODO
+}
+*/
+
+const std::array<int,3> & LudiiGameWrapper::StateTensorsShape() {
 	if (not stateTensorsShape) {
 		// Get our array of Java ints
 		const jintArray jint_array = static_cast<jintArray>(jenv->CallObjectMethod(ludiiGameWrapperJavaObject, stateTensorsShapeMethodID));
@@ -82,10 +88,10 @@ int* LudiiGameWrapper::StateTensorsShape() {
 		jenv->ReleaseIntArrayElements(jint_array, jints, 0);
 	}
 
-	return stateTensorsShape->data();
+	return *stateTensorsShape;
 }
 
-int* LudiiGameWrapper::MoveTensorsShape() {
+const std::array<int,3> & LudiiGameWrapper::MoveTensorsShape() {
 	if (not moveTensorsShape) {
 		// Get our array of Java ints
 		const jintArray jint_array = static_cast<jintArray>(jenv->CallObjectMethod(ludiiGameWrapperJavaObject, moveTensorsShapeMethodID));
@@ -98,7 +104,7 @@ int* LudiiGameWrapper::MoveTensorsShape() {
 		jenv->ReleaseIntArrayElements(jint_array, jints, 0);
 	}
 
-	return moveTensorsShape->data();
+	return *moveTensorsShape;
 }
 
 }	// namespace Ludii

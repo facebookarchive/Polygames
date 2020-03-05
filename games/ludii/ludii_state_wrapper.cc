@@ -42,7 +42,7 @@ void LudiiStateWrapper::DoGoodAction() {
 //
 // javap -s <ClassName.class>
 
-LudiiStateWrapper::LudiiStateWrapper(int seed, JNIEnv* jenv, const std::shared_ptr<LudiiGameWrapper> ludiiGameWrapper)
+LudiiStateWrapper::LudiiStateWrapper(int seed, JNIEnv* jenv, LudiiGameWrapper && ludiiGameWrapper)
 	: ::State(seed), jenv(jenv), ludiiGameWrapper(ludiiGameWrapper) {
 
 	// Find our LudiiStateWrapper Java class
@@ -54,7 +54,7 @@ LudiiStateWrapper::LudiiStateWrapper(int seed, JNIEnv* jenv, const std::shared_p
 
 	// Call our Java constructor to instantiate new object
 	ludiiStateWrapperJavaObject =
-			jenv->NewObject(ludiiStateWrapperClass, ludiiStateWrapperConstructor, ludiiGameWrapper->ludiiGameWrapperJavaObject);
+			jenv->NewObject(ludiiStateWrapperClass, ludiiStateWrapperConstructor, ludiiGameWrapper.ludiiGameWrapperJavaObject);
 
 	// Find method IDs for all the Java methods we may want to call
 	legalMovesTensorsMethodID = jenv->GetMethodID(ludiiStateWrapperClass, "legalMovesTensors", "()[[I");

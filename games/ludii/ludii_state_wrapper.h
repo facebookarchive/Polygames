@@ -51,7 +51,7 @@ public:
 	 * @param jenv Our JNI environment
 	 * @param ludiiGameWrapperJavaObject The Java object for the game for which we're creating a state
 	 */
-	LudiiStateWrapper(int seed, JNIEnv* jenv, const std::shared_ptr<LudiiGameWrapper> ludiiGameWrapper);
+	LudiiStateWrapper(int seed, JNIEnv* jenv, LudiiGameWrapper && ludiiGameWrapper);
 
 	/**
 	 * Copy constructor; calls the Java copy constructor for LudiiStateWrapper
@@ -109,7 +109,7 @@ private:
 	JNIEnv* jenv;
 
 	/** Pointer to our Game wrapper */
-	const std::shared_ptr<LudiiGameWrapper> ludiiGameWrapper;
+	LudiiGameWrapper ludiiGameWrapper;
 
 	/** Our object of Java's LudiiStateWrapper type */
 	jobject ludiiStateWrapperJavaObject;

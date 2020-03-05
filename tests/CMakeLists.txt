@@ -19,6 +19,9 @@ find_package (Threads)
 find_package( GTest REQUIRED )
 include_directories( ${GTEST_INCLUDE_DIRS} )
 
+find_package(JNI REQUIRED)
+include_directories( ${JNI_INCLUDE_DIRS})
+
 include_directories(
  ../games
  ../torchRL
@@ -34,17 +37,23 @@ add_executable( polygames-tests
  ../torchRL/tube/src_cpp/data_channel.cc
  ../torchRL/tube/src_cpp/replay_buffer.cc
  tests.cc
+
  # Include your tests here.
  connectfour-tests.cc
  havannah-state-tests.cc
  havannah-tests.cc
  hex-state-tests.cc
  hex-tests.cc
+
+ ludii-game-tests.cc
+ ../games/ludii/jni_utils.cc
+ ../games/ludii/ludii_game_wrapper.cc
  )
 
 target_link_libraries( polygames-tests 
     ${CMAKE_THREAD_LIBS_INIT}
     ${GTEST_LIBRARIES}
+    ${JNI_LIBRARIES}
     ${TORCH_LIBRARIES}
     )
 

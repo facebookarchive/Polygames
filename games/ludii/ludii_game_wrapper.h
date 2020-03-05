@@ -46,6 +46,7 @@ public:
 	 * @param game_options Vector of additiona options to pass into Ludii, describing variant of game to load.
 	 */
 	LudiiGameWrapper(JNIEnv* jenv, const std::string lud_path, const std::vector<std::string> game_options);
+
 	/**
 	 * Copy constructor; calls the Java copy constructor for LudiiGameWrapper
 	 *
@@ -56,12 +57,12 @@ public:
 	/**
 	 * @return Array of 3 ints describing the shape of state tensors; [channels, x, y]
 	 */
-	int* StateTensorsShape();
+	const std::array<int,3> & StateTensorsShape();
 
 	/**
 	 * @return Array of 3 ints describing the shape of move tensors; [channels, x, y]
 	 */
-	int* MoveTensorsShape();
+	const std::array<int,3> & MoveTensorsShape();
 
 	/** Our object of Java's LudiiGameWrapper type */
 	jobject ludiiGameWrapperJavaObject;
