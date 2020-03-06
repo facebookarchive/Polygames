@@ -4,7 +4,7 @@
 Linux distribution (you just need root permissions to create the `/nix`
 directory). Alternatively, NixOS is a Linux distribution based on Nix.
 
-Polygames is quite easy to use with Nix, as explained below.
+Polygames is quite easy to use with Nix/NixOS, as explained below.
 
 
 ## Configure your system (NixOS)
@@ -64,8 +64,17 @@ Polygames is quite easy to use with Nix, as explained below.
 
 - Open a nix-shell (CUDA):
 
-    - Find the version of your Nvidia driver, for example with `nvidia-settings
-      --version`.
+    - Find the version of your Nvidia driver:
+
+        ```
+        $ nvidia-settings --version
+
+        nvidia-settings:  version 418.74
+          The NVIDIA X Server Settings tool.
+
+          This program is used to configure the NVIDIA Linux graphics driver.
+          For more detail, please see the nvidia-settings(1) man page.
+        ```
 
     - Open a nix-shell using the driver version:
 
