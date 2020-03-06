@@ -25,7 +25,7 @@ In particular it defines tests that you should try to run locally as well:
 ```
 - testing the python tools:
 ```
-pytest internal pypolygames --durations=10 --verbose
+pytest pypolygames --durations=10 --verbose
 ```
 
 - trying a short training:
