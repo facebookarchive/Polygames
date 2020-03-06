@@ -12,9 +12,9 @@
 ```
 
 
-## Setup for Nix+Linux (e.g. Debian)
+## Setup for Nix on Linux
 
-- install Cudatoolkit (10.1) and Cudnn
+- install the nvidia driver
 
 - install Nix:
 
@@ -31,7 +31,7 @@ source $HOME/.bashrc
 
 ```
 nix-env -iA nixpkgs.cachix
-cachix use juliendehos
+cachix use polygames
 ```
 
 - get Polygames:

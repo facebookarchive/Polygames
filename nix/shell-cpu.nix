@@ -1,7 +1,8 @@
 let
   rev = "dfa8e8b9bc4a18bab8f2c55897b6054d31e2c71b";
   channel = fetchTarball "https://github.com/NixOS/nixpkgs/archive/${rev}.tar.gz";
-  pkgs = import channel {};
+  config = { allowUnfree = true; };
+  pkgs = import channel { inherit config; };
 
   python = pkgs.python3;
   pytorch = pkgs.python3Packages.pytorchWithoutCuda;

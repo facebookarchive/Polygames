@@ -5,8 +5,8 @@ let
     allowUnfree = true;
     cudaSupport = true;
     packageOverrides = pkgs: {
-      cudatoolkit = pkgs.cudatoolkit_10_0;
-      cudnn = pkgs.cudnn_cudatoolkit_10_0;
+      cudatoolkit = pkgs.cudatoolkit;
+      cudnn = pkgs.cudnn_cudatoolkit;
     };
   };
   pkgs = import channel { inherit config; };
