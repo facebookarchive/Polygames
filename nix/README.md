@@ -45,9 +45,9 @@ Polygames is quite easy to use with Nix, as explained below.
     cachix use polygames
     ```
 
-> Warning: this cache provides pre-built binaries for CPU and for Nvidia
-> 418.74 only but you can [build your own binary
-> cache](#build-your-own-binary-cache).
+    > Warning: this cache provides pre-built binaries for CPU and for Nvidia
+    > 418.74 only but you can [build your own binary
+    > cache](README.md#build-you-own-binary-cache).
 
 - Clone the repo:
 
