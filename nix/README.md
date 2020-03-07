@@ -68,17 +68,19 @@ Polygames is quite easy to use with Nix/NixOS, as explained below.
     > 418.74 only but you can [build your own binary
     > cache](README.md#build-you-own-binary-cache).
 
-- Open a nix-shell (CPU):
+- Open a nix-shell:
 
-    ```
-    nix-shell nix/shell-cpu.nix
-    ```
+    - CPU:
 
-- Open a nix-shell (CUDA):
+        ```
+        nix-shell nix/shell-cpu.nix
+        ```
 
-    ```
-    nix-shell nix/shell-cuda.nix
-    ```
+    - CUDA:
+
+        ```
+        nix-shell nix/shell-cuda.nix
+        ```
 
 - Build Polygames:
 
@@ -90,17 +92,19 @@ Polygames is quite easy to use with Nix/NixOS, as explained below.
     cd ..
     ```
 
-- Run Polygames (CPU):
+- Run Polygames:
 
-    ```
-    python -m pypolygames train --game_name="Connect4" --device=cpu
-    ```
+    - CPU:
 
-- Run Polygames (CUDA):
+        ```
+        python -m pypolygames train --game_name="Connect4" --device=cpu
+        ```
 
-    ```
-    python -m pypolygames train --game_name="Connect4" --device=cuda:0
-    ```
+    - CUDA:
+
+        ```
+        python -m pypolygames train --game_name="Connect4" --device=cuda:0
+        ```
 
 ## Build you own binary cache
 
