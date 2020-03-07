@@ -7,6 +7,16 @@ directory). Alternatively, NixOS is a Linux distribution based on Nix.
 Polygames is quite easy to use with Nix/NixOS, as explained below.
 
 
+## Get Polygames
+
+- Clone the repo:
+
+    ```
+    git clone https://github.com/facebookincubator/polygames.git
+    cd Polygames
+    ```
+
+
 ## Configure your system (NixOS)
 
 - With NixOS, if you want to run Polygames on CPU, you have nothing to
@@ -57,13 +67,6 @@ Polygames is quite easy to use with Nix/NixOS, as explained below.
     > Warning: this cache provides pre-built binaries for CPU and for Nvidia
     > 418.74 only but you can [build your own binary
     > cache](README.md#build-you-own-binary-cache).
-
-- Clone the repo:
-
-    ```
-    git clone https://github.com/facebookincubator/polygames.git
-    cd Polygames
-    ```
 
 - Open a nix-shell (CPU):
 
