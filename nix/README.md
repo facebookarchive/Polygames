@@ -4,7 +4,8 @@
 Linux distribution (you just need root permissions to create the `/nix`
 directory). Alternatively, NixOS is a Linux distribution based on Nix.
 
-Polygames is quite easy to use with Nix/NixOS, as explained below.
+Polygames is quite easy to use with Nix and NixOS, as explained below. See also
+the [Dockerfile](./Dockerfile).
 
 
 ## Get Polygames
