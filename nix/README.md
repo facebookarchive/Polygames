@@ -1,6 +1,6 @@
 # Polygames for Nix users
 
-[Nix](https://nixos.org/) is a package manager that can be intalled on any
+[Nix](https://nixos.org/) is a package manager that can be installed on any
 Linux distribution (you just need root permissions to create the `/nix`
 directory). Alternatively, NixOS is a Linux distribution based on Nix.
 
@@ -32,8 +32,17 @@ Polygames is quite easy to use with Nix/NixOS, as explained below.
     source $HOME/.bashrc
     ```
 
-- If you want to run Polygames on CUDA devices, install the Nvidia driver using
-  your Linux distribution.
+- If you want to run Polygames on CUDA devices:
+
+    - Install the Nvidia driver using your Linux distribution.
+
+    - Check that `nvidia-smi` is also installed.
+
+    - Get the Nvidia driver version and write the `nvidia.json` config file:
+
+        ```
+        ./nix/get-nvidia.sh
+        ```
 
 
 ## Build & run Polygames
@@ -64,23 +73,9 @@ Polygames is quite easy to use with Nix/NixOS, as explained below.
 
 - Open a nix-shell (CUDA):
 
-    - Find the version of your Nvidia driver:
-
-        ```
-        $ nvidia-settings --version
-
-        nvidia-settings:  version 418.74
-          The NVIDIA X Server Settings tool.
-
-          This program is used to configure the NVIDIA Linux graphics driver.
-          For more detail, please see the nvidia-settings(1) man page.
-        ```
-
-    - Open a nix-shell using the driver version:
-
-        ```
-        nix-shell nix/shell-cuda.nix --argstr nvidiaVersion 418.74
-        ```
+    ```
+    nix-shell nix/shell-cuda.nix
+    ```
 
 - Build Polygames:
 
