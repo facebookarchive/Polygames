@@ -48,8 +48,19 @@ jobs:
                   git \
                   ca-certificates \
                   libjpeg-dev \
+                  libgtest-dev \
                   libpng-dev
               rm -rf /var/lib/apt/lists/
+              # build gtest (for polygames-tests)
+              cd /usr/src/googletest/googletest
+              mkdir build
+              cd build
+              cmake ..
+              make
+              cp libgtest* /usr/lib/
+              cd ..
+              rm -rf build
+              # conda
               CHECKPATH=/opt/conda
               if [ -d "$CHECKPATH" ]; then
                   echo "$CHECKPATH already exists"
@@ -127,9 +138,24 @@ jobs:
               make -j 2
 
       - run:
+          name: Build polygames-tests
+          command: |
+              . /opt/conda/etc/profile.d/conda.sh
+              conda activate pypg
+              mkdir tests/build
+              cd tests/build
+              cmake ..
+              make -j 2
+
+      - run:
           name: Test games
           command: |
               ./build/test_state
+
+      - run:
+          name: Test polygames-tests (unit tests)
+          command: |
+              ./tests/build/polygames-tests
 
       - run:
           name: Test Mcts
