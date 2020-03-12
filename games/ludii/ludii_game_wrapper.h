@@ -64,6 +64,12 @@ public:
 	 */
 	const std::array<int,3> & MoveTensorsShape();
 
+	/**
+	 * @return Vector with, for every channel in state tensors, a name describing what
+	 * data we have in that channel.
+	 */
+	const std::vector<std::string> stateTensorChannelNames();
+
 	/** Our object of Java's LudiiGameWrapper type */
 	jobject ludiiGameWrapperJavaObject;
 
@@ -83,6 +89,9 @@ private:
 
 	/** Method ID for the moveTensorsShape() method in Java */
 	jmethodID moveTensorsShapeMethodID;
+
+	/** Method ID for the stateTensorChannelNames() method in Java */
+	jmethodID stateTensorChannelNamesMethodID;
 
 	/**
 	 * Shape for state tensors.

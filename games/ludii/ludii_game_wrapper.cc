@@ -37,6 +37,9 @@ LudiiGameWrapper::LudiiGameWrapper(JNIEnv* jenv, const std::string lud_path) : j
 	// Find method IDs for the two tensor shape Java methods that we may be calling frequently
 	stateTensorsShapeMethodID = jenv->GetMethodID(ludiiGameWrapperClass, "stateTensorsShape", "()[I");
 	moveTensorsShapeMethodID = jenv->GetMethodID(ludiiGameWrapperClass, "moveTensorsShape", "()[I");
+
+	// Find the method ID for the stateTensorChannelNames() method in Java
+	stateTensorChannelNamesMethodID = jenv->GetMethodID(ludiiGameWrapperClass, "stateTensorChannelNames", "()[Ljava/lang/String;");
 }
 
 LudiiGameWrapper::LudiiGameWrapper(
@@ -105,6 +108,30 @@ const std::array<int,3> & LudiiGameWrapper::MoveTensorsShape() {
 	}
 
 	return *moveTensorsShape;
+}
+
+const std::vector<std::string> LudiiGameWrapper::stateTensorChannelNames() {
+	std::vector<std::string> channelNames;
+
+	const jobjectArray java_arr = static_cast<jobjectArray>(jenv->CallObjectMethod(ludiiGameWrapperJavaObject, stateTensorChannelNamesMethodID));
+	const int len = jenv->GetArrayLength(java_arr);
+
+	for (int i = 0; i < len; ++i) {
+		jstring jstr = (jstring) (jenv->GetObjectArrayElement(java_arr, i));
+
+		// Convert Java string to C++ string
+		const jsize jstr_len = jenv->GetStringUTFLength(jstr);
+		const char* chars = jenv->GetStringUTFChars(jstr, (jboolean*) 0);
+		std::string str(chars, jstr_len);
+
+		channelNames.push_back(str);
+
+		// Allow JVM to clean up memory
+		jenv->ReleaseStringUTFChars(jstr, chars);
+		jenv->DeleteLocalRef(jstr);
+	}
+
+	return channelNames;
 }
 
 }	// namespace Ludii
