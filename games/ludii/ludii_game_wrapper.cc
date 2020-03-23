@@ -72,11 +72,25 @@ LudiiGameWrapper::LudiiGameWrapper(
 	moveTensorsShapeMethodID = jenv->GetMethodID(ludiiGameWrapperClass, "moveTensorsShape", "()[I");
 }
 
-/*
-LudiiGameWrapper::LudiiGameWrapper(LudiiGameWrapper const& other) {
-    // TODO
+LudiiGameWrapper::LudiiGameWrapper(LudiiGameWrapper const& other)
+    : jenv(other.jenv) {
+
+	// Find our LudiiGameWrapper Java class
+	ludiiGameWrapperClass = jenv->FindClass("utils/LudiiGameWrapper");
+
+	// Find the LudiiGameWrapper Java copy constructor
+	jmethodID ludiiGameWrapperCopyConstructor =
+			jenv->GetMethodID(ludiiGameWrapperClass, "<init>", "(Lplayer/utils/LudiiGameWrapper;)V");
+
+	// Call our Java constructor to instantiate new object
+	ludiiGameWrapperJavaObject =
+			jenv->NewObject(ludiiGameWrapperClass, ludiiGameWrapperCopyConstructor, other.ludiiGameWrapperJavaObject);
+
+	// We can just copy all the pointers to methods
+	stateTensorsShapeMethodID = other.stateTensorsShapeMethodID;
+	moveTensorsShapeMethodID = other.moveTensorsShapeMethodID;
+	stateTensorChannelNamesMethodID = other.stateTensorChannelNamesMethodID;
 }
-*/
 
 const std::array<int,3> & LudiiGameWrapper::StateTensorsShape() {
 	if (not stateTensorsShape) {
