@@ -22,7 +22,36 @@ Action::Action(int i, int j, int k) {
 }
 
 void LudiiStateWrapper::Initialize() {
-    // TODO
+
+    _hash = 0;  // TODO
+    _status = GameStatus::player0Turn;
+
+    // Initializes Features.
+    _featSize.resize(3);
+    const std::array<int,3> & sts = ludiiGameWrapper.StateTensorsShape();
+    std::copy(sts.begin(), sts.end(), _featSize.begin());
+    _features =
+        std::vector<float>(_featSize[0] * _featSize[1] * _featSize[2], 0.f);
+    fillFullFeatures();
+
+    // Initializes Actions.
+    _actionSize.resize(3);
+    const std::array<int,3> & mts = ludiiGameWrapper.MoveTensorsShape();
+    std::copy(mts.begin(), mts.end(), _actionSize.begin());
+    findActions();
+}
+
+void LudiiStateWrapper::findActions() {
+    const std::vector<std::array<int, 3>> moves = LegalMovesTensors();
+    int nbMoves = NumLegalMoves();
+    _legalActions.clear();
+    _legalActions.reserve(nbMoves);
+    for (int i=0; i<nbMoves; ++i) {
+        const std::array<int,3> & move = moves[i];
+        _legalActions.push_back(
+                std::make_shared<Ludii::Action>(move[0], move[1], move[2]));
+        _legalActions.back()->SetIndex(i);
+    }
 }
 
 std::unique_ptr<mcts::State> LudiiStateWrapper::clone_() const {

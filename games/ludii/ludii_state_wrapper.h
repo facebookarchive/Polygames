@@ -101,6 +101,9 @@ public:
 	std::vector<std::vector<std::vector<float>>> ToTensor() const;
 
 private:
+
+    void findActions();
+
 	// We don't want to be accidentally coyping objects of this class
 	// (without having implemented our own, correct copy constructor or assignment operator)
 	LudiiStateWrapper& operator=(LudiiStateWrapper const&) = delete;
