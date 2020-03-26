@@ -73,7 +73,44 @@ std::unique_ptr<mcts::State> LudiiStateWrapper::clone_() const {
 
 void LudiiStateWrapper::ApplyAction(const _Action& action) {
 
-    // TODO
+  assert(not IsTerminal());
+
+  // find move from action
+  const std::array<int, 3> move { action.GetX(), action.GetY(), action.GetZ() }; 
+  const auto moves = LegalMovesTensors();
+  const auto it = std::find(moves.begin(), moves.end(), move);
+  assert(it != moves.end());
+
+  // play move
+  const int n = std::distance(moves.begin(), it);
+  ApplyNthMove(n);
+
+  // update game status
+  // TODO only 2-player games ?
+  // TODO I have no idea how to get the current player/winner !!!
+  assert(ludiiGameWrapper.stateTensorChannelNames().size() == 2);
+  const double score_0 = Returns(0);
+  const double score_1 = Returns(1);
+  if (IsTerminal()) {
+      if (score_0 > score_1)
+          _status = score_0 > 0.0 ? GameStatus::player0Win : GameStatus::tie;
+      else
+          _status = score_1 > 0.0 ? GameStatus::player1Win : GameStatus::tie;
+  }
+  else {
+      const int player = moves.front()[0];
+      _status = player == 0 ? GameStatus::player0Turn : GameStatus::player1Turn;
+  }
+
+  // update features
+  findFeatures();
+  fillFullFeatures();
+
+  // update actions
+  findActions();
+
+  // update hash  // TODO
+
 }
 
 void LudiiStateWrapper::DoGoodAction() {
