@@ -102,6 +102,7 @@ public:
 
 private:
 
+    void findFeatures();
     void findActions();
 
 	// We don't want to be accidentally coyping objects of this class

@@ -18,20 +18,20 @@ Action::Action(int i, int j, int k) {
     _loc[0] = i;
     _loc[1] = j;
     _loc[2] = k;
-    _hash = uint32_t(0);  // TODO
+    _hash = uint32_t(0);  // TODO implement hash for stochastic games
 }
 
 void LudiiStateWrapper::Initialize() {
 
-    _hash = 0;  // TODO
+    _hash = 0;  // TODO implement hash for stochastic games
     _status = GameStatus::player0Turn;
 
     // Initializes Features.
     _featSize.resize(3);
     const std::array<int,3> & sts = ludiiGameWrapper.StateTensorsShape();
     std::copy(sts.begin(), sts.end(), _featSize.begin());
-    _features =
-        std::vector<float>(_featSize[0] * _featSize[1] * _featSize[2], 0.f);
+    _features = std::vector<float>(_featSize[0] * _featSize[1] * _featSize[2]);
+    findFeatures();
     fillFullFeatures();
 
     // Initializes Actions.
@@ -39,6 +39,19 @@ void LudiiStateWrapper::Initialize() {
     const std::array<int,3> & mts = ludiiGameWrapper.MoveTensorsShape();
     std::copy(mts.begin(), mts.end(), _actionSize.begin());
     findActions();
+}
+
+void LudiiStateWrapper::findFeatures() {
+    const auto tensor = ToTensor();
+    int k=0;
+    for (int x=0; x<_featSize[0]; ++x) {
+        for (int y=0; y<_featSize[0]; ++y) {
+            for (int z=0; z<_featSize[0]; ++z) {
+                _features[k] = tensor[x][y][z];
+                ++k;
+            }
+        }
+    }
 }
 
 void LudiiStateWrapper::findActions() {
@@ -59,6 +72,7 @@ std::unique_ptr<mcts::State> LudiiStateWrapper::clone_() const {
 }
 
 void LudiiStateWrapper::ApplyAction(const _Action& action) {
+
     // TODO
 }
 
