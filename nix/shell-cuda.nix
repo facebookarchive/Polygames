@@ -65,6 +65,7 @@ in pkgs.mkShell {
     pkgs.gtest
     pkgs.linuxPackages.nvidia_x11
     pkgs.python3Packages.pytest
+    pkgs.openjdk
     pytorch
     tensorboardX
   ];

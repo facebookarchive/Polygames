@@ -29,6 +29,7 @@ in pkgs.mkShell {
     pkgs.czmq
     pkgs.gtest
     pkgs.python3Packages.pytest
+    pkgs.openjdk
     pytorch
     tensorboardX
   ];
