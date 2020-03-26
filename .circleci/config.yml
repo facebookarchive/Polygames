@@ -48,6 +48,7 @@ jobs:
                   git \
                   ca-certificates \
                   libjpeg-dev \
+                  openjdk-8-jdk \
                   libgtest-dev \
                   libpng-dev
               rm -rf /var/lib/apt/lists/

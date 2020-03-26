@@ -26,6 +26,9 @@ if( Boost_FOUND )
 include_directories( ${Boost_INCLUDE_DIRS})
 endif()
 
+find_package(JNI REQUIRED)
+include_directories( ${JNI_INCLUDE_DIRS})
+
 message(STATUS "Adding PyTorch compilation flags: ${TORCH_CXX_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
@@ -39,6 +42,9 @@ add_subdirectory(torchRL/mcts)
 
 add_library(_games
   games/gomoku_swap2.cc
+  games/ludii/jni_utils.cc
+  games/ludii/ludii_game_wrapper.cc
+  games/ludii/ludii_state_wrapper.cc
   games/othello_opt.cc
   games/mastermind_state.cc
   games/amazons.cc
@@ -53,11 +59,12 @@ add_library(_games
 target_include_directories(_games PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/torchRL)
 target_include_directories(_games SYSTEM PUBLIC ${TORCH_INCLUDE_DIRS})
 target_include_directories(_games PUBLIC ${PYTHON_INCLUDE_DIRS})
+target_include_directories(_games PUBLIC ${JNI_INCLUDE_DIRS})
 
 pybind11_add_module(polygames core/pybind.cc core/game.cc core/state.cc)
 
 target_include_directories(polygames PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/torchRL)
-target_link_libraries(polygames PUBLIC _tube _mcts _games)
+target_link_libraries(polygames PUBLIC _tube _mcts _games ${JNI_LIBRARIES})
 
 # add Minesweeper benchmarks
 add_subdirectory(games/minesweeper_csp_vkms)
