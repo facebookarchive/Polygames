@@ -18,11 +18,53 @@ Action::Action(int i, int j, int k) {
     _loc[0] = i;
     _loc[1] = j;
     _loc[2] = k;
-    _hash = uint32_t(0);  // TODO
+    _hash = uint32_t(0);  // TODO implement hash for stochastic games
 }
 
 void LudiiStateWrapper::Initialize() {
-    // TODO
+
+    _hash = 0;  // TODO implement hash for stochastic games
+    _status = GameStatus::player0Turn;
+
+    // Initializes Features.
+    _featSize.resize(3);
+    const std::array<int,3> & sts = ludiiGameWrapper.StateTensorsShape();
+    std::copy(sts.begin(), sts.end(), _featSize.begin());
+    _features = std::vector<float>(_featSize[0] * _featSize[1] * _featSize[2]);
+    findFeatures();
+    fillFullFeatures();
+
+    // Initializes Actions.
+    _actionSize.resize(3);
+    const std::array<int,3> & mts = ludiiGameWrapper.MoveTensorsShape();
+    std::copy(mts.begin(), mts.end(), _actionSize.begin());
+    findActions();
+}
+
+void LudiiStateWrapper::findFeatures() {
+    const auto tensor = ToTensor();
+    int k=0;
+    for (int x=0; x<_featSize[0]; ++x) {
+        for (int y=0; y<_featSize[0]; ++y) {
+            for (int z=0; z<_featSize[0]; ++z) {
+                _features[k] = tensor[x][y][z];
+                ++k;
+            }
+        }
+    }
+}
+
+void LudiiStateWrapper::findActions() {
+    const std::vector<std::array<int, 3>> moves = LegalMovesTensors();
+    int nbMoves = NumLegalMoves();
+    _legalActions.clear();
+    _legalActions.reserve(nbMoves);
+    for (int i=0; i<nbMoves; ++i) {
+        const std::array<int,3> & move = moves[i];
+        _legalActions.push_back(
+                std::make_shared<Ludii::Action>(move[0], move[1], move[2]));
+        _legalActions.back()->SetIndex(i);
+    }
 }
 
 std::unique_ptr<mcts::State> LudiiStateWrapper::clone_() const {
@@ -30,7 +72,45 @@ std::unique_ptr<mcts::State> LudiiStateWrapper::clone_() const {
 }
 
 void LudiiStateWrapper::ApplyAction(const _Action& action) {
-    // TODO
+
+  assert(not IsTerminal());
+
+  // find move from action
+  const std::array<int, 3> move { action.GetX(), action.GetY(), action.GetZ() }; 
+  const auto moves = LegalMovesTensors();
+  const auto it = std::find(moves.begin(), moves.end(), move);
+  assert(it != moves.end());
+
+  // play move
+  const int n = std::distance(moves.begin(), it);
+  ApplyNthMove(n);
+
+  // update game status
+  // TODO only 2-player games ?
+  // TODO I have no idea how to get the current player/winner !!!
+  assert(ludiiGameWrapper.stateTensorChannelNames().size() == 2);
+  const double score_0 = Returns(0);
+  const double score_1 = Returns(1);
+  if (IsTerminal()) {
+      if (score_0 > score_1)
+          _status = score_0 > 0.0 ? GameStatus::player0Win : GameStatus::tie;
+      else
+          _status = score_1 > 0.0 ? GameStatus::player1Win : GameStatus::tie;
+  }
+  else {
+      const int player = moves.front()[0];
+      _status = player == 0 ? GameStatus::player0Turn : GameStatus::player1Turn;
+  }
+
+  // update features
+  findFeatures();
+  fillFullFeatures();
+
+  // update actions
+  findActions();
+
+  // update hash  // TODO
+
 }
 
 void LudiiStateWrapper::DoGoodAction() {
