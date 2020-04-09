@@ -46,8 +46,8 @@ void LudiiStateWrapper::findFeatures() {
     const auto tensor = ToTensor();
     int k=0;
     for (int x=0; x<_featSize[0]; ++x) {
-        for (int y=0; y<_featSize[0]; ++y) {
-            for (int z=0; z<_featSize[0]; ++z) {
+        for (int y=0; y<_featSize[1]; ++y) {
+            for (int z=0; z<_featSize[2]; ++z) {
                 _features[k] = tensor[x][y][z];
                 ++k;
             }
@@ -89,7 +89,10 @@ void LudiiStateWrapper::ApplyAction(const _Action& action) {
   // update game status
   // TODO only 2-player games ?
   // TODO I have no idea how to get the current player/winner !!!
-  assert(ludiiGameWrapper.stateTensorChannelNames().size() == 2);
+
+  // We don't want this assert: We have more than 2 channels, so also more than 2 names!
+  //assert(ludiiGameWrapper.stateTensorChannelNames().size() == 2);
+
   const double score_0 = Returns(0);
   const double score_1 = Returns(1);
   if (IsTerminal()) {
