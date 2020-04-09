@@ -216,6 +216,7 @@ std::vector<std::vector<std::vector<float>>> LudiiStateWrapper::ToTensor() const
 			const jsize numYCoords = jenv->GetArrayLength(yArray);
 			jfloat* jfloats = jenv->GetFloatArrayElements(yArray, nullptr);
 
+			tensor[c][x].resize(numYCoords);
 			std::copy(jfloats, jfloats + numYCoords, tensor[c][x].begin());
 
 			// Allow JVM to clean up memory now that we have our own ints
