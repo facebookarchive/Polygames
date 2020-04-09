@@ -211,7 +211,7 @@ std::vector<std::vector<std::vector<float>>> LudiiStateWrapper::ToTensor() const
 		const jsize numXCoords = jenv->GetArrayLength(xArray);
 
 		tensor[c].resize(numXCoords);
-		for (jsize x = 0; x < numChannels; ++x) {
+		for (jsize x = 0; x < numXCoords; ++x) {
 			const jfloatArray yArray = static_cast<jfloatArray>(jenv->GetObjectArrayElement(xArray, x));
 			const jsize numYCoords = jenv->GetArrayLength(yArray);
 			jfloat* jfloats = jenv->GetFloatArrayElements(yArray, nullptr);
