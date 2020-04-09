@@ -369,3 +369,6 @@ exps/
 
 # For some people testing
 run.sh
+
+# Ludii's JAR file
+ludii/Ludii.jar
