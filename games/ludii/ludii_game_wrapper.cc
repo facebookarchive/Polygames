@@ -76,13 +76,8 @@ LudiiGameWrapper::LudiiGameWrapper(LudiiGameWrapper const& other)
 
 	jclass ludiiGameWrapperClass = JNIUtils::LudiiGameWrapperClass();
 
-	// Find the LudiiGameWrapper Java copy constructor
-	jmethodID ludiiGameWrapperCopyConstructor =
-			jenv->GetMethodID(ludiiGameWrapperClass, "<init>", "(Lplayer/utils/LudiiGameWrapper;)V");
-
-	// Call our Java constructor to instantiate new object
-	ludiiGameWrapperJavaObject =
-			jenv->NewObject(ludiiGameWrapperClass, ludiiGameWrapperCopyConstructor, other.ludiiGameWrapperJavaObject);
+	// We can just copy the pointer to the same Java Game object
+	ludiiGameWrapperJavaObject = other.ludiiGameWrapperJavaObject;
 
 	// We can just copy all the pointers to methods
 	stateTensorsShapeMethodID = other.stateTensorsShapeMethodID;

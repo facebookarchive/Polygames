@@ -128,7 +128,7 @@ LudiiStateWrapper::LudiiStateWrapper(int seed, JNIEnv* jenv, LudiiGameWrapper &&
 
 	jclass ludiiStateWrapperClass = JNIUtils::LudiiStateWrapperClass();
 
-	// Find the LudiiGameWrapper Java constructor
+	// Find the LudiiStateWrapper Java constructor
 	jmethodID ludiiStateWrapperConstructor =
 			jenv->GetMethodID(ludiiStateWrapperClass, "<init>", "(Lplayer/utils/LudiiGameWrapper;)V");
 
