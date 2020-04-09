@@ -42,10 +42,19 @@ class JNIUtils {
   void InitJVM(std::string jar_location);
   void CloseJVM();
 
+  static jclass LudiiGameWrapperClass();
+  static jclass LudiiStateWrapperClass();
+
  private:
   JavaVM *jvm;
   JNIEnv *env;
   jint res;
+
+  /** Our LudiiGameWrapper class in Java */
+  static jclass ludiiGameWrapperClass;
+
+  /** Our LudiiStateWrapper class in Java */
+  static jclass ludiiStateWrapperClass;
 };
 
 }  // namespace Ludii

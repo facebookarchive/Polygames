@@ -118,9 +118,6 @@ private:
 	/** Our object of Java's LudiiStateWrapper type */
 	jobject ludiiStateWrapperJavaObject;
 
-	/** Our LudiiStateWrapper class in Java */
-	jclass ludiiStateWrapperClass;
-
 	/** Method ID for the legalMovesTensors() method in Java */
 	jmethodID legalMovesTensorsMethodID;
 

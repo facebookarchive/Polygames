@@ -10,6 +10,7 @@
 // - Github: https://github.com/DennisSoemers/
 // - Email: dennis.soemers@maastrichtuniversity.nl (or d.soemers@gmail.com)
 
+#include "jni_utils.h"
 #include "ludii_game_wrapper.h"
 
 namespace Ludii {
@@ -20,8 +21,7 @@ namespace Ludii {
 // javap -s <ClassName.class>
 
 LudiiGameWrapper::LudiiGameWrapper(JNIEnv* jenv, const std::string lud_path) : jenv(jenv) {
-	// Find our LudiiGameWrapper Java class
-	ludiiGameWrapperClass = jenv->FindClass("utils/LudiiGameWrapper");
+	jclass ludiiGameWrapperClass = JNIUtils::LudiiGameWrapperClass();
 
 	// Find the LudiiGameWrapper Java constructor
 	jmethodID ludiiGameWrapperConstructor =
@@ -46,8 +46,7 @@ LudiiGameWrapper::LudiiGameWrapper(
 		JNIEnv* jenv, const std::string lud_path,
 		const std::vector<std::string> game_options) : jenv(jenv) {
 
-	// Find our LudiiGameWrapper Java class
-	ludiiGameWrapperClass = jenv->FindClass("utils/LudiiGameWrapper");
+	jclass ludiiGameWrapperClass = JNIUtils::LudiiGameWrapperClass();
 
 	// Find the LudiiGameWrapper Java constructor (with extra argument for options)
 	const jmethodID ludiiGameWrapperConstructor =
@@ -75,8 +74,7 @@ LudiiGameWrapper::LudiiGameWrapper(
 LudiiGameWrapper::LudiiGameWrapper(LudiiGameWrapper const& other)
     : jenv(other.jenv) {
 
-	// Find our LudiiGameWrapper Java class
-	ludiiGameWrapperClass = jenv->FindClass("utils/LudiiGameWrapper");
+	jclass ludiiGameWrapperClass = JNIUtils::LudiiGameWrapperClass();
 
 	// Find the LudiiGameWrapper Java copy constructor
 	jmethodID ludiiGameWrapperCopyConstructor =

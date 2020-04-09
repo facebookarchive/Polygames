@@ -61,10 +61,28 @@ void JNIUtils::InitJVM(std::string jar_location) {
   res = JNI_CreateJavaVM(&jvm, &env, &vm_args);
   free(c_classpath);
 #endif /* JNI_VERSION_1_2 */
+
+  // Find our LudiiGameWrapper Java class
+  ludiiGameWrapperClass = env->FindClass("player/utils/LudiiGameWrapper");
+
+  // Find our LudiiStateWrapper Java class
+  ludiiStateWrapperClass = env->FindClass("player/utils/LudiiStateWrapper");
 }
 
 void JNIUtils::CloseJVM() {
   jvm->DestroyJavaVM();
+}
+
+// These will be assigned proper values by InitJVM() call
+jclass JNIUtils::ludiiGameWrapperClass = nullptr;
+jclass JNIUtils::ludiiStateWrapperClass = nullptr;
+
+jclass JNIUtils::LudiiGameWrapperClass() {
+	return ludiiGameWrapperClass;
+}
+
+jclass JNIUtils::LudiiStateWrapperClass() {
+	return ludiiStateWrapperClass;
 }
 
 }  // namespace Ludii

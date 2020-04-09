@@ -10,6 +10,7 @@
 // - Github: https://github.com/DennisSoemers/
 // - Email: dennis.soemers@maastrichtuniversity.nl (or d.soemers@gmail.com)
 
+#include "jni_utils.h"
 #include "ludii_state_wrapper.h"
 
 namespace Ludii {
@@ -125,8 +126,7 @@ void LudiiStateWrapper::DoGoodAction() {
 LudiiStateWrapper::LudiiStateWrapper(int seed, JNIEnv* jenv, LudiiGameWrapper && ludiiGameWrapper)
 	: ::State(seed), jenv(jenv), ludiiGameWrapper(ludiiGameWrapper) {
 
-	// Find our LudiiStateWrapper Java class
-	ludiiStateWrapperClass = jenv->FindClass("utils/LudiiStateWrapper");
+	jclass ludiiStateWrapperClass = JNIUtils::LudiiStateWrapperClass();
 
 	// Find the LudiiGameWrapper Java constructor
 	jmethodID ludiiStateWrapperConstructor =
@@ -148,8 +148,7 @@ LudiiStateWrapper::LudiiStateWrapper(int seed, JNIEnv* jenv, LudiiGameWrapper &&
 LudiiStateWrapper::LudiiStateWrapper(const LudiiStateWrapper& other)
 	: ::State(other), jenv(other.jenv), ludiiGameWrapper(other.ludiiGameWrapper) {
 
-	// Find our LudiiStateWrapper Java class
-	ludiiStateWrapperClass = jenv->FindClass("utils/LudiiStateWrapper");
+	jclass ludiiStateWrapperClass = JNIUtils::LudiiStateWrapperClass();
 
 	// Find the LudiiStateWrapper Java copy constructor
 	jmethodID ludiiStateWrapperCopyConstructor =

@@ -81,9 +81,6 @@ private:
 	/** Pointer to the JNI environment, allows for communication with Ludii's Java code */
 	JNIEnv* jenv;
 
-	/** Our LudiiGameWrapper class in Java */
-	jclass ludiiGameWrapperClass;
-
 	/** Method ID for the stateTensorsShape() method in Java */
 	jmethodID stateTensorsShapeMethodID;
 
