@@ -155,7 +155,17 @@ int main() {
     doTest(state);
     std::cout << "test pass: BlockGo" << std::endl;
   }
-
+  {
+    std::cout << "testing: Ludii Tic-Tac-Toe" << std::endl;
+    // std::string ludii_name = gameName.substr(5);
+    Ludii::JNIUtils jni_utils("");  //no argv[1], we just use the default
+    JNIEnv* jni_env = jni_utils.GetEnv();
+    Ludii::LudiiGameWrapper game_wrapper(jni_env, "Tic-Tac-Toe.lud");
+    auto state = std::make_unique<Ludii::LudiiStateWrapper>(seed, jni_env, std::move(game_wrapper));    
+    doTest(*state);
+    std::cout << "test pass: Ludii Tic-Tac-Toe" << std::endl;
+  }
+  
   {
     std::cout << "testing: connect four" << std::endl;
     auto state = StateForConnectFour(seed);
