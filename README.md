@@ -5,6 +5,8 @@
 This README is a work in progress, please feel very free to post issues - we are happy to help.
 Save up computational power: you can find checkpoints here: http://dl.fbaipublicfiles.com/polygames/checkpoints/list.txt (feel free to open an issue for discussing which checkpoint you should use for which game/problem!).
 
+For Nix users: see [this doc](./nix/README.md).
+
 ## Requirement:
 ```
 C++14 compatible compiler

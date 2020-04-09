@@ -359,6 +359,11 @@ cmake-build-debug/
 # Visual Studio Code
 .vscode/
 
+# Eclipse projects
+/.cproject
+/.project
+.settings/
+
 # Experiment directory
 exps/
 
