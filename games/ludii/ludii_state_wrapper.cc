@@ -102,7 +102,7 @@ void LudiiStateWrapper::ApplyAction(const _Action& action) {
           _status = score_1 > 0.0 ? GameStatus::player1Win : GameStatus::tie;
   }
   else {
-      const int player = moves.front()[0];
+      const int player = CurrentPlayer();
       _status = player == 0 ? GameStatus::player0Turn : GameStatus::player1Turn;
   }
 
@@ -146,6 +146,7 @@ LudiiStateWrapper::LudiiStateWrapper(int seed, JNIEnv* jenv, LudiiGameWrapper &&
 	returnsMethodID = jenv->GetMethodID(ludiiStateWrapperClass, "returns", "(I)D");
 	isTerminalMethodID = jenv->GetMethodID(ludiiStateWrapperClass, "isTerminal", "()Z");
 	toTensorMethodID = jenv->GetMethodID(ludiiStateWrapperClass, "toTensor", "()[[[F");
+	currentPlayerMethodID = jenv->GetMethodID(ludiiStateWrapperClass, "currentPlayer", "()I");
 }
 
 LudiiStateWrapper::LudiiStateWrapper(const LudiiStateWrapper& other)
@@ -168,6 +169,7 @@ LudiiStateWrapper::LudiiStateWrapper(const LudiiStateWrapper& other)
 	returnsMethodID = other.returnsMethodID;
 	isTerminalMethodID = other.isTerminalMethodID;
 	toTensorMethodID = other.toTensorMethodID;
+	currentPlayerMethodID = other.currentPlayerMethodID;
 }
 
 std::vector<std::array<int, 3>> LudiiStateWrapper::LegalMovesTensors() const {
@@ -202,6 +204,10 @@ double LudiiStateWrapper::Returns(const int player) const {
 
 bool LudiiStateWrapper::IsTerminal() const {
 	return (bool) jenv->CallBooleanMethod(ludiiStateWrapperJavaObject, isTerminalMethodID);
+}
+
+int LudiiStateWrapper::CurrentPlayer() const {
+	return (int) jenv->CallIntMethod(ludiiStateWrapperJavaObject, currentPlayerMethodID);
 }
 
 std::vector<std::vector<std::vector<float>>> LudiiStateWrapper::ToTensor() const {

@@ -95,6 +95,11 @@ public:
 	bool IsTerminal() const;
 
 	/**
+	 * @return The current player to move (0 for first, 1 for second, etc.)
+	 */
+	int CurrentPlayer() const;
+
+	/**
 	 * @return State representated by a game-dependent number of channels, with each
 	 * 	channel having X and Y coordinates.
 	 */
@@ -135,6 +140,9 @@ private:
 
 	/** Method ID for the toTensor() method in Java */
 	jmethodID toTensorMethodID;
+
+	/** Method ID for the currentPlayer() method in Java */
+	jmethodID currentPlayerMethodID;
 
 };
 
