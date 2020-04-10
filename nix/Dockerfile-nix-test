@@ -1,0 +1,51 @@
+# install base system
+FROM nixos/nix
+RUN nix-env -iA nixpkgs.git
+RUN nix-env -iA nixpkgs.cachix
+RUN cachix use polygames
+
+# get Polygames
+WORKDIR /root
+RUN git clone https://github.com/facebookincubator/Polygames
+
+# first build
+RUN mkdir /root/Polygames/build
+WORKDIR /root/Polygames/build
+RUN nix-shell ../nix/shell-cpu.nix --run "cmake -DPYTORCH12=ON .. && make -j4"
+WORKDIR /root/Polygames
+
+# build & test
+RUN nix-shell nix/shell-cpu.nix --run "make -C build -j4 && ./build/test_state"
+
+# clean Polygames
+WORKDIR /root
+RUN rm -rf Polygames
+
+# create a working directory
+VOLUME /Polygames
+WORKDIR /Polygames
+
+# build Polygames and run test_state
+CMD nix-shell nix/shell-cpu.nix --run "mkdir -p build && cd build && cmake -DPYTORCH12=ON .. && make -j4 && ./test_state"
+
+
+# build and push a docker image:
+#
+# docker build -f Dockerfile-nix-test -t juliendehos/polygames:nix-test .
+# docker push juliendehos/polygames:nix-test
+
+
+# initialize your repo:
+#
+# git clone https://github.com/facebookincubator/Polygames
+# cd Polygames
+# mkdir build
+# git checkout ludiitest
+# git pull
+# curl -O https://www.ludii.games/downloads/Ludii-0.5.0.jar
+
+
+# build and test Polygames using the docker image:
+#
+# docker run -v $(pwd):/Polygames juliendehos/polygames:nix-test
+
