@@ -151,6 +151,7 @@ jobs:
       - run:
           name: Test games
           command: |
+              wget --no-check-certificate https://www-lisic.univ-littoral.fr/~dehos/Ludii.jar  # TODO temporary test, to be fixed
               ./build/test_state
 
       - run:
