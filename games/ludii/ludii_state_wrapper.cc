@@ -24,6 +24,8 @@ Action::Action(int i, int j, int k) {
 
 void LudiiStateWrapper::Initialize() {
 
+	Reset();
+
     _hash = 0;  // TODO implement hash for stochastic games
     _status = GameStatus::player0Turn;
 
@@ -147,6 +149,7 @@ LudiiStateWrapper::LudiiStateWrapper(int seed, JNIEnv* jenv, LudiiGameWrapper &&
 	isTerminalMethodID = jenv->GetMethodID(ludiiStateWrapperClass, "isTerminal", "()Z");
 	toTensorMethodID = jenv->GetMethodID(ludiiStateWrapperClass, "toTensor", "()[[[F");
 	currentPlayerMethodID = jenv->GetMethodID(ludiiStateWrapperClass, "currentPlayer", "()I");
+	resetMethodID = jenv->GetMethodID(ludiiStateWrapperClass, "reset", "()V");
 }
 
 LudiiStateWrapper::LudiiStateWrapper(const LudiiStateWrapper& other)
@@ -170,6 +173,7 @@ LudiiStateWrapper::LudiiStateWrapper(const LudiiStateWrapper& other)
 	isTerminalMethodID = other.isTerminalMethodID;
 	toTensorMethodID = other.toTensorMethodID;
 	currentPlayerMethodID = other.currentPlayerMethodID;
+	resetMethodID = other.resetMethodID;
 }
 
 std::vector<std::array<int, 3>> LudiiStateWrapper::LegalMovesTensors() const {
@@ -208,6 +212,10 @@ bool LudiiStateWrapper::IsTerminal() const {
 
 int LudiiStateWrapper::CurrentPlayer() const {
 	return (int) jenv->CallIntMethod(ludiiStateWrapperJavaObject, currentPlayerMethodID);
+}
+
+void LudiiStateWrapper::Reset() const {
+	jenv->CallVoidMethod(ludiiStateWrapperJavaObject, resetMethodID);
 }
 
 std::vector<std::vector<std::vector<float>>> LudiiStateWrapper::ToTensor() const {

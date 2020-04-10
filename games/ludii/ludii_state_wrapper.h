@@ -100,6 +100,11 @@ public:
 	int CurrentPlayer() const;
 
 	/**
+	 * Calls the Java reset() method on the Java game state object
+	 */
+	void Reset() const;
+
+	/**
 	 * @return State representated by a game-dependent number of channels, with each
 	 * 	channel having X and Y coordinates.
 	 */
@@ -143,6 +148,9 @@ private:
 
 	/** Method ID for the currentPlayer() method in Java */
 	jmethodID currentPlayerMethodID;
+
+	/** Method ID for the reset() method in Java */
+	jmethodID resetMethodID;
 
 };
 
