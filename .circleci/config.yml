@@ -151,6 +151,8 @@ jobs:
       - run:
           name: Test games
           command: |
+              mkdir ludii
+              wget --no-check-certificate -P ludii https://www-lisic.univ-littoral.fr/~dehos/Ludii.jar  # TODO temporary test, to be fixed
               ./build/test_state
 
       - run:
