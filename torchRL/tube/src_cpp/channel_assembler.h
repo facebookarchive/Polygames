@@ -317,13 +317,13 @@ class ChannelAssembler {
       const std::unordered_map<std::string, torch::Tensor>& stateDict) {
     for (auto& [name, tensor] : stateDict) {
       const char* ptr = name.c_str();
-      auto* currentModule = &model;
+      TorchJitModel currentModule = model;
       std::string memberNameString;
       const char* memberNamePtr = ptr;
       while (*ptr) {
         if (*ptr == '.') {
           memberNameString.assign(memberNamePtr, ptr - memberNamePtr);
-          auto subModule = currentModule->find_module(memberNameString);
+          auto subModule = currentModule.find_module(memberNameString);
           if (!subModule) {
             fmt::printf("copyModelStateDict: Unknown state dict entry '%s' -- could "
                    "not find module '%s'\n",
@@ -331,7 +331,7 @@ class ChannelAssembler {
                    memberNameString);
             std::abort();
           }
-          currentModule = &*subModule;
+          currentModule = *subModule;
           ++ptr;
           memberNamePtr = ptr;
         } else {
@@ -341,15 +341,15 @@ class ChannelAssembler {
       memberNameString.assign(memberNamePtr, ptr - memberNamePtr);
 
 #ifdef PYTORCH12
-      if (c10::optional<torch::jit::script::Slot> p = currentModule->find_parameter(memberNameString); p) {
+      if (c10::optional<torch::jit::script::Slot> p = currentModule.find_parameter(memberNameString); p) {
         p->value().toTensor().copy_(tensor);
-      } else if (c10::optional<torch::jit::script::Slot> b = currentModule->find_buffer(memberNameString); b) {
+      } else if (c10::optional<torch::jit::script::Slot> b = currentModule.find_buffer(memberNameString); b) {
         b->value().toTensor().copy_(tensor);
       } else {
 #else
-      if (auto* p = currentModule->find_parameter(memberNameString); p) {
+      if (auto* p = currentModule.find_parameter(memberNameString); p) {
         p->value().toTensor().copy_(tensor);
-      } else if (auto* b = currentModule->find_buffer(memberNameString); b) {
+      } else if (auto* b = currentModule.find_buffer(memberNameString); b) {
         b->value().toTensor().copy_(tensor);
       } else {
 #endif
