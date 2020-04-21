@@ -48,6 +48,10 @@ class MctsPlayer : public Player {
   void newEpisode() override {
   }
 
+  void recordMove(const State* state) override {
+    actors_[0]->recordMove(state);
+  }
+
   void result(const State* state, float reward) override {
     actors_[0]->result(state, reward);
   }
