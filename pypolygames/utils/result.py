@@ -16,7 +16,7 @@ def parse_reward(reward):
         else:
             result["tie"] += 1
     result["total"] = len(reward)
-    result["avg"] = (sum(reward) / (len(reward) + 1.)) / 2.
+    result["avg"] = (sum(reward) / max(len(reward), 1) + 1.) / 2.
     return result
 
 
