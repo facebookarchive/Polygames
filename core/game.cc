@@ -40,6 +40,8 @@ void Game::mainLoop() {
       std::vector<int> resignCounter;
       bool canResign = false;
       int resigned = -1;
+      std::chrono::steady_clock::time_point prevMoveTime =
+          std::chrono::steady_clock::now();
     };
 
     std::list<GameState> states;
@@ -144,17 +146,19 @@ void Game::mainLoop() {
             for (size_t idx = 0; idx != players_.size(); ++idx) {
               result_.at(idx) = int(idx) == i->resigned ? -1 : 1;
             }
-            //fmt::printf("player %d (%s) resigned : %s\n", i->resigned,
-            //            players_.at(i->resigned)->getName(), state->history());
+            // fmt::printf("player %d (%s) resigned : %s\n", i->resigned,
+            //            players_.at(i->resigned)->getName(),
+            //            state->history());
           } else {
             for (size_t idx = 0; idx != players_.size(); ++idx) {
               result_[idx] = state->getReward(idx);
             }
-            //fmt::printf("game ended normally: %s\n", state->history().c_str());
+            // fmt::printf("game ended normally: %s\n",
+            // state->history().c_str());
           }
 
           for (size_t p = 0; p != players_.size(); ++p) {
-            //fmt::printf(
+            // fmt::printf(
             //    "Result for %s: %g\n", players_[p]->getName(), result_[p]);
             for (auto& v : i->feat[p]) {
               feature_[p].pushBack(v);
@@ -210,6 +214,15 @@ void Game::mainLoop() {
           }
           auto result = mctsPlayers.at(playerIndex)->actMcts(states);
 
+          {
+            double rps = mctsPlayers.at(playerIndex)->rolloutsPerSecond();
+            std::unique_lock<std::mutex> lkStats(mutexStats_);
+            auto& stats_s = stats_["Rollouts per second"];
+            std::get<0>(stats_s) += 1;
+            std::get<1>(stats_s) += rps;
+            std::get<2>(stats_s) += rps * rps;
+          }
+
           // Distribute results to the correct player/state and store
           // features for training.
           size_t offset = 0;
@@ -246,6 +259,22 @@ void Game::mainLoop() {
               state->forward(result.at(offset + i).bestAction);
 
               players_[currentPlayerIndex]->recordMove(state);
+
+              auto now = std::chrono::steady_clock::now();
+              double elapsed =
+                  std::chrono::duration_cast<
+                      std::chrono::duration<double, std::ratio<1, 1>>>(
+                      now - gameState->prevMoveTime)
+                      .count();
+              gameState->prevMoveTime = now;
+
+              {
+                std::unique_lock<std::mutex> lkStats(mutexStats_);
+                auto& stats_s = stats_["Move Duration (seconds)"];
+                std::get<0>(stats_s) += 1;
+                std::get<1>(stats_s) += elapsed;
+                std::get<2>(stats_s) += elapsed * elapsed;
+              }
 
               // fmt::printf("game in progress: %s\n", state->history());
             }
