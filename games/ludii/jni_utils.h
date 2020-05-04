@@ -34,21 +34,18 @@ namespace Ludii {
 
 class JNIUtils {
  public:
-  JNIUtils(const std::string jar_location);
-  ~JNIUtils();
+  static JNIEnv *GetEnv();
 
-  JNIEnv *GetEnv() const;
-
-  void InitJVM(std::string jar_location);
-  void CloseJVM();
+  static void InitJVM(std::string jar_location);
+  static void CloseJVM();
 
   static jclass LudiiGameWrapperClass();
   static jclass LudiiStateWrapperClass();
 
  private:
-  JavaVM *jvm;
-  JNIEnv *env;
-  jint res;
+  static JavaVM *jvm;
+  static JNIEnv *env;
+  static jint res;
 
   /** Our LudiiGameWrapper class in Java */
   static jclass ludiiGameWrapperClass;

@@ -27,11 +27,11 @@ SOFTWARE.
 
 namespace Ludii {
 
-JNIUtils::JNIUtils(std::string jar_location) { InitJVM(jar_location); }
+JavaVM* JNIUtils::jvm = nullptr;
+JNIEnv* JNIUtils::env = nullptr;
+jint JNIUtils::res = 0;
 
-JNIUtils::~JNIUtils() { CloseJVM(); }
-
-JNIEnv *JNIUtils::GetEnv() const { return env; }
+JNIEnv *JNIUtils::GetEnv() { return env; }
 
 void JNIUtils::InitJVM(std::string jar_location) {
   std::cout << "intializing JVM" << std::endl;
@@ -63,14 +63,16 @@ void JNIUtils::InitJVM(std::string jar_location) {
 #endif /* JNI_VERSION_1_2 */
 
   // Find our LudiiGameWrapper Java class
-  ludiiGameWrapperClass = env->FindClass("player/utils/LudiiGameWrapper");
+  ludiiGameWrapperClass = (jclass) env->NewGlobalRef(env->FindClass("player/utils/LudiiGameWrapper"));
 
   // Find our LudiiStateWrapper Java class
-  ludiiStateWrapperClass = env->FindClass("player/utils/LudiiStateWrapper");
+  ludiiStateWrapperClass = (jclass) env->NewGlobalRef(env->FindClass("player/utils/LudiiStateWrapper"));
 }
 
 void JNIUtils::CloseJVM() {
-  jvm->DestroyJavaVM();
+	env->DeleteGlobalRef(ludiiStateWrapperClass);
+	env->DeleteGlobalRef(ludiiGameWrapperClass);
+	jvm->DestroyJavaVM();
 }
 
 // These will be assigned proper values by InitJVM() call
