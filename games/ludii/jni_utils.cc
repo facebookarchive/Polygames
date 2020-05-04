@@ -34,45 +34,52 @@ jint JNIUtils::res = 0;
 JNIEnv *JNIUtils::GetEnv() { return env; }
 
 void JNIUtils::InitJVM(std::string jar_location) {
-  std::cout << "intializing JVM" << std::endl;
-  if (jar_location.empty()) jar_location = "ludii/Ludii.jar";
+	if (env != nullptr)
+		return;		// We've already initialised the JVM
+
+	std::cout << "intializing JVM" << std::endl;
+	if (jar_location.empty()) jar_location = "ludii/Ludii.jar";
 #ifdef JNI_VERSION_1_2
-  JavaVMInitArgs vm_args;
-  JavaVMOption options[1];
-  std::string java_classpath = "-Djava.class.path=" + jar_location;
-  char *c_classpath = strdup(java_classpath.c_str());
-  options[0].optionString = c_classpath;
-  vm_args.version = 0x00010002;
-  vm_args.options = options;
-  vm_args.nOptions = 1;
-  vm_args.ignoreUnrecognized = JNI_TRUE;
-  /* Create the Java VM */
-  res = JNI_CreateJavaVM(&jvm, (void **)&env, &vm_args);
-  free(c_classpath);
+	JavaVMInitArgs vm_args;
+	JavaVMOption options[1];
+	std::string java_classpath = "-Djava.class.path=" + jar_location;
+	char *c_classpath = strdup(java_classpath.c_str());
+	options[0].optionString = c_classpath;
+	vm_args.version = 0x00010002;
+	vm_args.options = options;
+	vm_args.nOptions = 1;
+	vm_args.ignoreUnrecognized = JNI_TRUE;
+	/* Create the Java VM */
+	res = JNI_CreateJavaVM(&jvm, (void **)&env, &vm_args);
+	free(c_classpath);
 #else
-  JDK1_1InitArgs vm_args;
-  std::string classpath = vm_args.classpath + ";" + jar_location;
-  char* c_classpath = strdup(java_classpath.c_str());
-  vm_args.version = 0x00010001;
-  JNI_GetDefaultJavaVMInitArgs(&vm_args);
-  /* Append jar location to the default system class path */
-  vm_args.classpath = c_classpath;
-  /* Create the Java VM */
-  res = JNI_CreateJavaVM(&jvm, &env, &vm_args);
-  free(c_classpath);
+	JDK1_1InitArgs vm_args;
+	std::string classpath = vm_args.classpath + ";" + jar_location;
+	char* c_classpath = strdup(java_classpath.c_str());
+	vm_args.version = 0x00010001;
+	JNI_GetDefaultJavaVMInitArgs(&vm_args);
+	/* Append jar location to the default system class path */
+	vm_args.classpath = c_classpath;
+	/* Create the Java VM */
+	res = JNI_CreateJavaVM(&jvm, &env, &vm_args);
+	free(c_classpath);
 #endif /* JNI_VERSION_1_2 */
 
-  // Find our LudiiGameWrapper Java class
-  ludiiGameWrapperClass = (jclass) env->NewGlobalRef(env->FindClass("player/utils/LudiiGameWrapper"));
+	// Find our LudiiGameWrapper Java class
+	ludiiGameWrapperClass = (jclass) env->NewGlobalRef(env->FindClass("player/utils/LudiiGameWrapper"));
 
-  // Find our LudiiStateWrapper Java class
-  ludiiStateWrapperClass = (jclass) env->NewGlobalRef(env->FindClass("player/utils/LudiiStateWrapper"));
+	// Find our LudiiStateWrapper Java class
+	ludiiStateWrapperClass = (jclass) env->NewGlobalRef(env->FindClass("player/utils/LudiiStateWrapper"));
 }
 
 void JNIUtils::CloseJVM() {
 	env->DeleteGlobalRef(ludiiStateWrapperClass);
 	env->DeleteGlobalRef(ludiiGameWrapperClass);
 	jvm->DestroyJavaVM();
+
+	jvm = nullptr;
+	env = nullptr;
+	res = 0;
 }
 
 // These will be assigned proper values by InitJVM() call
