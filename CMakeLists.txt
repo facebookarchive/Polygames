@@ -26,8 +26,19 @@ if( Boost_FOUND )
 include_directories( ${Boost_INCLUDE_DIRS})
 endif()
 
-find_package(JNI REQUIRED)
-include_directories( ${JNI_INCLUDE_DIRS})
+option(WITH_LUDII "Include LUDII support" ON)
+
+if(WITH_LUDII)
+  find_package(JNI)
+  if (JNI_FOUND)
+      include_directories( ${JNI_INCLUDE_DIRS})
+  else()
+      message(STATUS "Java not found, LUDII support will not be included")
+      add_definitions(-DNO_JAVA)
+  endif()
+else()
+  add_definitions(-DNO_JAVA)
+endif()
 
 message(STATUS "Adding PyTorch compilation flags: ${TORCH_CXX_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
@@ -40,11 +51,8 @@ add_subdirectory(torchRL/third_party/pybind11)
 add_subdirectory(torchRL/tube)
 add_subdirectory(torchRL/mcts)
 
-add_library(_games
+set(SOURCES
   games/gomoku_swap2.cc
-  games/ludii/jni_utils.cc
-  games/ludii/ludii_game_wrapper.cc
-  games/ludii/ludii_state_wrapper.cc
   games/othello_opt.cc
   games/mastermind_state.cc
   games/amazons.cc
@@ -56,15 +64,29 @@ add_library(_games
   games/weakschur/SchurMatrix.cpp
   games/weakschur/SchurVector.cpp
   games/weakschur/WeakSchur.cpp)
+
+if (JNI_FOUND)
+  list(APPEND SOURCES
+    games/ludii/jni_utils.cc
+    games/ludii/ludii_game_wrapper.cc
+    games/ludii/ludii_state_wrapper.cc)
+endif()
+
+add_library(_games
+  ${SOURCES})
 target_include_directories(_games PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/torchRL)
 target_include_directories(_games SYSTEM PUBLIC ${TORCH_INCLUDE_DIRS})
 target_include_directories(_games PUBLIC ${PYTHON_INCLUDE_DIRS})
-target_include_directories(_games PUBLIC ${JNI_INCLUDE_DIRS})
 
 pybind11_add_module(polygames core/pybind.cc core/game.cc core/state.cc)
 
 target_include_directories(polygames PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/torchRL)
-target_link_libraries(polygames PUBLIC _tube _mcts _games ${JNI_LIBRARIES})
+target_link_libraries(polygames PUBLIC _tube _mcts _games)
+
+if (JNI_FOUND)
+  target_include_directories(_games PUBLIC ${JNI_INCLUDE_DIRS})
+  target_link_libraries(polygames PUBLIC ${JNI_LIBRARIES})
+endif()
 
 # add Minesweeper benchmarks
 add_subdirectory(games/minesweeper_csp_vkms)
