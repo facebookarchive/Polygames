@@ -312,6 +312,30 @@ class ChannelAssembler {
     }
   }
 
+#ifdef PYTORCH15
+  void loadModelStateDict(
+      TorchJitModel& model,
+      const std::unordered_map<std::string, torch::Tensor>& stateDict) {
+    std::unordered_map<std::string, torch::Tensor> dst;
+    for (const auto& v : model.named_parameters()) {
+      dst[v.name] = v.value;
+    }
+    for (const auto& v : model.named_buffers()) {
+      dst[v.name] = v.value;
+    }
+
+    for (auto& v : stateDict) {
+      auto i = dst.find(v.first);
+      if (i != dst.end()) {
+        dst.at(v.first).copy_(v.second).detach();
+      } else {
+        fmt::printf("copyModelStateDict: Unknown state dict entry '%s'\n", v.first);
+        std::abort();
+      }
+    }
+    model.eval();
+  }
+#else
   void loadModelStateDict(
       TorchJitModel& model,
       const std::unordered_map<std::string, torch::Tensor>& stateDict) {
@@ -355,6 +379,7 @@ class ChannelAssembler {
     }
     model.eval();
   }
+#endif
 
   void updateModel(
       const std::unordered_map<std::string, torch::Tensor>& stateDict) {
