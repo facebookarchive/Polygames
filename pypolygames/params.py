@@ -295,7 +295,7 @@ class SimulationParams:
     replay_warmup: int = 10_000
     sync_period: int = 100
     act_batchsize: int = 1
-    per_thread_batchsize: int = 0
+    per_thread_batchsize: int = -1
     train_channel_timeout_ms: int = 1
     train_channel_num_slots: int = 1000
 
@@ -356,7 +356,8 @@ class SimulationParams:
                     type=int,
                     help="When non-zero, "
                     "number of games in each game-running threads run sequentially "
-                    "and batched together for inference (see '--act_batchsize')",
+                    "and batched together for inference (see '--act_batchsize'). "
+                    "This parameter will be automatically tuned if it is negative",
                 )
             ),
             train_channel_timeout_ms=ArgFields(

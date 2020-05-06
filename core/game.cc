@@ -15,7 +15,7 @@ void Game::mainLoop() {
               << std::endl;
     assert(false);
   }
-  if (perThreadBatchSize > 0) {
+  if (perThreadBatchSize != 0) {
     bool aHuman = std::any_of(players_.begin(), players_.end(),
                               [](const std::shared_ptr<mcts::Player>& player) {
                                 return player->isHuman();
@@ -44,7 +44,8 @@ void Game::mainLoop() {
 
     std::list<GameState> states;
 
-    size_t ngames = size_t(perThreadBatchSize);
+    bool autoTuneBatchSize = perThreadBatchSize < 0;
+    size_t ngames = autoTuneBatchSize ? 1 : size_t(perThreadBatchSize);
 
     int64_t startedGameCount = 0;
     int64_t completedGameCount = 0;
@@ -64,7 +65,14 @@ void Game::mainLoop() {
       return r;
     };
 
+    std::list<GameState> freeGameList;
+
     auto addGame = [&](auto at) {
+      if (!freeGameList.empty()) {
+        GameState gst = std::move(freeGameList.front());
+        freeGameList.pop_front();
+        return states.insert(at, std::move(gst));
+      }
       ++startedGameCount;
       GameState gst;
       gst.state = cloneState(basestate);
@@ -96,7 +104,7 @@ void Game::mainLoop() {
     std::vector<std::vector<const mcts::State*>> actStates(players_.size());
     std::vector<std::vector<GameState*>> actGameStates(players_.size());
 
-    bool alignPlayers = false;
+    bool alignPlayers = true;
 
     // If two players are the same (pointer comparison), then they can act
     // together.
@@ -112,7 +120,63 @@ void Game::mainLoop() {
 
     std::vector<std::pair<size_t, size_t>> statePlayerSize;
 
+    bool hasOvershotBatchsize = false;
+    double batchLr = 1.0;
+
     while (!states.empty() && !terminate_) {
+
+      if (autoTuneBatchSize) {
+        double batchTimeSum = 0.0;
+        int batchTimeN = 0;
+        for (auto& v : mctsPlayers) {
+          double t = v->batchTiming();
+          if (t > 0) {
+            ++batchTimeN;
+            batchTimeSum += t;
+          }
+        }
+        double batchTimeAvg = batchTimeSum / batchTimeN;
+        double adjust = 1.0 - batchTimeAvg;
+
+        size_t add = size_t(ngames / 4 * batchLr);
+        if (adjust > 0.05) {
+          if (ngames < 1024) {
+            ++ngames;
+          }
+          if (1024 - ngames >= add) {
+            ngames += add;
+          }
+        }
+        if (adjust < -0.05) {
+          hasOvershotBatchsize = true;
+          if (ngames > 1) {
+            --ngames;
+          }
+          if (ngames > add) {
+            ngames -= add;
+          }
+        }
+
+        batchLr *= 0.97;
+
+        while (states.size() < ngames &&
+               (numEpisode < 0 || startedGameCount < numEpisode)) {
+          addGame(states.end());
+        }
+
+        while (states.size() > ngames) {
+          freeGameList.push_back(std::move(states.back()));
+          states.pop_back();
+        }
+
+        {
+          std::unique_lock<std::mutex> lkStats(mutexStats_);
+          auto& stats_steps = stats_["Game batch size"];
+          std::get<0>(stats_steps) += 1;
+          std::get<1>(stats_steps) += ngames;
+          std::get<2>(stats_steps) += ngames * ngames;
+        }
+      }
 
       for (auto& v : actStates) {
         v.clear();

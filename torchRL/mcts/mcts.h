@@ -60,6 +60,10 @@ class MctsPlayer : public Player {
     return actors_[0]->isTournamentOpponent();
   }
 
+  double batchTiming() const{
+    return actors_[0]->batchTiming();
+  }
+
   std::vector<MctsResult> actMcts(const std::vector<const State*>& states) {
     std::vector<MctsResult> result(states.size(), &rng_);
 

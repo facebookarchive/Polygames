@@ -122,7 +122,7 @@ def create_training_environment(
               eval_mode=False,
               per_thread_batchsize=simulation_params.per_thread_batchsize,
           )
-          if simulation_params.per_thread_batchsize > 0:
+          if simulation_params.per_thread_batchsize != 0:
               player_1 = create_player(
                   seed_generator=seed_generator,
                   game=game,

@@ -108,7 +108,8 @@ class Actor : public mcts::Actor {
       auto allocBatch = [&](auto&& sizes) {
         std::vector<int64_t> s1(sizes.begin(), sizes.end());
         s1.insert(s1.begin(), s.size());
-        return torch::empty(s1);
+        return torch::empty(
+            s1, at::TensorOptions().pinned_memory(true).requires_grad(false));
       };
       batchFeat_ = allocBatch(feat_->data.sizes());
       batchPi_ = allocBatch(pi_->data.sizes());
@@ -121,9 +122,10 @@ class Actor : public mcts::Actor {
         getFeatureInTensor(
             *dynamic_cast<const State*>(s[i]), featAcc[i].data());
       }
-      auto id = assembler_->batchAct(batchFeat_.slice(0, 0, s.size()),
-                                     batchValue_.slice(0, 0, s.size()),
-                                     batchPi_.slice(0, 0, s.size()));
+      double t = assembler_->batchAct(batchFeat_.slice(0, 0, s.size()),
+                           batchValue_.slice(0, 0, s.size()),
+                           batchPi_.slice(0, 0, s.size()));
+      batchTiming_ = batchTiming_ * 0.99 + t * 0.01;
     }
 
     auto valueAcc = batchValue_.accessor<float, 2>();
@@ -174,6 +176,10 @@ class Actor : public mcts::Actor {
     return assembler_ ? assembler_->isTournamentOpponent() : false;
   }
 
+  virtual double batchTiming() const override {
+    return batchTiming_;
+  }
+
  private:
   tube::Dispatcher dispatcher_;
 
@@ -195,4 +201,5 @@ class Actor : public mcts::Actor {
   std::unordered_map<const mcts::State*,
                      std::unordered_map<std::string_view, float>>
       modelTrackers_;
+  double batchTiming_ = 0.0;
 };

@@ -11,10 +11,8 @@
 #include "distributed.h"
 #include "replay_buffer.h"
 
-#include <fmt/printf.h>
-#include <torch/extension.h>
-#include <torch/script.h>
-
+#include <c10/cuda/CUDAGuard.h>
+#include <c10/cuda/CUDAStream.h>
 #include <fmt/printf.h>
 #include <torch/extension.h>
 #include <torch/script.h>
@@ -42,10 +40,7 @@ inline std::unordered_map<std::string, torch::Tensor> convertIValueToMap(
     torch::Tensor tensor = name2tensor.second.toTensor();
 #endif
 
-    tensor = tensor.to(torch::kCPU).detach();
-    // if (device != nullptr) {
-    //   tensor = tensor.to(device);
-    // }
+    tensor = tensor.detach();
     map.insert({name->string(), tensor});
   }
   return map;
@@ -204,11 +199,11 @@ class ChannelAssembler {
       actDevices_.push_back(deviceString);
 
 #ifdef PYTORCH12
-      models_.push_back(std::make_shared<TorchJitModel>(torch::jit::load(jitModel_)));
+      models_.push_back(
+          std::make_shared<TorchJitModel>(torch::jit::load(jitModel_, device)));
 #else
-      models_.push_back(torch::jit::load(jitModel_));
+      models_.push_back(torch::jit::load(jitModel_, device));
 #endif
-      models_.back()->to(device);
       models_.back()->eval();
 
       auto channel = std::make_shared<DataChannel>(
@@ -326,10 +321,11 @@ class ChannelAssembler {
           memberNameString.assign(memberNamePtr, ptr - memberNamePtr);
           subModule = currentModule->find_module(memberNameString);
           if (!subModule) {
-            fmt::printf("copyModelStateDict: Unknown state dict entry '%s' -- could "
-                   "not find module '%s'\n",
-                   name,
-                   memberNameString);
+            fmt::printf(
+                "copyModelStateDict: Unknown state dict entry '%s' -- could "
+                "not find module '%s'\n",
+                name,
+                memberNameString);
             std::abort();
           }
           currentModule = &*subModule;
@@ -346,10 +342,11 @@ class ChannelAssembler {
       } else if (auto b = currentModule->find_buffer(memberNameString); b) {
         b->value().toTensor().copy_(tensor);
       } else {
-        fmt::printf("copyModelStateDict: Unknown state dict entry '%s' -- could not "
-               "find parameter/buffer '%s'\n",
-               name,
-               memberNameString);
+        fmt::printf(
+            "copyModelStateDict: Unknown state dict entry '%s' -- could not "
+            "find parameter/buffer '%s'\n",
+            name,
+            memberNameString);
         std::abort();
       }
     }
@@ -462,22 +459,27 @@ class ChannelAssembler {
     }
   }
 
-  std::string_view batchAct(torch::Tensor input,
-                            torch::Tensor v,
-                            torch::Tensor pi) {
+  double batchAct(torch::Tensor input, torch::Tensor v, torch::Tensor pi) {
     torch::NoGradGuard ng;
     size_t n = nextActIndex_++ % models_.size();
-    std::vector<torch::jit::IValue> inp;
     PriorityMutex::setThreadPriority(threadId);
-    inp.push_back(input.to(actDevices_[n]));
+    c10::cuda::CUDAStreamGuard g(
+        c10::cuda::getStreamFromPool(false, actDevices_[n].index()));
+    std::vector<torch::jit::IValue> inp;
+    inp.push_back(input.to(actDevices_[n], true));
     std::unique_lock<PriorityMutex> lk(mModels_[n]);
-    std::string_view id = getTournamentModelId();
     auto output = models_[n]->forward(inp);
+    auto start = std::chrono::steady_clock::now();
+    g.current_stream().synchronize();
+    double t = std::chrono::duration_cast<
+                   std::chrono::duration<double, std::ratio<1, 1000>>>(
+                   std::chrono::steady_clock::now() - start)
+                   .count();
     lk.unlock();
     auto reply = convertIValueToMap(output);
-    v.copy_(reply["v"]);
-    pi.copy_(reply["pi"]);
-    return id;
+    v.copy_(reply["v"], true);
+    pi.copy_(reply["pi"], true);
+    return t;
   }
 
   int bufferNumSample() const {
