@@ -55,7 +55,7 @@ def create_training_environment(
     game_params: GameParams,
     simulation_params: SimulationParams,
     execution_params: ExecutionParams
-) -> Tuple[tube.Context, tube.ChannelAssembler, Callable[[], List[int]]]:
+) -> Tuple[tube.Context, tube.ChannelAssembler, Callable[[], List[int]], bool]:
     games = []
     context = tube.Context()
     print("Game generation devices: {}".format(game_generation_devices))
