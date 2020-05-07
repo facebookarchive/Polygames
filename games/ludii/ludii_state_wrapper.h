@@ -95,6 +95,16 @@ public:
 	bool IsTerminal() const;
 
 	/**
+	 * @return The current player to move (0 for first, 1 for second, etc.)
+	 */
+	int CurrentPlayer() const;
+
+	/**
+	 * Calls the Java reset() method on the Java game state object
+	 */
+	void Reset() const;
+
+	/**
 	 * @return State representated by a game-dependent number of channels, with each
 	 * 	channel having X and Y coordinates.
 	 */
@@ -118,9 +128,6 @@ private:
 	/** Our object of Java's LudiiStateWrapper type */
 	jobject ludiiStateWrapperJavaObject;
 
-	/** Our LudiiStateWrapper class in Java */
-	jclass ludiiStateWrapperClass;
-
 	/** Method ID for the legalMovesTensors() method in Java */
 	jmethodID legalMovesTensorsMethodID;
 
@@ -138,6 +145,12 @@ private:
 
 	/** Method ID for the toTensor() method in Java */
 	jmethodID toTensorMethodID;
+
+	/** Method ID for the currentPlayer() method in Java */
+	jmethodID currentPlayerMethodID;
+
+	/** Method ID for the reset() method in Java */
+	jmethodID resetMethodID;
 
 };
 
