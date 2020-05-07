@@ -206,17 +206,19 @@ void Game::mainLoop() {
             for (size_t idx = 0; idx != players_.size(); ++idx) {
               result_.at(idx) = int(idx) == i->resigned ? -1 : 1;
             }
-            //fmt::printf("player %d (%s) resigned : %s\n", i->resigned,
-            //            players_.at(i->resigned)->getName(), state->history());
+            // fmt::printf("player %d (%s) resigned : %s\n", i->resigned,
+            //            players_.at(i->resigned)->getName(),
+            //            state->history());
           } else {
             for (size_t idx = 0; idx != players_.size(); ++idx) {
               result_[idx] = state->getReward(idx);
             }
-            //fmt::printf("game ended normally: %s\n", state->history().c_str());
+            // fmt::printf("game ended normally: %s\n",
+            // state->history().c_str());
           }
 
           for (size_t p = 0; p != players_.size(); ++p) {
-            //fmt::printf(
+            // fmt::printf(
             //    "Result for %s: %g\n", players_[p]->getName(), result_[p]);
             for (auto& v : i->feat[p]) {
               feature_[p].pushBack(v);

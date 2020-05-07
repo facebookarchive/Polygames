@@ -123,8 +123,8 @@ class Actor : public mcts::Actor {
             *dynamic_cast<const State*>(s[i]), featAcc[i].data());
       }
       double t = assembler_->batchAct(batchFeat_.slice(0, 0, s.size()),
-                           batchValue_.slice(0, 0, s.size()),
-                           batchPi_.slice(0, 0, s.size()));
+                                      batchValue_.slice(0, 0, s.size()),
+                                      batchPi_.slice(0, 0, s.size()));
       batchTiming_ = batchTiming_ * 0.99 + t * 0.01;
     }
 

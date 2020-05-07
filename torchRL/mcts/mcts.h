@@ -60,7 +60,7 @@ class MctsPlayer : public Player {
     return actors_[0]->isTournamentOpponent();
   }
 
-  double batchTiming() const{
+  double batchTiming() const {
     return actors_[0]->batchTiming();
   }
 
