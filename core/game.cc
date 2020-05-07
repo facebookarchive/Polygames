@@ -120,7 +120,6 @@ void Game::mainLoop() {
 
     std::vector<std::pair<size_t, size_t>> statePlayerSize;
 
-    bool hasOvershotBatchsize = false;
     double batchLr = 1.0;
 
     while (!states.empty() && !terminate_) {
@@ -148,7 +147,6 @@ void Game::mainLoop() {
           }
         }
         if (adjust < -0.05) {
-          hasOvershotBatchsize = true;
           if (ngames > 1) {
             --ngames;
           }
