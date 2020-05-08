@@ -24,6 +24,8 @@
 
 namespace mcts {
 
+inline std::atomic_uint64_t rolloutCount;
+
 void computeRollouts(const std::vector<Node*>& rootNode,
                      const std::vector<const State*>& rootState,
                      Actor& actor,
@@ -62,6 +64,9 @@ class MctsPlayer : public Player {
 
   std::vector<MctsResult> actMcts(const std::vector<const State*>& states) {
     std::vector<MctsResult> result(states.size(), &rng_);
+
+    auto begin = std::chrono::steady_clock::now();
+    uint64_t beginRolloutCount = rolloutCount;
 
     // prior only
     if (!option_.useMcts) {
@@ -142,6 +147,14 @@ class MctsPlayer : public Player {
         result[i].sample();
       }
     }
+
+    uint64_t n = rolloutCount - beginRolloutCount;
+    double s = std::chrono::duration_cast<
+                   std::chrono::duration<double, std::ratio<1, 1>>>(
+                   std::chrono::steady_clock::now() - begin)
+                   .count();
+    rolloutsPerSecond_ = n / s;
+
     return result;
   }
 
@@ -155,11 +168,16 @@ class MctsPlayer : public Player {
     return actMcts({&state})[0];
   }
 
+  double rolloutsPerSecond() {
+    return rolloutsPerSecond_;
+  }
+
  private:
   MctsOption option_;
   double remaining_time;
   std::vector<std::shared_ptr<Actor>> actors_;
   std::minstd_rand rng_;
   Storage storage_;
+  double rolloutsPerSecond_ = 0.0;
 };
 }  // namespace mcts
