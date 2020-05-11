@@ -156,8 +156,10 @@ int main() {
     std::cout << "test pass: BlockGo" << std::endl;
   }
   {
+#ifdef NO_JAVA
+    std::cout << "skipping: Ludii Tic-Tac-Toe" << std::endl;
+#else
     std::cout << "testing: Ludii Tic-Tac-Toe" << std::endl;
-    // std::string ludii_name = gameName.substr(5);
     Ludii::JNIUtils::InitJVM("");  // Use default /ludii/Ludii.jar path
     JNIEnv* jni_env = Ludii::JNIUtils::GetEnv();
     Ludii::LudiiGameWrapper game_wrapper(jni_env, "Tic-Tac-Toe.lud");
@@ -165,6 +167,7 @@ int main() {
     doTest(*state);
     Ludii::JNIUtils::CloseJVM();
     std::cout << "test pass: Ludii Tic-Tac-Toe" << std::endl;
+#endif
   }
   
   {
