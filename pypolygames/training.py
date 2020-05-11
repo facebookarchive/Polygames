@@ -55,7 +55,7 @@ def create_training_environment(
     game_params: GameParams,
     simulation_params: SimulationParams,
     execution_params: ExecutionParams
-) -> Tuple[tube.Context, tube.ChannelAssembler, Callable[[], List[int]]]:
+) -> Tuple[tube.Context, tube.ChannelAssembler, Callable[[], List[int]], bool]:
     games = []
     context = tube.Context()
     print("Game generation devices: {}".format(game_generation_devices))
@@ -190,7 +190,7 @@ def create_training_environment(
 
         return reward
 
-    return context, assembler, get_train_reward
+    return context, assembler, get_train_reward, is_client
 
 
 #######################################################################################
@@ -390,6 +390,20 @@ def train_model(
         execution_params=execution_params,
     )
 
+def client_loop(
+    assembler: tube.ChannelAssembler,
+    start_time: float,
+    context: tube.Context,
+    execution_params: ExecutionParams,
+) -> None:
+    assembler.start()
+    max_time = execution_params.max_time
+    while max_time is None or time.time() < start_time + max_time:
+        time.sleep(60)
+        print("Resource usage:")
+        print(utils.get_res_usage_str())
+        print("Context stats:")
+        print(context.get_stats_str())
 
 #######################################################################################
 # OVERALL TRAINING WORKFLOW
@@ -489,7 +503,7 @@ def run_training(
     )
 
     print("creating training environment...")
-    context, assembler, get_train_reward = create_training_environment(
+    context, assembler, get_train_reward, is_client = create_training_environment(
         seed_generator=seed_generator,
         model_path=model_path,
         game_generation_devices=game_generation_devices,
@@ -501,32 +515,40 @@ def run_training(
     assembler.add_tournament_model("init", model.state_dict())
     context.start()
 
-    print("warming-up replay buffer...")
-    warm_up_replay_buffer(
-        assembler=assembler,
-        replay_warmup=simulation_params.replay_warmup,
-        replay_buffer=checkpoint.get("replay_buffer", None),
-    )
+    if is_client:
+      client_loop(
+          assembler=assembler,
+          start_time=start_time,
+          context=context,
+          execution_params=execution_params
+      )
+    else:
+      print("warming-up replay buffer...")
+      warm_up_replay_buffer(
+          assembler=assembler,
+          replay_warmup=simulation_params.replay_warmup,
+          replay_buffer=checkpoint.get("replay_buffer", None),
+      )
 
-    print("training model...")
-    train_model(
-        command_history=command_history,
-        start_time=start_time,
-        train_device=train_device,
-        model=model,
-        ddpmodel=ddpmodel,
-        model_path=model_path,
-        optim=optim,
-        context=context,
-        assembler=assembler,
-        get_train_reward=get_train_reward,
-        game_params=game_params,
-        model_params=model_params,
-        optim_params=optim_params,
-        simulation_params=simulation_params,
-        execution_params=execution_params,
-        epoch=epoch
-    )
+      print("training model...")
+      train_model(
+          command_history=command_history,
+          start_time=start_time,
+          train_device=train_device,
+          model=model,
+          ddpmodel=ddpmodel,
+          model_path=model_path,
+          optim=optim,
+          context=context,
+          assembler=assembler,
+          get_train_reward=get_train_reward,
+          game_params=game_params,
+          model_params=model_params,
+          optim_params=optim_params,
+          simulation_params=simulation_params,
+          execution_params=execution_params,
+          epoch=epoch
+      )
 
     elapsed_time = time.time() - start_time
     print(f"total time: {elapsed_time} s")
