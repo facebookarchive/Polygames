@@ -93,7 +93,7 @@ add_subdirectory(games/minesweeper_csp_vkms)
 
 # tests
 add_executable(test_state core/test_state.cc core/state.cc)
-target_link_libraries(test_state PUBLIC _tube _mcts _games)
+target_link_libraries(test_state PUBLIC _tube _mcts _games ${JNI_LIBRARIES})
 
 enable_testing()
 

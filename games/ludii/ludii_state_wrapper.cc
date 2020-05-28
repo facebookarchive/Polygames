@@ -10,6 +10,7 @@
 // - Github: https://github.com/DennisSoemers/
 // - Email: dennis.soemers@maastrichtuniversity.nl (or d.soemers@gmail.com)
 
+#include "jni_utils.h"
 #include "ludii_state_wrapper.h"
 
 namespace Ludii {
@@ -22,6 +23,28 @@ Action::Action(int i, int j, int k) {
 }
 
 void LudiiStateWrapper::Initialize() {
+
+	// In case we're calling this from a new thread, make sure that we're attached to JVM
+	// (following few lines based on: https://stackoverflow.com/a/12901159/6735980)
+	JavaVM* jvm;
+	jenv->GetJavaVM(&jvm);
+	int jenvStatus = jvm->GetEnv((void **)&jenv, JNI_VERSION_1_6);
+
+	if (jenvStatus == JNI_EDETACHED) {
+//		std::cout << "Was not yet attached" << std::endl;
+		if (jvm->AttachCurrentThread((void **) &jenv, NULL) != 0) {
+			std::cout << "Failed to attach" << std::endl;
+		}
+		else if (jenvStatus == JNI_EVERSION) {
+			std::cout << "JVM GetEnv: version not supported" << std::endl;
+		}
+//		else {
+//			std::cout << "Should be attached fine now" << std::endl;
+//		}
+	}
+
+	// Now do the normal initialisation
+	Reset();
 
     _hash = 0;  // TODO implement hash for stochastic games
     _status = GameStatus::player0Turn;
@@ -45,8 +68,8 @@ void LudiiStateWrapper::findFeatures() {
     const auto tensor = ToTensor();
     int k=0;
     for (int x=0; x<_featSize[0]; ++x) {
-        for (int y=0; y<_featSize[0]; ++y) {
-            for (int z=0; z<_featSize[0]; ++z) {
+        for (int y=0; y<_featSize[1]; ++y) {
+            for (int z=0; z<_featSize[2]; ++z) {
                 _features[k] = tensor[x][y][z];
                 ++k;
             }
@@ -88,7 +111,10 @@ void LudiiStateWrapper::ApplyAction(const _Action& action) {
   // update game status
   // TODO only 2-player games ?
   // TODO I have no idea how to get the current player/winner !!!
-  assert(ludiiGameWrapper.stateTensorChannelNames().size() == 2);
+
+  // We don't want this assert: We have more than 2 channels, so also more than 2 names!
+  //assert(ludiiGameWrapper.stateTensorChannelNames().size() == 2);
+
   const double score_0 = Returns(0);
   const double score_1 = Returns(1);
   if (IsTerminal()) {
@@ -98,7 +124,7 @@ void LudiiStateWrapper::ApplyAction(const _Action& action) {
           _status = score_1 > 0.0 ? GameStatus::player1Win : GameStatus::tie;
   }
   else {
-      const int player = moves.front()[0];
+      const int player = CurrentPlayer();
       _status = player == 0 ? GameStatus::player0Turn : GameStatus::player1Turn;
   }
 
@@ -125,10 +151,9 @@ void LudiiStateWrapper::DoGoodAction() {
 LudiiStateWrapper::LudiiStateWrapper(int seed, JNIEnv* jenv, LudiiGameWrapper && ludiiGameWrapper)
 	: ::State(seed), jenv(jenv), ludiiGameWrapper(ludiiGameWrapper) {
 
-	// Find our LudiiStateWrapper Java class
-	ludiiStateWrapperClass = jenv->FindClass("utils/LudiiStateWrapper");
+	jclass ludiiStateWrapperClass = JNIUtils::LudiiStateWrapperClass();
 
-	// Find the LudiiGameWrapper Java constructor
+	// Find the LudiiStateWrapper Java constructor
 	jmethodID ludiiStateWrapperConstructor =
 			jenv->GetMethodID(ludiiStateWrapperClass, "<init>", "(Lplayer/utils/LudiiGameWrapper;)V");
 
@@ -143,13 +168,14 @@ LudiiStateWrapper::LudiiStateWrapper(int seed, JNIEnv* jenv, LudiiGameWrapper &&
 	returnsMethodID = jenv->GetMethodID(ludiiStateWrapperClass, "returns", "(I)D");
 	isTerminalMethodID = jenv->GetMethodID(ludiiStateWrapperClass, "isTerminal", "()Z");
 	toTensorMethodID = jenv->GetMethodID(ludiiStateWrapperClass, "toTensor", "()[[[F");
+	currentPlayerMethodID = jenv->GetMethodID(ludiiStateWrapperClass, "currentPlayer", "()I");
+	resetMethodID = jenv->GetMethodID(ludiiStateWrapperClass, "reset", "()V");
 }
 
 LudiiStateWrapper::LudiiStateWrapper(const LudiiStateWrapper& other)
 	: ::State(other), jenv(other.jenv), ludiiGameWrapper(other.ludiiGameWrapper) {
 
-	// Find our LudiiStateWrapper Java class
-	ludiiStateWrapperClass = jenv->FindClass("utils/LudiiStateWrapper");
+	jclass ludiiStateWrapperClass = JNIUtils::LudiiStateWrapperClass();
 
 	// Find the LudiiStateWrapper Java copy constructor
 	jmethodID ludiiStateWrapperCopyConstructor =
@@ -166,6 +192,8 @@ LudiiStateWrapper::LudiiStateWrapper(const LudiiStateWrapper& other)
 	returnsMethodID = other.returnsMethodID;
 	isTerminalMethodID = other.isTerminalMethodID;
 	toTensorMethodID = other.toTensorMethodID;
+	currentPlayerMethodID = other.currentPlayerMethodID;
+	resetMethodID = other.resetMethodID;
 }
 
 std::vector<std::array<int, 3>> LudiiStateWrapper::LegalMovesTensors() const {
@@ -202,6 +230,14 @@ bool LudiiStateWrapper::IsTerminal() const {
 	return (bool) jenv->CallBooleanMethod(ludiiStateWrapperJavaObject, isTerminalMethodID);
 }
 
+int LudiiStateWrapper::CurrentPlayer() const {
+	return (int) jenv->CallIntMethod(ludiiStateWrapperJavaObject, currentPlayerMethodID);
+}
+
+void LudiiStateWrapper::Reset() const {
+	jenv->CallVoidMethod(ludiiStateWrapperJavaObject, resetMethodID);
+}
+
 std::vector<std::vector<std::vector<float>>> LudiiStateWrapper::ToTensor() const {
 	const jobjectArray channelsArray = static_cast<jobjectArray>(jenv->CallObjectMethod(ludiiStateWrapperJavaObject, toTensorMethodID));
 	const jsize numChannels = jenv->GetArrayLength(channelsArray);
@@ -212,11 +248,12 @@ std::vector<std::vector<std::vector<float>>> LudiiStateWrapper::ToTensor() const
 		const jsize numXCoords = jenv->GetArrayLength(xArray);
 
 		tensor[c].resize(numXCoords);
-		for (jsize x = 0; x < numChannels; ++x) {
+		for (jsize x = 0; x < numXCoords; ++x) {
 			const jfloatArray yArray = static_cast<jfloatArray>(jenv->GetObjectArrayElement(xArray, x));
 			const jsize numYCoords = jenv->GetArrayLength(yArray);
 			jfloat* jfloats = jenv->GetFloatArrayElements(yArray, nullptr);
 
+			tensor[c][x].resize(numYCoords);
 			std::copy(jfloats, jfloats + numYCoords, tensor[c][x].begin());
 
 			// Allow JVM to clean up memory now that we have our own ints

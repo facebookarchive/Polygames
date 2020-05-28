@@ -226,14 +226,9 @@ to look into this) if the strategy is identical to knuth’s.
           "Java/JNI support has not been built in, but is required for Ludii");
 #else
       std::string ludii_name = gameName.substr(5);
-      Ludii::JNIUtils jni_utils("");  // no argv[1], we just use the default
-      JNIEnv* jni_env = jni_utils.GetEnv();
-      Ludii::LudiiGameWrapper game_wrapper(jni_env, gameName);
-      // TODO
-      // const Ludii::GameLoader gameLoader = ludii::GameLoader(jni_env);
-      // const Ludii::Game ludii_game = gameLoader.LoadGame(TODO
-      // "board/space/blocking/Amazons.lud" find the lud file corresponding to
-      // LUDII_GAME_NAME); // static
+      Ludii::JNIUtils::InitJVM("");  // Use default /ludii/Ludii.jar path
+      JNIEnv* jni_env = Ludii::JNIUtils::GetEnv();
+      Ludii::LudiiGameWrapper game_wrapper(jni_env, ludii_name);
       state_ = std::make_unique<Ludii::LudiiStateWrapper>(
           seed, jni_env, std::move(game_wrapper));
 #endif

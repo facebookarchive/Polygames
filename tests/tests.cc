@@ -14,8 +14,8 @@ JNIEnv * JNI_ENV = nullptr;
 
 int main(int argc, char **argv) {
     if (argc == 2) {
-        Ludii::JNIUtils jniutils(argv[1]);
-        JNI_ENV = jniutils.GetEnv();
+        Ludii::JNIUtils::InitJVM(argv[1]);
+        JNI_ENV = Ludii::JNIUtils::GetEnv();
         ::testing::InitGoogleTest(&argc, argv);
         return RUN_ALL_TESTS();
     }
