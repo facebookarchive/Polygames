@@ -39,6 +39,9 @@ class Actor {
   virtual void terminate() {
   }
 
+  virtual void recordMove(const mcts::State* state) {
+  }
+
   virtual void result(const State* state, float reward) {
   }
 

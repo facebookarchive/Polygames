@@ -16,7 +16,7 @@ def parse_reward(reward):
         else:
             result["tie"] += 1
     result["total"] = len(reward)
-    result["avg"] = (sum(reward) / len(reward) + 1.) / 2.
+    result["avg"] = (sum(reward) / max(len(reward), 1) + 1.) / 2.
     return result
 
 
@@ -26,10 +26,11 @@ class Result:
         self.result = parse_reward(reward)
 
     def log(self):
+        total = max(self.result["total"], 1)
         s = "win: %.2f, tie: %.2f, loss: %.2f, avg: %.2f" % (
-            100 * self.result["win"] / self.result["total"],
-            100 * self.result["tie"] / self.result["total"],
-            100 * self.result["loss"] / self.result["total"],
+            100 * self.result["win"] / total,
+            100 * self.result["tie"] / total,
+            100 * self.result["loss"] / total,
             100 * self.result["avg"],
         )
         return s

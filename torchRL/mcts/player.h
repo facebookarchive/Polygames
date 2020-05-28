@@ -29,6 +29,8 @@ class Player {
   }
   virtual void newEpisode() {
   }
+  virtual void recordMove(const State* state) {
+  }
   virtual void result(const State*, float reward) {
   }
 

@@ -95,10 +95,6 @@ class Actor : public mcts::Actor {
     dispatcher_.terminate();
   }
 
-  std::unordered_map<const mcts::State*,
-                     std::unordered_map<std::string_view, float>>
-      modelTrackers;
-
   void evaluate(
       const std::vector<const mcts::State*>& s,
       const std::function<void(size_t, mcts::PiVal)>& resultCallback) override {
@@ -128,9 +124,6 @@ class Actor : public mcts::Actor {
       auto id = assembler_->batchAct(batchFeat_.slice(0, 0, s.size()),
                                      batchValue_.slice(0, 0, s.size()),
                                      batchPi_.slice(0, 0, s.size()));
-      for (auto* v : s) {
-        ++modelTrackers[v][id];
-      }
     }
 
     auto valueAcc = batchValue_.accessor<float, 2>();
@@ -154,10 +147,15 @@ class Actor : public mcts::Actor {
     }
   }
 
+  virtual void recordMove(const mcts::State* state) override {
+    auto id = assembler_->getTournamentModelId();
+    ++modelTrackers_[state][id];
+  }
+
   virtual void result(const mcts::State* state, float reward) override {
     if (assembler_) {
-      auto i = modelTrackers.find(state);
-      if (i != modelTrackers.end()) {
+      auto i = modelTrackers_.find(state);
+      if (i != modelTrackers_.end()) {
         auto m = std::move(i->second);
         float sum = 0.0f;
         for (auto& v : m) {
@@ -167,7 +165,7 @@ class Actor : public mcts::Actor {
           v.second /= sum;
         }
         assembler_->result(reward, std::move(m));
-        modelTrackers.erase(i);
+        modelTrackers_.erase(i);
       }
     }
   }
@@ -193,4 +191,8 @@ class Actor : public mcts::Actor {
   torch::Tensor batchFeat_;
   torch::Tensor batchPi_;
   torch::Tensor batchValue_;
+
+  std::unordered_map<const mcts::State*,
+                     std::unordered_map<std::string_view, float>>
+      modelTrackers_;
 };
