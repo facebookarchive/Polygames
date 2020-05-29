@@ -10,9 +10,12 @@ set(CMAKE_CXX_FLAGS
     "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-register -fPIC -march=native -O3 -Wfatal-errors")
 
 OPTION(PYTORCH12 "Is PyTorch >= 1.2" OFF)
-IF(PYTORCH12)
+OPTION(PYTORCH15 "Is PyTorch >= 1.5" OFF)
+IF(PYTORCH15)
+    ADD_DEFINITIONS(-DPYTORCH15 -DPYTORCH12)
+ELSEIF(PYTORCH12)
     ADD_DEFINITIONS(-DPYTORCH12)
-ENDIF(PYTORCH12)
+ENDIF()
 
 execute_process(
     COMMAND python -c "import torch; import os; print(os.path.dirname(torch.__file__), end='')"
