@@ -440,7 +440,7 @@ to look into this) if the strategy is identical to knuth’s.
   std::mutex mutexStats_;
   EnvThread::Stats stats_;
 
-  std::optional<_Action> lastAction_;
+  std::string lastAction_;
   bool hasPrintedHumanHelp_ = false;
   bool isInSingleMoveMode_ = false;
   float lastMctsValue_ = 0.0f;
