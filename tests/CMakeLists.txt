@@ -45,6 +45,9 @@ add_executable( polygames-tests
  hex-state-tests.cc
  hex-tests.cc
 
+ samegame-tests.cc
+ ../games/samegame.cc
+
  ludii-game-tests.cc
  ../games/ludii/jni_utils.cc
  ../games/ludii/ludii_game_wrapper.cc

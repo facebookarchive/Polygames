@@ -38,6 +38,7 @@
 #include "../games/othello.h"
 #include "../games/othello_opt.h"
 #include "../games/outeropengomoku_new.h"
+#include "../games/samegame_state.h"
 #include "../games/surakarta_state.h"
 #include "../games/tristannogo_state.h"
 #include "../games/weakschur/weakschur_state.h"
@@ -221,6 +222,8 @@ to look into this) if the strategy is identical to knuth’s.
       state_ = std::make_unique<Havannah::State<8, false, false>>(seed);
     } else if (isGameNameMatched({"Havannah10"})) {
       state_ = std::make_unique<Havannah::State<10, false, false>>(seed);
+    } else if (isGameNameMatched({"Samegame"})) {
+      state_ = std::make_unique<Samegame::State>(seed);
     } else if (isGameNameMatched({"Breakthrough"})) {
       state_ = std::make_unique<StateForBreakthrough<false>>(seed);
     } else if (isGameNameMatched({"BreakthroughV2"})) {
