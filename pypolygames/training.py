@@ -41,9 +41,8 @@ def create_optimizer(
     if optim_state_dict is not None:
         try:
             optim.load_state_dict(optim_state_dict)
-        except:
-            ValueError:
-                print("Optimizer state not compatible... skipping.")
+        except ValueError:
+            print("Optimizer state not compatible... skipping.")
     return optim
 
 
