@@ -375,9 +375,8 @@ void Game::mainLoop() {
                 << " steps, " << (static_cast<float>(stepindex) / elapsed)
                 << " steps per second" << std::endl;
 #endif
-      if ((lastAction_) && (aHuman)) {
-        std::cout << "\n#Last Action: "
-                  << state_->actionDescription(*lastAction_) << "\n\n";
+      if (!lastAction_.empty() && aHuman) {
+        std::cout << "\n#Last Action: " << lastAction_ << "\n\n";
         state_->printCurrentBoard();
       }
       if (std::any_of(players_.begin(), players_.end(),
@@ -483,13 +482,12 @@ std::optional<int> Game::parseSpecialAction(const std::string& str) {
         }
       }
 
-      if (lastAction_) {
-        std::cout << "\nLast Action: "
-                  << state_->actionDescription(*lastAction_) << "\n\n";
+      if (!lastAction_.empty()) {
+        std::cout << "\nLast Action: " << lastAction_ << "\n\n";
       }
       std::cout << " applying action... " << std::endl;
       auto action = *(state_->GetLegalActions().at(index).get());
-      lastAction_ = action;
+      lastAction_ = state_->actionDescription(action);
       if (!state_->isStochastic()) {
         state_->forward(action.GetIndex());
       } else {
@@ -521,7 +519,7 @@ void Game::step() {
     assert(!state_->isStochastic());
     auto index = state_->TPInputAction();
     auto action = *(state_->GetLegalActions().at(index).get());
-    lastAction_ = action;
+    lastAction_ = state_->actionDescription(action);
     state_->forward(index);
   } else if (player->isHuman()) {
     if (!hasPrintedHumanHelp_) {
@@ -531,9 +529,8 @@ void Game::step() {
       hasPrintedHumanHelp_ = true;
     }
     auto humanPlayer = std::dynamic_pointer_cast<HumanPlayer>(player);
-    if (lastAction_) {
-      std::cout << "\nLast Action: " << state_->actionDescription(*lastAction_)
-                << "\n\n";
+    if (!lastAction_.empty()) {
+      std::cout << "\nLast Action: " << lastAction_ << "\n\n";
     }
 
     std::cout << "History: " << state_->history() << "\n";
@@ -545,7 +542,7 @@ void Game::step() {
     }
     std::cout << " applying action... " << std::endl;
     auto action = *(state_->GetLegalActions().at(index).get());
-    lastAction_ = action;
+    lastAction_ = state_->actionDescription(action);
     if (!state_->isStochastic()) {
       state_->forward(action.GetIndex());
     } else {
@@ -578,7 +575,7 @@ void Game::step() {
 
     // std::cout << ">>>>actual act" << std::endl;
     _Action action = *(state_->GetLegalActions().at(result.bestAction));
-    lastAction_ = action;
+    lastAction_ = state_->actionDescription(action);
     bool noHuman =
         std::none_of(players_.begin(), players_.end(),
                      [](const std::shared_ptr<mcts::Player>& player) {

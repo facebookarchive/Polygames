@@ -60,6 +60,7 @@ set(SOURCES
   games/mastermind_state.cc
   games/amazons.cc
   games/breakthrough.cc
+  games/chess.cc
   games/chinesecheckers.cc
   games/tristan_nogo.cc
   games/yinsh.cc
