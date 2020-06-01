@@ -39,7 +39,11 @@ def create_optimizer(
         model.parameters(), lr=optim_params.lr, eps=optim_params.eps
     )
     if optim_state_dict is not None:
-        optim.load_state_dict(optim_state_dict)
+        try:
+            optim.load_state_dict(optim_state_dict
+        except:
+            ValueError:
+                print("Optimizer state not compatible... skipping.")
     return optim
 
 
