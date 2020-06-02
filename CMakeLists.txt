@@ -57,7 +57,6 @@ add_subdirectory(torchRL/mcts)
 set(SOURCES
   games/gomoku_swap2.cc
   games/othello_opt.cc
-  games/mastermind_state.cc
   games/amazons.cc
   games/breakthrough.cc
   games/chess.cc
