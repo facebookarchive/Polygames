@@ -16,7 +16,7 @@ std::vector<int> _lastIs;      // nbJ
 std::vector<int> _lastJs;      // nbI
 
 bool isTerminated() const;
-int getScore() const;
+double getScore() const;
 const std::vector<Move> & getMoves() const;
 void play(int n);
 

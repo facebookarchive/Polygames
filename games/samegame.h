@@ -36,13 +36,14 @@ namespace Samegame {
     int _i;
     int _j;
     int _color;
-    int _eval;
+    double _eval;
    };
 
   protected:
    const int _nbI;
    const int _nbJ;
    const int _nbColors;
+   const double _estimatedMaxScore;
 
    std::vector<int> _dataColors;  // nbI*nbJ
    std::vector<int> _dataGroups;  // nbI*nbJ
@@ -50,7 +51,7 @@ namespace Samegame {
    std::vector<int> _lastIs;      // nbJ
    std::vector<int> _lastJs;      // nbI
    std::vector<Move> _moves;      // <= nbI*nbJ
-   int _score;
+   double _score;
 
    static const std::vector<int> DATASETS;
 
@@ -66,7 +67,7 @@ namespace Samegame {
    int dataColors(int i, int j) const;
 
    bool isTerminated() const;
-   int getScore() const;
+   double getScore() const;
    const std::vector<Move> & getMoves() const;
    void play(int n);
    bool play(int i, int j);
