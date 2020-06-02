@@ -30,6 +30,7 @@ namespace Samegame {
    void findFeatures();
    void findActions();
 
+   bool isOnePlayerGame() const override;
    void Initialize() override;
    void ApplyAction(const _Action& action) override;
    void DoGoodAction() override;
