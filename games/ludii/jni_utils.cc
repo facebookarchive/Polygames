@@ -66,10 +66,10 @@ void JNIUtils::InitJVM(std::string jar_location) {
 #endif /* JNI_VERSION_1_2 */
 
 	// Find our LudiiGameWrapper Java class
-	ludiiGameWrapperClass = (jclass) env->NewGlobalRef(env->FindClass("player/utils/LudiiGameWrapper"));
+	ludiiGameWrapperClass = (jclass) env->NewGlobalRef(env->FindClass("player/utils/supplementary/LudiiGameWrapper"));
 
 	// Find our LudiiStateWrapper Java class
-	ludiiStateWrapperClass = (jclass) env->NewGlobalRef(env->FindClass("player/utils/LudiiStateWrapper"));
+	ludiiStateWrapperClass = (jclass) env->NewGlobalRef(env->FindClass("player/utils/supplementary/LudiiStateWrapper"));
 }
 
 void JNIUtils::CloseJVM() {

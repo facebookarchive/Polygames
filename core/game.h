@@ -19,6 +19,7 @@
 
 #include "../games/amazons.h"
 #include "../games/breakthrough_state.h"
+#include "../games/chess.h"
 #include "../games/chinesecheckers.h"
 #include "../games/connect6_state.h"
 #include "../games/connectfour.h"
@@ -283,8 +284,10 @@ to look into this) if the strategy is identical to knuth’s.
     } else if (isGameNameMatched({"WeakSchur_9_15315",
                                   "Arpad9Schur"})) {  // beating A. Rimmel et al
       state_ = std::make_unique<weakschur::State<9, 15315>>(seed);
+    } else if (isGameNameMatched({"Chess"})) {
+      state_ = std::make_unique<chess::State>(seed);
     } else {
-      assert(false);
+      throw std::runtime_error("Unknown game name '" + gameName + "'");
     }
     // this is now useless thanks to the use of static variables above, but in
     // case we want to play:
@@ -440,7 +443,7 @@ to look into this) if the strategy is identical to knuth’s.
   std::mutex mutexStats_;
   EnvThread::Stats stats_;
 
-  std::optional<_Action> lastAction_;
+  std::string lastAction_;
   bool hasPrintedHumanHelp_ = false;
   bool isInSingleMoveMode_ = false;
   float lastMctsValue_ = 0.0f;
