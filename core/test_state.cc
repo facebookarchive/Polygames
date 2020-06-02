@@ -142,6 +142,16 @@ void doTest(State& s) {
 int main() {
   int seed = 999;
 
+  /*
+  // TODO
+  {
+    std::cout << "testing: samegame" << std::endl;
+    auto state = Samegame::State(seed);
+    doTest(state);
+    std::cout << "test pass: samegame" << std::endl;
+  }
+  */
+
   {
     std::cout << "testing: tristannogo" << std::endl;
     auto state = StateForTristannogo(seed);

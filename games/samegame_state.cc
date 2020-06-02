@@ -64,10 +64,15 @@ void Samegame::State::findActions() {
  }
 }
 
+bool Samegame::State::isOnePlayerGame() const {
+  return true;
+}
+
 void Samegame::State::Initialize() {
  _board.reset(0);  // TODO dataset
  _moves.clear();
  _hash = 0;
+ // _stochastic = true; // TODO
  _status = GameStatus::player0Turn;
 
  // features
@@ -84,6 +89,7 @@ void Samegame::State::Initialize() {
 void Samegame::State::ApplyAction(const _Action& action) {
 
  assert(not _board.isTerminated());
+ assert(not _legalActions.empty());
 
  // play move
  int i = action.GetY();
@@ -95,10 +101,7 @@ void Samegame::State::ApplyAction(const _Action& action) {
   _status = GameStatus::player0Turn;
  }
  else {
-  if (_board.getScore() > 500)  // TODO maximize score
    _status = GameStatus::player0Win;
-  else
-   _status = GameStatus::player1Win;
  }
 
  // update features and actions
