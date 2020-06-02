@@ -25,7 +25,7 @@ def test_mcts(game_name) -> None:
     # also, for some games, we must add some tolerance (they dont win at 100%)
     #
     crashing = []
-    is_one_player_game = any(x in game_name for x in ["asterm", "ineswee", "WeakSchur"])
+    is_one_player_game = any(x in game_name for x in ["asterm", "ineswee", "WeakSchur", "Samegame"])
     too_slow = [
         "GameOfTheAmazons",
         "Connect6",
