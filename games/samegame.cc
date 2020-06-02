@@ -15,11 +15,12 @@ Samegame::Board::Board(int nbI, int nbJ, int nbColors, std::function<int()> fill
  _nbI(nbI),
  _nbJ(nbJ),
  _nbColors(nbColors),
+ _estimatedMaxScore(pow(_nbI*_nbJ/double(_nbColors), 2.0)),
  _dataColors(nbI*nbJ),
  _dataGroups(nbI*nbJ),
  _lastIs(nbJ, nbI-1),
  _lastJs(nbI, nbJ-1),
- _score(0)
+ _score(0.0)
 {
  // _dataColors
  std::generate(_dataColors.begin(), _dataColors.end(), fillFunc);
@@ -37,16 +38,16 @@ Samegame::Board::Board(int nbI, int nbJ, int nbColors, std::function<int()> fill
  findMoves();
 }
 
-
 Samegame::Board::Board() :
  _nbI(15),
  _nbJ(15),
  _nbColors(5),
+ _estimatedMaxScore(pow(_nbI*_nbJ/double(_nbColors), 2.0)),
  _dataColors(_nbI*_nbJ),
  _dataGroups(_nbI*_nbJ),
  _lastIs(_nbJ, _nbI-1),
  _lastJs(_nbI, _nbJ-1),
- _score(0)
+ _score(0.0)
 {
 }
 
@@ -87,7 +88,7 @@ int Samegame::Board::dataColors(int i, int j) const {
  return _dataColors[ind(i, j)];
 }
 
-int Samegame::Board::getScore() const {
+double Samegame::Board::getScore() const {
  return _score;
 }
 
@@ -202,8 +203,8 @@ void Samegame::Board::findMoves() {
     assert(group < int(_groupSizes.size()));
     int groupSize = _groupSizes[group];
     if (groupSize > 1) {
-     int groupSize2 = std::max(0, groupSize-2);
-     int eval = groupSize2 * groupSize2;
+     double groupSize2 = std::max(0, groupSize-2);
+     double eval = groupSize2 * groupSize2 / _estimatedMaxScore;
      _moves.push_back({i, j, color, eval});
     }
    }

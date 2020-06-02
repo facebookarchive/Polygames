@@ -29,10 +29,13 @@ namespace Samegame {
    State(int seed, int history, bool turnFeatures);
    void findFeatures();
    void findActions();
+
    void Initialize() override;
    void ApplyAction(const _Action& action) override;
    void DoGoodAction() override;
    std::unique_ptr<mcts::State> clone_() const override;
+   float getReward(int player) const override;
+
    // std::string stateDescription() const override;
    // std::string actionDescription(const _Action & action) const override;
    // std::string actionsDescription() override;

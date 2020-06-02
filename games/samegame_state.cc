@@ -117,6 +117,15 @@ std::unique_ptr<mcts::State> Samegame::State::clone_() const {
  return std::make_unique<Samegame::State>(*this);
 }
 
+float Samegame::State::getReward(int player) const {
+ assert(player == 0 or player == 1);
+ if (player == 0 and _status == GameStatus::player0Win) {
+  return _board.getScore();
+ } else {
+  return -1.0;
+ }
+}
+
 /*
    std::string Samegame::State::stateDescription() const {
 
