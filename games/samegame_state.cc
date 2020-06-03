@@ -7,6 +7,9 @@
 
 #include "samegame_state.h"
 
+// TODO random board
+// TODO hash
+
 ///////////////////////////////////////////////////////////////////////////////
 // Action
 ///////////////////////////////////////////////////////////////////////////////
@@ -65,7 +68,7 @@ void Samegame::State::findActions() {
 }
 
 bool Samegame::State::isOnePlayerGame() const {
-  return true;
+ return true;
 }
 
 void Samegame::State::Initialize() {
@@ -97,11 +100,11 @@ void Samegame::State::ApplyAction(const _Action& action) {
  _board.play(i, j);
 
  // update game status
- if (not _board.isTerminated()) {
-  _status = GameStatus::player0Turn;
+ if (_board.isTerminated()) {
+  _status = GameStatus::player0Win;
  }
  else {
-   _status = GameStatus::player0Win;
+  _status = GameStatus::player0Turn;
  }
 
  // update features and actions
@@ -121,105 +124,51 @@ std::unique_ptr<mcts::State> Samegame::State::clone_() const {
 }
 
 float Samegame::State::getReward(int player) const {
- assert(player == 0 or player == 1);
- if (player == 0 and _status == GameStatus::player0Win) {
-  return _board.getScore();
- } else {
-  return -1.0;
- }
+ assert(player == 0);
+ return float(_board.getScore());
 }
 
-/*
-   std::string Samegame::State::stateDescription() const {
-
-   const auto& feats = _features;
-   const auto& sizes = _featSize;
-
-   int ni = sizes[1];
-   int nj = sizes[2];
-
-   auto ind = [ni,nj](int i, int j, int k) 
-   { return (k*ni + i)*nj + j; };
-
-   std::string str;
-
-   str += "Samegame\n";
-
-   str += "  ";
-   for (int k=0; k<ni; k++) {
-   str += " ";
-   if (k<10) str += " ";
-   str += std::to_string(k) + " ";
-   }
-   str += "\n";
-
-   for (int i=0; i<ni; i++) {
-
-   str += "   ";
-   for (int k=0; k<i; k++) str += "  ";
-
-   for (int k=0; k<SIZE-i-1; k++) str += "    ";
-   for (int k=0; k<SIZE+i and k<3*SIZE-i-1; k++) str += "----";
-   str += "\n";
-
-   if (i<10) str += " ";
-   str += std::to_string(i) + " ";
-   for (int k=0; k<i; k++) str += "  ";
-   for (int j=0; j<nj; j++) {
-
-   if (_board.isValidCell({i,j}))
-   str += "\\ ";
-   else if (j<SIZE)
-   str += "  ";
-
-   if (feats[ind(i,j,0)] && feats[ind(i,j,1)])
-   str += "! ";
-   else if (feats[ind(i,j,0)])
-   str += "X ";
-   else if (feats[ind(i,j,1)])
-   str += "O ";
-   else if (_board.isValidCell({i,j}))
-   str += ". ";
-   else if (j<SIZE)
-   str += "  ";
+std::string Samegame::State::stateDescription() const {
+ std::ostringstream oss;
+ for (int i=_board.getNbI()-1; i>=0; --i) {
+  if (i<=9) oss << ' ';
+  oss << i << " |";
+  for (int j=0; j<_board.getNbJ(); ++j) {
+   int c = _board.dataColors(i, j);
+   if (c == -1)
+    oss << "  .";
    else
-   continue;
-   }
-
-   str += "\\ \n";
-   }
-
-   str += "  ";
-   for (int k=0; k<ni; k++) str += "  ";
-   for (int k=SIZE-2; _board.isValidCell({SIZE,k}); k++) str += "----";
-   str += "\n";
-
-   str += "    ";
-   for (int k=0; k<SIZE-1; k++) str += "    ";
-   for (int k=0; k<ni; k++) {
-   str += " ";
-   if (k<10) str += " ";
-   str += std::to_string(k) + " ";
-}
-str += "\n";
-
-return str;
-
+    oss << (c<=9 ? "  " : " ") << c;
+  }
+  oss << std::endl;
+ }
+ oss << "   -";
+ for (int j=0; j<_board.getNbJ(); ++j) {
+  oss << "---";
+ }
+ oss << std::endl;
+ oss << "    ";
+ for (int j=0; j<_board.getNbJ(); ++j) {
+  oss << (j<=9 ? "  " : " ") << j;
+ }
+ oss << std::endl;
+ oss << "score: " << _board.getScore() << std::endl;
+ return oss.str();
 }
 
 std::string Samegame::State::actionDescription(const _Action & action) const {
- return std::to_string(action.GetY()) + "," + std::to_string(action.GetZ());
+ return std::to_string(action.GetY()) + ","
+  + std::to_string(action.GetZ()) + " ";
 }
 
 std::string Samegame::State::actionsDescription() {
  std::ostringstream oss;
  for (const auto & a : _legalActions) {
-  oss << a->GetY() << "," << a->GetZ() << " ";
+  oss << actionDescription(*a);
  }
  oss << std::endl;
  return oss.str();
 }
-
 
 int Samegame::State::parseAction(const std::string& str) {
  std::istringstream iss(str);
@@ -238,10 +187,4 @@ int Samegame::State::parseAction(const std::string& str) {
  }
  return -1;
 }
-
-
-int Samegame::State::getCurrentPlayerColor() const {
- return _board.getCurrentColor();
-}
-*/
 
