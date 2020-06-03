@@ -37,11 +37,10 @@ namespace Samegame {
    std::unique_ptr<mcts::State> clone_() const override;
    float getReward(int player) const override;
 
-   // std::string stateDescription() const override;
-   // std::string actionDescription(const _Action & action) const override;
-   // std::string actionsDescription() override;
-   // int parseAction(const std::string& str) override;
-   // virtual int getCurrentPlayerColor() const override;
+   std::string stateDescription() const override;
+   std::string actionDescription(const _Action & action) const override;
+   std::string actionsDescription() override;
+   int parseAction(const std::string& str) override;
  };
 
 }  // namespace Samegame

@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cassert>
 #include <stack>
+#include <sstream>
 
 Samegame::Board::Board(int nbI, int nbJ, int nbColors, std::function<int()> fillFunc) :
  _nbI(nbI),
@@ -52,12 +53,17 @@ Samegame::Board::Board() :
 }
 
 void Samegame::Board::reset(int iDataset) {
+
  // _dataColors
  assert(iDataset >= 0);
  assert(iDataset < 20);
  for (int i=0; i<_nbI; ++i)
   for (int j=0; j<_nbJ; ++j)
    _dataColors[i*_nbJ+j] = DATASETS[_nbI*_nbJ*iDataset + (_nbI-i-1)*_nbJ + j];
+
+ std::fill(_lastIs.begin(), _lastIs.end(), _nbI-1);
+ std::fill(_lastJs.begin(), _lastJs.end(), _nbJ-1);
+ _score = 0.0;
 
  // _dataGroups, _groupSizes
  _groupSizes.reserve(_nbI*_nbJ);
@@ -255,63 +261,6 @@ void Samegame::Board::contractI(int i0, int j0) {
 int Samegame::Board::ind(int i, int j) const {
  assert(isValid(i, j));
  return i * _nbJ + j;
-}
-
-void Samegame::Board::print() const {
-
- // colors
- std::cout << "\nColors:\n";
- for (int i=_nbI-1; i>=0; --i) {
-  for (int j=0; j<_nbJ; ++j) {
-   int c = _dataColors[ind(i, j)];
-   if (c == -1)
-    std::cout << ". ";
-   else
-    std::cout << c << " ";
-  }
-  std::cout << std::endl;
- }
-
- std::cout << "\nScore: " << _score << std::endl;
-
- std::cout << "\nTerminated: " << isTerminated() << std::endl;
-
-}
-
-void Samegame::Board::printMore() const {
-
- // groups
- std::cout << "\nGroups:\n";
- for (int i=_nbI-1; i>=0; --i) {
-  for (int j=0; j<_nbJ; ++j) {
-   std::cout << _dataGroups[ind(i, j)] << ' ';
-  }
-  std::cout << std::endl;
- }
-
- // group sizes
- std::cout << "\nGroup sizes:\n";
- for (unsigned g=0; g < _groupSizes.size(); ++g)
-  std::cout << g << " size=" << _groupSizes[g] << "\n";
-
- // lastIs
- std::cout << "\nLastIs:\n";
- for (unsigned j=0; j < _lastIs.size(); ++j)
-  std::cout << j << " lastI=" << _lastIs[j] << "\n";
-
- // lastJs
- std::cout << "\nLastJs:\n";
- for (unsigned i=0; i < _lastJs.size(); ++i)
-  std::cout << i << " lastJ=" << _lastJs[i] << "\n";
-
- // moves
- std::cout << "\nMoves:\n";
- for (unsigned k=0; k<_moves.size(); ++k) {
-  const Move & m = _moves[k];
-  std::cout << k << " i=" << m._i << " j=" << m._j << " color=" 
-   << m._color << " eval=" << m._eval << "\n";
- }
-
 }
 
 // TODO check data ordering

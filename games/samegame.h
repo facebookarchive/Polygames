@@ -72,9 +72,6 @@ namespace Samegame {
    void play(int n);
    bool play(int i, int j);
 
-   void print() const;
-   void printMore() const;
-
   protected:
    void findGroups();
    void buildGroup(int i0, int j0);
