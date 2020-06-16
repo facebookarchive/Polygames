@@ -37,6 +37,9 @@ conda activate [your env name] # Or source activate [your env name], depending o
 conda install numpy pyyaml mkl mkl-include setuptools cmake cffi typing
 conda install -c pytorch magma-cuda100
 conda install -c conda-forge tensorboardx
+conda install -c conda-forge openjdk
+
+
 pip install visdom
 
 # clone the repo
