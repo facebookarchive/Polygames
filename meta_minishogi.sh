@@ -1,6 +1,6 @@
 # Launch this script, wait 10 days, and you should get an excellent minishogi model.
 
-me=`whoami`                                                                                                                                                            |
+export me=`whoami`                                                                                                                                                            |
 sbatch --partition=dev --time=72:00:00 --mem=150Go --job-name=pgserver  --gres=gpu:8 --cpus-per-task=80 --wrap="./launch_minishogi_server.sh"                          |
 sleep 200
 export host=`squeue -u $me| grep -i pgserver | sed 's/.*learnfair/learnfair/g' | sed 's/ //g'`
