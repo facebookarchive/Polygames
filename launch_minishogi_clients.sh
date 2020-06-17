@@ -1,6 +1,6 @@
 # Launching clients.
 
-me=`whoami`
+export me=`whoami`
 export host="`squeue -u $me | grep -iv pd | grep -i pg | grep ser | sed 's/.*learnfair/learnfair/g' | sed 's/ //g'`"
 echo "host=<${host}>"
 for k in `seq 5`
