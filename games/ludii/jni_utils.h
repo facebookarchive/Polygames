@@ -42,6 +42,11 @@ class JNIUtils {
   static jclass LudiiGameWrapperClass();
   static jclass LudiiStateWrapperClass();
 
+  /**
+   * @return A string description of the version of Ludii that we're working with.
+   */
+  static const std::string LudiiVersion();
+
  private:
   static JavaVM *jvm;
   static JNIEnv *env;
@@ -52,6 +57,9 @@ class JNIUtils {
 
   /** Our LudiiStateWrapper class in Java */
   static jclass ludiiStateWrapperClass;
+
+  /** Method ID for the ludiiVersion() method in Java */
+  static jmethodID ludiiVersionMethodID;
 };
 
 }  // namespace Ludii
