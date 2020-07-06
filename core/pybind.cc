@@ -24,6 +24,7 @@ PYBIND11_MODULE(polygames, m) {
       .def("add_human_player", &Game::addHumanPlayer)
       .def("add_tp_player", &Game::addTPPlayer)
       .def("get_feat_size", &Game::getFeatSize)
+      .def("get_raw_feat_size", &Game::getRawFeatSize)
       .def("is_one_player_game", &Game::isOnePlayerGame)
       .def("set_features", &Game::setFeatures)
       .def("get_action_size", &Game::getActionSize)

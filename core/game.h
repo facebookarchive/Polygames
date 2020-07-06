@@ -346,6 +346,10 @@ to look into this) if the strategy is identical to knuth’s.
     dispatchers_.push_back(dispatcher);
   }
 
+  const std::vector<int64_t>& getRawFeatSize() {
+    return state_->GetRawFeatureSize();
+  }
+
   const std::vector<int64_t>& getFeatSize() {
     return state_->GetFeatureSize();
   }
