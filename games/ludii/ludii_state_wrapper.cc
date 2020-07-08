@@ -155,7 +155,7 @@ LudiiStateWrapper::LudiiStateWrapper(int seed, JNIEnv* jenv, LudiiGameWrapper &&
 
 	// Find the LudiiStateWrapper Java constructor
 	jmethodID ludiiStateWrapperConstructor =
-			jenv->GetMethodID(ludiiStateWrapperClass, "<init>", "(Lplayer/utils/supplementary/LudiiGameWrapper;)V");
+			jenv->GetMethodID(ludiiStateWrapperClass, "<init>", "(Lutils/LudiiGameWrapper;)V");
 
 	// Call our Java constructor to instantiate new object
 	ludiiStateWrapperJavaObject =
@@ -179,7 +179,7 @@ LudiiStateWrapper::LudiiStateWrapper(const LudiiStateWrapper& other)
 
 	// Find the LudiiStateWrapper Java copy constructor
 	jmethodID ludiiStateWrapperCopyConstructor =
-			jenv->GetMethodID(ludiiStateWrapperClass, "<init>", "(Lplayer/utils/supplementary/LudiiStateWrapper;)V");
+			jenv->GetMethodID(ludiiStateWrapperClass, "<init>", "(Lutils/LudiiStateWrapper;)V");
 
 	// Call our Java constructor to instantiate new object
 	ludiiStateWrapperJavaObject =

@@ -69,6 +69,9 @@ LudiiGameWrapper::LudiiGameWrapper(
 	// Find method IDs for the two tensor shape Java methods that we may be calling frequently
 	stateTensorsShapeMethodID = jenv->GetMethodID(ludiiGameWrapperClass, "stateTensorsShape", "()[I");
 	moveTensorsShapeMethodID = jenv->GetMethodID(ludiiGameWrapperClass, "moveTensorsShape", "()[I");
+
+	// Find the method ID for the stateTensorChannelNames() method in Java
+	stateTensorChannelNamesMethodID = jenv->GetMethodID(ludiiGameWrapperClass, "stateTensorChannelNames", "()[Ljava/lang/String;");
 }
 
 LudiiGameWrapper::LudiiGameWrapper(LudiiGameWrapper const& other)
