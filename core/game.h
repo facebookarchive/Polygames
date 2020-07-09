@@ -301,8 +301,8 @@ to look into this) if the strategy is identical to knuth’s.
     state_->Initialize();
   }
 
-  template <typename T> std::unique_ptr<State> newState(int seed) {
-    auto r = std::make_unique<T>(seed);
+  template <typename T, A...> std::unique_ptr<State> newState(A&&... args) {
+    auto r = std::make_unique<T>(std::forward<A>(args)...);
     r->template initializeAs<T>();
     return r;
   }
