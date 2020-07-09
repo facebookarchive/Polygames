@@ -26,7 +26,7 @@ template <int SIZE, bool PIE, bool EXTENDED> class State : public ::State {
 
  public:
   State(int seed);
-  State(int seed, int history, bool turnFeatures);
+  //State(int seed, int history, bool turnFeatures);
   void findActions();
   void Initialize() override;
   void ApplyAction(const _Action& action) override;
@@ -60,21 +60,22 @@ template <int SIZE, bool PIE, bool EXTENDED> Havannah::State<SIZE, PIE, EXTENDED
   Initialize();
 }
 
-template <int SIZE, bool PIE, bool EXTENDED> Havannah::State<SIZE, PIE, EXTENDED>::State(int seed, int history,
-  bool turnFeatures) : ::State(seed) {
+//template <int SIZE, bool PIE, bool EXTENDED> Havannah::State<SIZE, PIE, EXTENDED>::State(int seed, int history,
+//  bool turnFeatures) : ::State(seed) {
 
-  _history = history;
-  _turnFeatures = turnFeatures;
-  Initialize();
-}
+//  _history = history;
+//  _turnFeatures = turnFeatures;
+//  Initialize();
+//}
 
 template <int SIZE, bool PIE, bool EXTENDED> void Havannah::State<SIZE, PIE, EXTENDED>::findActions() {
   auto legalIndices = _board.findLegalIndices();
-  _legalActions.clear();
-  _legalActions.reserve(legalIndices.size());
+  _NewlegalActions.clear();
+  _NewlegalActions.reserve(legalIndices.size());
   for (unsigned k=0; k<legalIndices.size(); ++k) {
     auto c = _board.convertIndexToCell(legalIndices[k]);
-    _legalActions.push_back(std::make_shared<Havannah::Action<SIZE>>(c.first, c.second, k));
+    _NewlegalActions.push_back(_Action(k, 0, c.first, c.second));
+    //_legalActions.push_back(std::make_shared<Havannah::Action<SIZE>>(c.first, c.second, k));
   }
 }
 
@@ -263,8 +264,8 @@ std::string Havannah::State<SIZE, PIE, EXTENDED>::actionDescription(const _Actio
 template <int SIZE, bool PIE, bool EXTENDED>
 std::string Havannah::State<SIZE, PIE, EXTENDED>::actionsDescription() {
   std::ostringstream oss;
-  for (const auto & a : _legalActions) {
-    oss << a->GetY() << "," << a->GetZ() << " ";
+  for (const auto & a : _NewlegalActions) {
+    oss << a.GetY() << "," << a.GetZ() << " ";
   }
   oss << std::endl;
   return oss.str();
@@ -279,8 +280,8 @@ int Havannah::State<SIZE, PIE, EXTENDED>::parseAction(const std::string& str) {
     int i = std::stoi(token);
     if (not std::getline(iss, token)) throw -1;
     int j = std::stoi(token);
-    for (unsigned k=0; k<_legalActions.size(); k++)
-      if (_legalActions[k]->GetY() == i and _legalActions[k]->GetZ() == j)
+    for (unsigned k=0; k<_NewlegalActions.size(); k++)
+      if (_NewlegalActions[k].GetY() == i and _NewlegalActions[k].GetZ() == j)
         return k;
   }
   catch (...) {

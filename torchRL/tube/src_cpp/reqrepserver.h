@@ -20,7 +20,7 @@
 namespace zmq {
 class context_t;
 class socket_t;
-} // namespace zmq
+}  // namespace zmq
 
 namespace cpid {
 
@@ -46,10 +46,9 @@ class ReqRepServer final {
   /// If endpoint is an empty string, bind to local IP with automatic port
   /// selection.
   /// The callback will be called from dedicated threads.
-  ReqRepServer(
-      CallbackFn callback,
-      size_t numThreads = 1,
-      std::string endpoint = std::string());
+  ReqRepServer(CallbackFn callback,
+               size_t numThreads = 1,
+               std::string endpoint = std::string());
   ~ReqRepServer();
 
   std::string endpoint() const;
@@ -91,10 +90,9 @@ class ReqRepClient final {
   using TimePoint = std::chrono::time_point<Clock>;
   using Blob = std::vector<char>;
 
-  ReqRepClient(
-      size_t maxConcurrentRequests,
-      std::vector<std::string> endpoints,
-      std::shared_ptr<zmq::context_t> context = nullptr);
+  ReqRepClient(size_t maxConcurrentRequests,
+               std::vector<std::string> endpoints,
+               std::shared_ptr<zmq::context_t> context = nullptr);
   ~ReqRepClient();
 
   std::future<std::vector<char>> request(std::vector<char> msg);
@@ -114,7 +112,9 @@ class ReqRepClient final {
     Blob msg;
     std::promise<Blob> promise;
     size_t retries = 0;
-    QueueItem(Blob msg) : msg(std::move(msg)) {}
+    QueueItem(Blob msg)
+        : msg(std::move(msg)) {
+    }
     QueueItem() = default;
     QueueItem(QueueItem&&) = default;
     QueueItem& operator=(QueueItem&&) = default;
@@ -139,4 +139,4 @@ class ReqRepClient final {
   std::unique_ptr<zmq::socket_t> signalSocket_;
 };
 
-} // namespace cpid
+}  // namespace cpid

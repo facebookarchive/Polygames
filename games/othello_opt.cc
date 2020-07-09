@@ -41,15 +41,15 @@ arrGet(const Array& arr, size_t row, size_t col) {
   return arr[row * SIZE + col];
 } // arrGet
 
-template <size_t SIZE>
-Action<SIZE>::Action(size_t row, size_t col, bool skipTurn) {
-  assert(isInBoard<SIZE>(row, col));
-  _loc[0] = (skipTurn ? 1 : 0);
-  _loc[1] = col;
-  _loc[2] = row;
-  _hash = (skipTurn ? SIZE * SIZE : 0) + SIZE * static_cast<uint64_t>(row) +
-      static_cast<uint64_t>(col);
-} // Action<SIZE>::Action
+//template <size_t SIZE>
+//Action<SIZE>::Action(size_t row, size_t col, bool skipTurn) {
+//  assert(isInBoard<SIZE>(row, col));
+//  _loc[0] = (skipTurn ? 1 : 0);
+//  _loc[1] = col;
+//  _loc[2] = row;
+//  _hash = (skipTurn ? SIZE * SIZE : 0) + SIZE * static_cast<uint64_t>(row) +
+//      static_cast<uint64_t>(col);
+//} // Action<SIZE>::Action
 
 template <size_t SIZE>
 State<SIZE>::State(int seed): ::State(seed), _hasher(hashBook) {
@@ -70,7 +70,7 @@ template <size_t SIZE>
   fillFullFeatures();
 
   _actionSize = { NUM_PIECE_TYPES, SIZE, SIZE };
-  _legalActions.reserve(SIZE * SIZE - 4);
+  _NewlegalActions.reserve(SIZE * SIZE - 4);
   RefillLegalActions();
 
   _hash = _hasher.hash();
@@ -92,7 +92,7 @@ template <size_t SIZE>
     nextTurn();
     stone = stoneToPlay();
     if (!CanPutStone(stone)) {
-      _legalActions.clear();
+      _NewlegalActions.clear();
       setTerminalStatus();
     } else {
       RefillLegalActions();
@@ -297,24 +297,19 @@ template<size_t SIZE>
 void State<SIZE>::RefillLegalActions() {
   assert((_status == GameStatus::player0Turn) ||
          (_status == GameStatus::player1Turn));
-  _legalActions.clear();
+  _NewlegalActions.clear();
   Field stoneToPlay = (_status == GameStatus::player0Turn ? BLACK : WHITE);
-  size_t n = 0;
   for (size_t row = 0; row < SIZE; ++row) {
     for (size_t col = 0; col < SIZE; ++col) {
       if ((arrGet<Board, SIZE>(_board, row, col) == EMPTY) &&
         CanPutStone(stoneToPlay, row, col)) {
         // add action
-        auto act = std::make_shared<_Action>(row, col, false);
-        act->SetIndex(n++);
-        _legalActions.push_back(act);
+        _NewlegalActions.emplace_back(_NewlegalActions.size(), 0, col, row);
       }
     }
   }
-  if (_legalActions.empty() && !boardFilled()) {
-    auto act = std::make_shared<_Action>(SIZE / 2, SIZE / 2, true);
-    act->SetIndex(n++);
-    _legalActions.push_back(act);
+  if (_NewlegalActions.empty() && !boardFilled()) {
+    _NewlegalActions.emplace_back(_NewlegalActions.size(), 1, SIZE / 2, SIZE / 2);
   }
 } // State<SIZE>::RefillLegalAction
 

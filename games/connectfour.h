@@ -14,17 +14,17 @@
 
 #include "../core/state.h"
 
-class ActionForConnectFour : public _Action {
- public:
-  ActionForConnectFour(int x, size_t index)
-      : _Action() {
-    _loc[0] = x;
-    _loc[1] = 0;
-    _loc[2] = 0;
-    _hash = (uint32_t)x;
-    _i = (int)index;
-  }
-};
+//class ActionForConnectFour : public _Action {
+// public:
+//  ActionForConnectFour(int x, size_t index)
+//      : _Action() {
+//    _loc[0] = x;
+//    _loc[1] = 0;
+//    _loc[2] = 0;
+//    _hash = (uint32_t)x;
+//    _i = (int)index;
+//  }
+//};
 
 class StateForConnectFour : public State {
  public:
@@ -90,11 +90,12 @@ class StateForConnectFour : public State {
   }
 
   void findActions() {
-    _legalActions.clear();
+    _NewlegalActions.clear();
     for (int i = 0; i != boardWidth; ++i) {
       if (height[i] != boardHeight) {
-        _legalActions.push_back(
-            std::make_shared<ActionForConnectFour>(i, _legalActions.size()));
+//        _legalActions.push_back(
+//            std::make_shared<ActionForConnectFour>(i, _legalActions.size()));
+        _NewlegalActions.emplace_back(_legalActions.size(), i, 0, 0);
       }
     }
   }
@@ -132,7 +133,7 @@ class StateForConnectFour : public State {
     } else {
       featurize();
       findActions();
-      if (_legalActions.empty()) {
+      if (_NewlegalActions.empty()) {
         _status = GameStatus::tie;
       } else {
         _status =
@@ -146,8 +147,8 @@ class StateForConnectFour : public State {
     return DoRandomAction();
   }
 
-  const int boardWidth = 7;
-  const int boardHeight = 6;
+  int boardWidth = 7;
+  int boardHeight = 6;
   std::vector<char> board;
   std::vector<char> height;
 };

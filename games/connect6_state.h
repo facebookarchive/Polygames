@@ -25,16 +25,16 @@ const int StateForConnect6X = 2 * 6 + 1;
 const int StateForConnect6Y = 19;
 const int StateForConnect6Z = 19;
 
-class ActionForConnect6 : public ::_Action {
- public:
-  ActionForConnect6(int x, int y)
-      : _Action() {
-    _loc[0] = 0;
-    _loc[1] = x;
-    _loc[2] = y;
-    _hash = x + y * 19;
-  }  // step is 2 or 3.
-};
+//class ActionForConnect6 : public ::_Action {
+// public:
+//  ActionForConnect6(int x, int y)
+//      : _Action() {
+//    _loc[0] = 0;
+//    _loc[1] = x;
+//    _loc[2] = y;
+//    _hash = x + y * 19;
+//  }  // step is 2 or 3.
+//};
 
 class StateForConnect6 : public ::State, C6Board {
  public:
@@ -88,13 +88,12 @@ class StateForConnect6 : public ::State, C6Board {
     C6Move moves[C6MaxLegalMoves];
     int nb = legalMoves(moves);
 
-    _legalActions.clear();
+    _NewlegalActions.clear();
     for (int i = 0; i < nb; i++) {
       int x = moves[i].x;
       int y = moves[i].y;
 
-      _legalActions.push_back(std::make_shared<ActionForConnect6>(x, y));
-      _legalActions[i]->SetIndex(i);
+      _NewlegalActions.emplace_back(i, 0, x, y);
     }
   }
 
@@ -232,7 +231,7 @@ class StateForConnect6 : public ::State, C6Board {
     if (y < 0 || y >= 19) {
       return -1;
     }
-    for (auto& a : _legalActions) {
+    for (auto& a : _NewlegalActions) {
       if (a->GetZ() == z && a->GetY() == y) {
         return a->GetIndex();
       }

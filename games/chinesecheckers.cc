@@ -636,11 +636,11 @@ int State::parseAction(const string& str) {
   auto& legalActions = GetLegalActions();
   for (size_t i = 0; i < legalActions.size(); i++) {
     if (cur == pass) {
-      if (legalActions[i]->GetX() == 2) {
+      if (legalActions[i].GetX() == 2) {
         return (int)i;
       }
     } else {
-      if (legalActions[i]->GetY() == cur && legalActions[i]->GetZ() == goal)
+      if (legalActions[i].GetY() == cur && legalActions[i].GetZ() == goal)
         return (int)i;
     }
   }

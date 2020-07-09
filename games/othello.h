@@ -50,7 +50,7 @@ template <int BR> class State : public ::State {
                 "radix of board must be greater than or equal to 4 and even");
 
  public:
-  using Board = Chessboard<BR, BR>;
+  using Board = Chessboard<BR, BR, false>;
 
   State(int seed);
   void Initialize() override;
@@ -99,10 +99,10 @@ template <int BR> class State : public ::State {
   std::bitset<Board::squares> areEmpty, candi;
 };
 
-template <int BR> class Action : public ::_Action {
- public:
-  Action(int i, int x, int y, bool isPassMove);
-};
+//template <int BR> class Action : public ::_Action {
+// public:
+//  Action(int i, int x, int y, bool isPassMove);
+//};
 
 template <int BR>
 State<BR>::State(int seed)
@@ -115,7 +115,7 @@ template <int BR> void State<BR>::Initialize() {
   _featSize = {chessKinds, Board::rows, Board::columns};
   _features.resize(chessKinds * Board::squares);
   _actionSize = {2, Board::rows, Board::columns};
-  _legalActions.reserve(maxLegalActionsCnt);
+  _NewlegalActions.reserve(maxLegalActionsCnt);
   _status = GameStatus::player0Turn;
 
   board.initialize();
@@ -144,15 +144,14 @@ template <int BR> void State<BR>::ApplyAction(const ::_Action& action) {
   _hash = board.getHash();
   Player nextPlayer = turnPlayer();
   if (canGoNext(nextPlayer, isPassMove)) {
-    if (_legalActions.size() == 0) {
-      _legalActions.push_back(std::make_shared<Action<BR>>(
-          0, Board::rows / 2, Board::columns / 2, true));
+    if (_NewlegalActions.size() == 0) {
+      _NewlegalActions.emplace_back(_NewlegalActions.size(), 1, Board::rows / 2, Board::columns / 2);
     }
     fillFeatures();
   } else {
     Player winner = findWinner();
     setTerminatedStatus(winner);
-    _legalActions.clear();
+    _NewlegalActions.clear();
   }
 }
 
@@ -174,28 +173,28 @@ std::string State<BR>::actionDescription(const ::_Action& action) const {
   if (isPassMove)
     return "passed";
   std::ostringstream oss;
-  oss << "put a chess at " << board.getPosStr(action.GetY(), action.GetZ());
+  oss << board.getPosStr(action.GetY(), action.GetZ());
   return oss.str();
 }
 
 template <int BR> std::string State<BR>::actionsDescription() {
   std::set<std::tuple<int, int>> markedPos;
-  if (_legalActions.size() >= 1 && _legalActions[0]->GetX() == 0)
-    for (auto& legalAction : _legalActions)
-      markedPos.insert({legalAction->GetY(), legalAction->GetZ()});
+  if (_NewlegalActions.size() >= 1 && _NewlegalActions[0].GetX() == 0)
+    for (auto& legalAction : _NewlegalActions)
+      markedPos.insert({legalAction.GetY(), legalAction.GetZ()});
   return board.sprintBoard("  ", markedPos);
 }
 
 template <int BR> int State<BR>::parseAction(const std::string& str) {
-  if (_legalActions.size() == 1 && _legalActions[0]->GetX() == 1)
-    return str.empty() ? 0 : -1;
+  if (_NewlegalActions.size() == 1 && _NewlegalActions[0].GetX() == 1)
+    return 0;
   auto result = board.parsePosStr(str);
   if (!result)
     return -1;
   auto [x, y] = result.value();
   int i = 0;
-  for (auto& legalAction : _legalActions) {
-    if (legalAction->GetY() == x && legalAction->GetZ() == y)
+  for (auto& legalAction : _NewlegalActions) {
+    if (legalAction.GetY() == x && legalAction.GetZ() == y)
       return i;
     i++;
   }
@@ -206,7 +205,7 @@ template <int BR>
 int State<BR>::humanInputAction(
     std::function<std::optional<int>(std::string)> specialAction) {
   std::cout << "Current board:" << std::endl << stateDescription() << std::endl;
-  if (_legalActions.size() == 1 && _legalActions[0]->GetX() == 1) {
+  if (_NewlegalActions.size() == 1 && _NewlegalActions[0].GetX() == 1) {
     std::cout << "No positions to play." << std::endl;
     std::cout << "Input nothing to pass." << std::endl;
   } else {
@@ -219,7 +218,7 @@ int State<BR>::humanInputAction(
   std::string str;
   int index = -1;
   while (index < 0) {
-    std::cout << "> ";
+    std::cout << "Input action: ";
     std::getline(std::cin, str);
     index = parseAction(str);
     if (index < 0) {
@@ -279,7 +278,7 @@ bool State<BR>::canGoNext(Player nextPlayer, bool isPassMove) {
   if (areEmpty.none())
     return false;
   findLegalActions(nextPlayer);
-  return _legalActions.size() != 0 || !isPassMove;
+  return _NewlegalActions.size() != 0 || !isPassMove;
 }
 
 template <int BR> Player State<BR>::findWinner() {
@@ -292,7 +291,7 @@ template <int BR> Player State<BR>::findWinner() {
 }
 
 template <int BR> void State<BR>::findLegalActions(Player player) {
-  _legalActions.clear();
+  _NewlegalActions.clear();
   auto possibles = areEmpty & candi;
   Chess chess = playerToChess(player);
   int i = 0;
@@ -301,8 +300,7 @@ template <int BR> void State<BR>::findLegalActions(Player player) {
       auto [x, y] = Board::posTo2D(xy);
       Move legalMove = Move{chess, x, y};
       if (canDoReverse(legalMove)) {
-        _legalActions.push_back(
-            std::make_shared<Action<BR>>(i++, legalMove.x, legalMove.y, false));
+        _NewlegalActions.emplace_back(i++, 0, legalMove.x, legalMove.y);
         assert(i <= maxLegalActionsCnt);
       }
     }
@@ -389,13 +387,13 @@ template <int BR> void State<BR>::fillFeatures() {
   fillFullFeatures();
 }
 
-template <int BR>
-Action<BR>::Action(int i, int x, int y, bool isPassMove)
-    : ::_Action() {
-  _i = i;
-  _loc = {isPassMove, x, y};
-  _hash =
-      isPassMove ? State<BR>::Board::squares : State<BR>::Board::rows * y + x;
-}
+//template <int BR>
+//Action<BR>::Action(int i, int x, int y, bool isPassMove)
+//    : ::_Action() {
+//  _i = i;
+//  _loc = {isPassMove, x, y};
+//  _hash =
+//      isPassMove ? State<BR>::Board::squares : State<BR>::Board::rows * y + x;
+//}
 
 }  // namespace Othello

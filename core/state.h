@@ -43,23 +43,26 @@ this makes a difference.
 // the mcts::Action (i.e. int64_t)
 class _Action {
  public:
-  _Action() {
-    _loc.resize(3);
-  }
-  virtual ~_Action() {
-  }
   // Get the location of the move in the neural network output.
   // Several moves might fall in the same location, no pb.
+  _Action() {
+  }
+  _Action(mcts::Action index, int x, int y, int z)
+      : _i(index) {
+    _loc[0] = x;
+    _loc[1] = y;
+    _loc[2] = z;
+  }
 
-  virtual int GetX() const {
+  int GetX() const {
     return _loc[0];
   }
 
-  virtual int GetY() const {
+  int GetY() const {
     return _loc[1];
   }
 
-  virtual int GetZ() const {
+  int GetZ() const {
     return _loc[2];
   }
 
@@ -76,19 +79,19 @@ class _Action {
   }
 
  protected:
-  uint64_t _hash;
+  uint64_t _hash = 0;
 
   // Warning! Two actions might have the same position _loc.  position
   // of the action in {0,...,GetXActionSize()-1} *
   // {0,...,GetYActionSize()-1} * {0,...,GetZActionSize()-1}
-  std::vector<int> _loc;
+  std::array<int, 3> _loc;
 
   // index of the action in the list of legal actions in the
   // corresponding state.
   // _i makes sense since an action is never applied to two distinct
   // states. We could have a pointer to the state this action is
   // associated to.
-  mcts::Action _i;
+  mcts::Action _i = -1;
 };
 
 std::ostream& operator<<(std::ostream& os, const _Action& action);
@@ -99,6 +102,16 @@ enum class GameStatus {
   tie,
   player0Win,
   player1Win
+};
+
+struct FeatureOptions {
+  // Data specifying the way we generate generic features.
+  bool outFeatures = false;        // do we add a feature for borders
+  bool turnFeatures = false;       // do we add a feature for turn
+  bool geometricFeatures = false;  // do we add geometric features
+  int history = 0;  // do we add a feature for history and how long (0 = none)
+  int randomFeatures = 0;   // how many random features (could be 0)
+  bool oneFeature = false;  // do we want a plane of 1s
 };
 
 class State : public mcts::State {
@@ -126,6 +139,21 @@ class State : public mcts::State {
   virtual ~State() {
   }
 
+  template <typename T> void initializeAs() {
+    _typeId = &typeid(T);
+    _copyImpl = [](mcts::State* dst, const mcts::State* src) {
+      if constexpr (std::is_copy_assignable_v<T>) {
+        *(T*)dst = *(T*)src;
+      } else {
+        throw std::runtime_error(std::string(typeid(T).name()) +
+                                 " is not copy assignable!");
+      }
+    };
+  }
+
+  virtual void newGame(unsigned long seed) {
+  }
+
   // -----overriding mcts::State's virtual functions-----
 
   virtual std::unique_ptr<mcts::State> clone() const final {
@@ -148,7 +176,7 @@ class State : public mcts::State {
     }
   }
 
-  std::string history() {
+  std::string lastMoveString() {
     std::string str;
     auto sc = clone();
     auto* s = (State*)&*sc;
@@ -156,8 +184,27 @@ class State : public mcts::State {
     auto rngs = _moveRngs;
     s->reset();
     for (size_t i = 0; i != moves.size(); ++i) {
-      // if (!str.empty()) str += " ";
-      str += s->actionDescription(*s->GetLegalActions().at(moves.at(i)));
+      if (i == moves.size() - 1) {
+        str = s->actionDescription(s->GetLegalActions().at(moves.at(i)));
+      }
+      std::tie(s->_rng, s->forcedDice) = rngs.at(i);
+      s->forward(moves.at(i));
+    }
+    return str;
+  }
+
+  virtual std::string history() override {
+    // return std::to_string(_moves.size()) + " moves";
+    std::string str;
+    auto sc = clone();
+    auto* s = (State*)&*sc;
+    auto moves = _moves;
+    auto rngs = _moveRngs;
+    s->reset();
+    for (size_t i = 0; i != moves.size(); ++i) {
+      if (!str.empty())
+        str += " ";
+      str += s->actionDescription(s->GetLegalActions().at(moves.at(i)));
       std::tie(s->_rng, s->forcedDice) = rngs.at(i);
       s->forward(moves.at(i));
     }
@@ -170,6 +217,10 @@ class State : public mcts::State {
 
   virtual int getStepIdx() const final {
     return _moves.size();
+  }
+
+  virtual const std::vector<mcts::Action>& getMoves() const override {
+    return _moves;
   }
 
   virtual float getReward(int player) const {
@@ -203,6 +254,9 @@ class State : public mcts::State {
     return sumReward / numSimulation;
   }
 
+  virtual void render() {
+  }
+
   virtual bool forward(const mcts::Action& action) final {
     // std::cerr << "forward" << std::endl;
     // {
@@ -214,7 +268,7 @@ class State : public mcts::State {
     assert(action != mcts::InvalidAction);
     _moves.push_back(action);
     _moveRngs.emplace_back(_rng, forcedDice);
-    ApplyAction(*GetLegalActions().at(action));
+    ApplyAction(GetLegalActions().at(action));
 
     // printCurrentBoard();
     // std::cout << "=========" << std::endl;
@@ -248,8 +302,8 @@ class State : public mcts::State {
     std::cerr << stateDescription() << std::endl;
   }
 
-  virtual const std::vector<std::shared_ptr<_Action>>& GetLegalActions() const {
-    return _legalActions;
+  virtual const std::vector<_Action>& GetLegalActions() const {
+    return _NewlegalActions;
   }
 
   virtual std::string stateDescription() const {
@@ -290,6 +344,7 @@ class State : public mcts::State {
     }
     size_t index = 0;
     for (int64_t x = 0; x != sizes[0]; ++x) {
+      str += "Channel " + std::to_string(x) + ":\n";
       for (int64_t y = 0; y != sizes[1]; ++y) {
         for (int64_t z = 0; z != sizes[2]; ++z) {
           if (z) {
@@ -304,7 +359,6 @@ class State : public mcts::State {
       }
       if (x != sizes[0] - 1) {
         str += '\n';
-        str += '\n';
       }
     }
     return str;
@@ -317,20 +371,20 @@ class State : public mcts::State {
   }
 
   virtual std::string actionsDescription() {
-    std::stringstream ss;
-    for (int i = 0; i < (int)_legalActions.size(); i++) {
-      _Action& action = *(_legalActions[i]);
-      ss << "Action " << i << ": " << actionDescription(action) << std::endl;
+    std::string str;
+    for (auto& v : _NewlegalActions) {
+      str += actionDescription(v) + " ";
     }
-    return ss.str();
+    return str;
   }
 
   virtual int parseAction(const std::string& str) {
-    try {
-      return std::stoul(str, nullptr, 10);
-    } catch (...) {
-      return -1;
+    for (size_t i = 0; i != _NewlegalActions.size(); ++i) {
+      if (str == actionDescription(_NewlegalActions[i])) {
+        return i;
+      }
     }
+    return -1;
   }
 
   int TPInputAction(
@@ -361,9 +415,9 @@ class State : public mcts::State {
       index2 = parseAction(line2);
       index3 = parseAction(line3);
       for (size_t i = 0; i < legalActions.size(); i++) {
-        if (((*GetLegalActions().at(i)).GetX() == index1) &&
-            ((*GetLegalActions().at(i)).GetY() == index2) &&
-            ((*GetLegalActions().at(i)).GetZ() == index3)) {
+        if ((GetLegalActions().at(i).GetX() == index1) &&
+            (GetLegalActions().at(i).GetY() == index2) &&
+            (GetLegalActions().at(i).GetZ() == index3)) {
           index = i;
           break;
         }
@@ -393,7 +447,11 @@ class State : public mcts::State {
     int index = -1;
     while (index < 0 || index >= (int)legalActions.size()) {
       std::cout << "Input action: ";
+      std::cin.clear();
       std::cin >> line;
+      if (!std::cin.good()) {
+        std::exit(1);
+      }
       index = parseAction(line);
       if (index == -1) {
         if (auto r = specialAction(line); r) {
@@ -417,7 +475,6 @@ class State : public mcts::State {
     }
   }
 
-
   virtual void setStateFromStr(const std::string& /*str*/) {
   }
 
@@ -432,7 +489,7 @@ class State : public mcts::State {
     for (size_t i = 0; i != moves.size(); ++i) {
       std::tie(_rng, forcedDice) = rngs.at(i);
       if (i == moves.size() - 1) {
-        std::cout << actionDescription(*GetLegalActions().at(moves.at(i)))
+        std::cout << actionDescription(GetLegalActions().at(moves.at(i)))
                   << std::endl;
       }
       forward(moves.at(i));
@@ -452,9 +509,9 @@ class State : public mcts::State {
     for (size_t i = 0; i != moves.size(); ++i) {
       std::tie(_rng, forcedDice) = rngs.at(i);
       if (i == moves.size() - 1) {
-        std::cout << (*GetLegalActions().at(moves.at(i))).GetX() << std::endl;
-        std::cout << (*GetLegalActions().at(moves.at(i))).GetY() << std::endl;
-        std::cout << (*GetLegalActions().at(moves.at(i))).GetZ() << std::endl;
+        std::cout << GetLegalActions().at(moves.at(i)).GetX() << std::endl;
+        std::cout << GetLegalActions().at(moves.at(i)).GetY() << std::endl;
+        std::cout << GetLegalActions().at(moves.at(i)).GetZ() << std::endl;
       }
       forward(moves.at(i));
     }
@@ -502,25 +559,32 @@ class State : public mcts::State {
   void fillFullFeatures();
 
   void DoRandomAction() {
-    assert(!_legalActions.empty());
-    std::uniform_int_distribution<size_t> distr(0, _legalActions.size() - 1);
+    assert(!_NewlegalActions.empty());
+    std::uniform_int_distribution<size_t> distr(0, _NewlegalActions.size() - 1);
     size_t i = distr(_rng);
-    _Action a = *(_legalActions[i].get());
+    _Action a = _NewlegalActions[i];
     ApplyAction(a);
   }
 
   void doIndexedAction(int j) {
-    int i = j % _legalActions.size();
-    _Action a = *(_legalActions[i].get());
+    int i = j % _NewlegalActions.size();
+    _Action a = _NewlegalActions[i];
     ApplyAction(a);
   }
 
   bool checkMove(const mcts::Action& c) const {
-    return c < (int)_legalActions.size();
+    return c < (int)_NewlegalActions.size();
   }
 
   uint64_t getHash() const final {
     return _hash;
+  }
+
+  const std::vector<float>& GetRawFeatures() const {
+    return _features;
+  }
+  const std::vector<int64_t>& GetRawFeatureSize() const {
+    return _featSize;
   }
 
   // Returns GetXSize x GetYSize x GetZSize float input for the NN.
@@ -551,18 +615,8 @@ class State : public mcts::State {
     Initialize();
   }
 
-  static void setFeatures(bool outFeatures,
-                          bool turnFeatures,
-                          bool geometricFeatures,
-                          int history,
-                          int randomFeatures,
-                          bool oneFeature) {
-    _outFeatures = outFeatures;
-    _turnFeatures = turnFeatures;
-    _geometricFeatures = geometricFeatures;
-    _history = history;
-    _randomFeatures = randomFeatures;
-    _oneFeature = oneFeature;
+  void setFeatures(const FeatureOptions* opts) {
+    _featopts = opts;
   }
 
  protected:
@@ -572,6 +626,7 @@ class State : public mcts::State {
   uint64_t _hash;
 
   std::vector<float> _features;  // neural network input
+  std::vector<_Action> _NewlegalActions;
   std::vector<std::shared_ptr<_Action>> _legalActions;
   std::vector<int64_t> _featSize;    // size of the neural network input
   std::vector<int64_t> _actionSize;  // size of the neural network output
@@ -579,14 +634,7 @@ class State : public mcts::State {
   std::vector<mcts::Action> _moves;
   std::vector<std::pair<std::minstd_rand, int>> _moveRngs;
 
-  // Data specifying the way we generate generic features.
-  static bool _outFeatures;        // do we add a feature for borders
-  static bool _turnFeatures;       // do we add a feature for turn
-  static bool _geometricFeatures;  // do we add geometric features
-  static int
-      _history;  // do we add a feature for history and how long (0 = none)
-  static int _randomFeatures;  // how many random features (could be 0)
-  static bool _oneFeature;     // do we want a plane of 1s
+  const FeatureOptions* _featopts = nullptr;
   // if one of the values above is true or > 0 then we should call
   // fillFullFeatures at the end of the constructor of the derived class.
 

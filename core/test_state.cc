@@ -79,11 +79,11 @@ int doSimpleTest(State& s) {
       auto legalActions = s.GetLegalActions();
       for (int i = 0; i < (int)legalActions.size(); i++) {
         for (int j = i + 1; j < (int)legalActions.size(); j++) {
-          if ((legalActions[i]->GetX() == legalActions[j]->GetX()) &&
-              (legalActions[i]->GetY() == legalActions[j]->GetY()) &&
-              (legalActions[i]->GetZ() == legalActions[j]->GetZ())) {
-            cout << legalActions[i]->GetX() << "," << legalActions[i]->GetY()
-                 << "," << legalActions[i]->GetZ() << endl;
+          if ((legalActions[i].GetX() == legalActions[j].GetX()) &&
+              (legalActions[i].GetY() == legalActions[j].GetY()) &&
+              (legalActions[i].GetZ() == legalActions[j].GetZ())) {
+            cout << legalActions[i].GetX() << "," << legalActions[i].GetY()
+                 << "," << legalActions[i].GetZ() << endl;
             throw std::runtime_error("two identical actions");
           }
         }
@@ -132,7 +132,9 @@ void doTest(State& s) {
   std::cout << "testing: fillFullFeatures at the end of ApplyAction and of "
                "Initialize."
             << std::endl;
-  s.setFeatures(false, false, false, 0, 3, false);
+  FeatureOptions opt;
+  opt.randomFeatures = 3;
+  s.setFeatures(&opt);
   doSimpleTest(s);
 }
 
@@ -297,42 +299,42 @@ int main() {
 
   {
     std::cout << "testing: havannah5pieExt" << std::endl;
-    auto state = Havannah::State<5,true, true>(seed);
+    auto state = Havannah::State<5, true, true>(seed);
     doTest(state);
     std::cout << "test pass: havannah5pieExt" << std::endl;
   }
 
   {
     std::cout << "testing: havannah8pieExt" << std::endl;
-    auto state = Havannah::State<8,true, true>(seed);
+    auto state = Havannah::State<8, true, true>(seed);
     doTest(state);
     std::cout << "test pass: havannah8pieExt" << std::endl;
   }
 
   {
     std::cout << "testing: havannah5pie" << std::endl;
-    auto state = Havannah::State<5,true, false>(seed);
+    auto state = Havannah::State<5, true, false>(seed);
     doTest(state);
     std::cout << "test pass: havannah5pie" << std::endl;
   }
 
   {
     std::cout << "testing: havannah8pie" << std::endl;
-    auto state = Havannah::State<8,true, false>(seed);
+    auto state = Havannah::State<8, true, false>(seed);
     doTest(state);
     std::cout << "test pass: havannah8pie" << std::endl;
   }
 
   {
     std::cout << "testing: havannah5" << std::endl;
-    auto state = Havannah::State<5,false, false>(seed);
+    auto state = Havannah::State<5, false, false>(seed);
     doTest(state);
     std::cout << "test pass: havannah5" << std::endl;
   }
 
   {
     std::cout << "testing: havannah8" << std::endl;
-    auto state = Havannah::State<8,false, false>(seed);
+    auto state = Havannah::State<8, false, false>(seed);
     doTest(state);
     std::cout << "test pass: havannah8" << std::endl;
   }

@@ -21,7 +21,8 @@ class EpisodicTrajectory {
       // , blockLen(blockLen)
       , dtype(dtype)
       , sizes(sizes)
-      , buffer(std::make_shared<DataBlock>(name, sizes, dtype)) {}
+      , buffer(std::make_shared<DataBlock>(name, sizes, dtype)) {
+  }
 
   int pushBack(torch::Tensor t) {
     assert(t.dtype() == dtype);
@@ -55,4 +56,4 @@ class EpisodicTrajectory {
  private:
   std::vector<torch::Tensor> trajectory_;
 };
-}
+}  // namespace tube

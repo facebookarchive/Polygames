@@ -7,7 +7,10 @@ project(choufleur)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS
-    "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-register -fPIC -march=native -O3 -Wfatal-errors")
+    "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-register -march=native -O3 -Wfatal-errors")
+
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 
 OPTION(PYTORCH12 "Is PyTorch >= 1.2" OFF)
 OPTION(PYTORCH15 "Is PyTorch >= 1.5" OFF)
@@ -93,7 +96,7 @@ if (JNI_FOUND)
 endif()
 
 # add Minesweeper benchmarks
-add_subdirectory(games/minesweeper_csp_vkms)
+#add_subdirectory(games/minesweeper_csp_vkms)
 
 # tests
 add_executable(test_state core/test_state.cc core/state.cc)

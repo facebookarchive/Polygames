@@ -11,10 +11,8 @@
 #include "distributed.h"
 #include "replay_buffer.h"
 
-#include <fmt/printf.h>
-#include <torch/extension.h>
-#include <torch/script.h>
-
+#include <c10/cuda/CUDAGuard.h>
+#include <c10/cuda/CUDAStream.h>
 #include <fmt/printf.h>
 #include <torch/extension.h>
 #include <torch/script.h>
@@ -42,10 +40,7 @@ inline std::unordered_map<std::string, torch::Tensor> convertIValueToMap(
     torch::Tensor tensor = name2tensor.second.toTensor();
 #endif
 
-    tensor = tensor.to(torch::kCPU).detach();
-    // if (device != nullptr) {
-    //   tensor = tensor.to(device);
-    // }
+    tensor = tensor.detach();
     map.insert({name->string(), tensor});
   }
   return map;
@@ -204,11 +199,11 @@ class ChannelAssembler {
       actDevices_.push_back(deviceString);
 
 #ifdef PYTORCH12
-      models_.push_back(std::make_shared<TorchJitModel>(torch::jit::load(jitModel_)));
+      models_.push_back(
+          std::make_shared<TorchJitModel>(torch::jit::load(jitModel_, device)));
 #else
-      models_.push_back(torch::jit::load(jitModel_));
+      models_.push_back(torch::jit::load(jitModel_, device));
 #endif
-      models_.back()->to(device);
       models_.back()->eval();
 
       auto channel = std::make_shared<DataChannel>(
@@ -285,6 +280,51 @@ class ChannelAssembler {
     });
   }
 
+  std::unique_ptr<rpc::Rpc> replayBufferRpc;
+  std::shared_ptr<rpc::Server> replayBufferRpcServer;
+  std::shared_ptr<rpc::Client> replayBufferRpcClient;
+
+  void startReplayBufferServer(std::string endpoint) {
+    if (endpoint.substr(0, 6) == "tcp://") {
+      endpoint.erase(0, 6);
+    }
+    if (!replayBufferRpc) {
+      replayBufferRpc = std::make_unique<rpc::Rpc>();
+      replayBufferRpc->asyncRun(8);
+    }
+
+    replayBufferRpcServer = replayBufferRpc->listen("");
+    replayBufferRpcServer->define("sample", &ChannelAssembler::sample, this);
+
+    replayBufferRpcServer->listen(endpoint);
+  }
+
+  void startReplayBufferClient(std::string endpoint) {
+    if (endpoint.substr(0, 6) == "tcp://") {
+      endpoint.erase(0, 6);
+    }
+    if (!replayBufferRpc) {
+      replayBufferRpc = std::make_unique<rpc::Rpc>();
+      replayBufferRpc->asyncRun(8);
+    }
+
+    replayBufferRpcClient = replayBufferRpc->connect(endpoint);
+  }
+
+  struct SampleResult {
+    std::future<std::unordered_map<std::string, torch::Tensor>> fut;
+
+    std::unordered_map<std::string, torch::Tensor> get() {
+      return fut.get();
+    }
+  };
+
+  SampleResult remoteSample(int sampleSize) {
+    return {replayBufferRpcClient
+                ->async<std::unordered_map<std::string, torch::Tensor>>(
+                    "sample", sampleSize)};
+  }
+
   std::shared_ptr<DataChannel> getTrainChannel() {
     return trainChannel_;
   }
@@ -329,7 +369,8 @@ class ChannelAssembler {
       if (i != dst.end()) {
         dst.at(v.first).copy_(v.second).detach();
       } else {
-        fmt::printf("copyModelStateDict: Unknown state dict entry '%s'\n", v.first);
+        fmt::printf(
+            "copyModelStateDict: Unknown state dict entry '%s'\n", v.first);
         std::abort();
       }
     }
@@ -350,10 +391,11 @@ class ChannelAssembler {
           memberNameString.assign(memberNamePtr, ptr - memberNamePtr);
           subModule = currentModule->find_module(memberNameString);
           if (!subModule) {
-            fmt::printf("copyModelStateDict: Unknown state dict entry '%s' -- could "
-                   "not find module '%s'\n",
-                   name,
-                   memberNameString);
+            fmt::printf(
+                "copyModelStateDict: Unknown state dict entry '%s' -- could "
+                "not find module '%s'\n",
+                name,
+                memberNameString);
             std::abort();
           }
           currentModule = &*subModule;
@@ -370,10 +412,11 @@ class ChannelAssembler {
       } else if (auto b = currentModule->find_buffer(memberNameString); b) {
         b->value().toTensor().copy_(tensor);
       } else {
-        fmt::printf("copyModelStateDict: Unknown state dict entry '%s' -- could not "
-               "find parameter/buffer '%s'\n",
-               name,
-               memberNameString);
+        fmt::printf(
+            "copyModelStateDict: Unknown state dict entry '%s' -- could not "
+            "find parameter/buffer '%s'\n",
+            name,
+            memberNameString);
         std::abort();
       }
     }
@@ -487,29 +530,84 @@ class ChannelAssembler {
     }
   }
 
-  std::string_view batchAct(torch::Tensor input,
-                            torch::Tensor v,
-                            torch::Tensor pi) {
+  double batchAct(torch::Tensor input,
+                  torch::Tensor v,
+                  torch::Tensor pi,
+                  torch::Tensor rnnState = {},
+                  torch::Tensor rnnStateOut = {}) {
     torch::NoGradGuard ng;
     size_t n = nextActIndex_++ % models_.size();
-    std::vector<torch::jit::IValue> inp;
+    bool isCuda = actDevices_[n].is_cuda();
     PriorityMutex::setThreadPriority(threadId);
-    inp.push_back(input.to(actDevices_[n]));
+    std::optional<c10::cuda::CUDAStreamGuard> g;
+    if (isCuda) {
+      g.emplace(c10::cuda::getStreamFromPool(false, actDevices_[n].index()));
+    }
+    std::vector<torch::jit::IValue> inp;
+    inp.push_back(input.to(actDevices_[n], true));
+    if (rnnState.defined()) {
+      inp.push_back(rnnState.to(actDevices_[n], true));
+    }
     std::unique_lock<PriorityMutex> lk(mModels_[n]);
-    std::string_view id = getTournamentModelId();
     auto output = models_[n]->forward(inp);
+    auto start = std::chrono::steady_clock::now();
+    if (isCuda) {
+      g->current_stream().synchronize();
+    }
+    double t = std::chrono::duration_cast<
+                   std::chrono::duration<double, std::ratio<1, 1000>>>(
+                   std::chrono::steady_clock::now() - start)
+                   .count();
     lk.unlock();
     auto reply = convertIValueToMap(output);
-    v.copy_(reply["v"]);
-    pi.copy_(reply["pi"]);
-    return id;
+    v.copy_(reply["v"], true);
+    pi.copy_(reply["pi"], true);
+    if (rnnStateOut.defined()) {
+      rnnStateOut.copy_(reply["rnn_state"], true);
+    }
+    return isCuda ? t : 0.0;
   }
 
-  int bufferNumSample() const {
+  std::vector<std::tuple<torch::Tensor, torch::Tensor, torch::Tensor>> loss(
+      std::vector<TorchJitModel> models) {
+    printf("channel assembler loss!\n");
+    printf("channel assembler loss done\n");
+    return {};
+  }
+
+  //  std::vector<std::tuple<torch::Tensor, torch::Tensor, torch::Tensor>>
+  //  loss(int batchsize, std::vector<torch::Device> devices,
+  //  std::vector<TorchJitModel> models) {
+  //    printf("channel assembler loss!\n");
+  //    std::vector<std::tuple<torch::Tensor, torch::Tensor, torch::Tensor>> r;
+  //    for (size_t i = 0; i != devices.size(); ++i) {
+  //      auto batch = sample(batchsize);
+  //      for (auto& v : batch) {
+  //        v.second = v.second.to(devices[i]);
+  //      }
+  //      auto x = models[i].run_method("loss", batch.at("s"), batch.at("v"),
+  //      batch.at("pi"), batch.at("pi_mask")); auto& e =
+  //      x.toTuple()->elements(); auto loss = e[0].toTensor(); loss.backward();
+  //      r.emplace_back(loss.detach(), e[1].toTensor(), e[2].toTensor());
+  //    }
+  //    printf("channel assembler loss done\n");
+  //    return r;
+  //  }
+
+  bool hasCuda() const {
+    for (auto& v : actDevices_) {
+      if (v.is_cuda()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  int64_t bufferNumSample() const {
     return replayBuffer_.numSample();
   }
 
-  int bufferNumAdd() const {
+  int64_t bufferNumAdd() const {
     return replayBuffer_.numAdd();
   }
 

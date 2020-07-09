@@ -77,7 +77,16 @@ PYBIND11_MODULE(tube, m) {
       .def("set_dont_request_model_updates",
            &ChannelAssembler::setDontRequestModelUpdates)
       .def("start_server", &ChannelAssembler::startServer)
-      .def("start_client", &ChannelAssembler::startClient);
+      .def("start_client", &ChannelAssembler::startClient)
+      .def("start_replay_buffer_server",
+           &ChannelAssembler::startReplayBufferServer)
+      .def("start_replay_buffer_client",
+           &ChannelAssembler::startReplayBufferClient)
+      .def("remote_sample", &ChannelAssembler::remoteSample)
+      .def("loss", &ChannelAssembler::loss);
+
+  py::class_<ChannelAssembler::SampleResult>(m, "SampleResult")
+      .def("get", &ChannelAssembler::SampleResult::get);
 
   py::class_<BufferState>(m, "ReplayBuffer")
       .def(py::pickle(

@@ -26,7 +26,7 @@ template <int SIZE, bool PIE> class State : public ::State {
 
  public:
   State(int seed);
-  State(int seed, int history, bool turnFeatures);
+  //State(int seed, int history, bool turnFeatures);
   void findActions();
   void Initialize() override;
   void ApplyAction(const _Action& action) override;
@@ -57,24 +57,24 @@ template <int SIZE> Hex::Action<SIZE>::Action(int i, int j, int indexInActions) 
 ///////////////////////////////////////////////////////////////////////////////
 
 template <int SIZE, bool PIE> Hex::State<SIZE, PIE>::State(int seed) : ::State(seed) {
-  Initialize();
 }
 
-template <int SIZE, bool PIE> Hex::State<SIZE, PIE>::State(int seed, int history,
-  bool turnFeatures) : ::State(seed) {
+//template <int SIZE, bool PIE> Hex::State<SIZE, PIE>::State(int seed, int history,
+//  bool turnFeatures) : ::State(seed) {
 
-  _history = history;
-  _turnFeatures = turnFeatures;
-  Initialize();
-}
+//  _history = history;
+//  _turnFeatures = turnFeatures;
+//  Initialize();
+//}
 
 template <int SIZE, bool PIE> void Hex::State<SIZE, PIE>::findActions() {
   auto legalIndices = _board.findLegalIndices();
-  _legalActions.clear();
-  _legalActions.reserve(legalIndices.size());
+  _NewlegalActions.clear();
+  _NewlegalActions.reserve(legalIndices.size());
   for (unsigned k=0; k<legalIndices.size(); ++k) {
     auto c = _board.convertIndexToCell(legalIndices[k]);
-    _legalActions.push_back(std::make_shared<Hex::Action<SIZE>>(c.first, c.second, k));
+    //_legalActions.push_back(std::make_shared<Hex::Action<SIZE>>(c.first, c.second, k));
+    _NewlegalActions.push_back(_Action(k, 0, c.first, c.second));
   }
 }
 
@@ -218,8 +218,8 @@ std::string Hex::State<SIZE, PIE>::actionDescription(const _Action & action) con
 template <int SIZE, bool PIE>
 std::string Hex::State<SIZE, PIE>::actionsDescription() {
   std::ostringstream oss;
-  for (const auto & a : _legalActions) {
-    oss << actionDescription(*a) << " ";
+  for (const auto & a : _NewlegalActions) {
+    oss << actionDescription(a) << " ";
   }
   oss << std::endl;
   return oss.str();
@@ -235,8 +235,8 @@ int Hex::State<SIZE, PIE>::parseAction(const std::string& str) {
     int j = int(c) - 'a';
     if (not std::getline(iss, token)) throw -1;
     int i = std::stoi(token) - 1;
-    for (unsigned k=0; k<_legalActions.size(); k++)
-      if (_legalActions[k]->GetY() == i and _legalActions[k]->GetZ() == j)
+    for (unsigned k=0; k<_NewlegalActions.size(); k++)
+      if (_NewlegalActions[k].GetY() == i and _NewlegalActions[k].GetZ() == j)
         return k;
   }
   catch (...) {

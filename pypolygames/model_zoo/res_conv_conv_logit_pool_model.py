@@ -122,7 +122,7 @@ class ResConvConvLogitPoolModel(torch.jit.ScriptModule):
                     nets[j] = nn.Sequential(
                         nets[j],
                         nn.BatchNorm2d(
-                            int(nnsize * c), track_running_stats=True, affine=bn_affine
+                            int(nnsize * c), track_running_stats=True, affine=bn_affine, momentum=0.01
                         ),
                     )
             if pooling:
@@ -139,7 +139,7 @@ class ResConvConvLogitPoolModel(torch.jit.ScriptModule):
             resnet_list.append(nets)
         if bn or bn_affine:
             mono.append(
-                nn.BatchNorm2d(int(nnsize * c), track_running_stats=True, affine=bn_affine),
+                nn.BatchNorm2d(int(nnsize * c), track_running_stats=True, affine=bn_affine, momentum=0.01),
             )
             for i in range(nb_nets):
                 for j in range(nb_layers_per_net):

@@ -14,13 +14,13 @@
 
 namespace Othello2 {
 
-template <size_t SIZE>
-class Action : public ::_Action {
+//template <size_t SIZE>
+//class Action : public ::_Action {
 
-public:
-  Action(size_t row, size_t col, bool skipTurn);
+//public:
+//  Action(size_t row, size_t col, bool skipTurn);
 
-}; // class Action
+//}; // class Action
 
 template <size_t SIZE>
 class State : public ::State {
@@ -29,7 +29,7 @@ class State : public ::State {
   static_assert(SIZE % 2 == 0, "Board has odd size");
   static constexpr size_t NUM_PIECE_TYPES = 2;
   static constexpr size_t NUM_FIELD_TYPES = NUM_PIECE_TYPES + 1;
-  using _Action = Action<SIZE>;
+  //using _Action = Action<SIZE>;
   static constexpr size_t HASHBOOK_SIZE = SIZE * SIZE * NUM_FIELD_TYPES + 1;
   static constexpr size_t HASH_BLACK_OFFSET = SIZE * SIZE;
   static constexpr size_t HASH_WHITE_OFFSET = 2 * SIZE * SIZE;

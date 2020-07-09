@@ -22,6 +22,7 @@ from .env_creation_helpers import (
 
 
 def convert_checkpoint(
+    command_history: utils.CommandHistory,
     game_params: GameParams,
     model_params: ModelParams,
     out: str,
@@ -39,12 +40,19 @@ def convert_checkpoint(
     new_model_params = copy.deepcopy(old_model_params)
     new_game_params = copy.deepcopy(old_game_params)
     for k, v in vars(model_params).items():
-        if type(v) == bool or v is None or k == "init_checkpoint":
+        if not command_history.last_command_contains(k) or k == "init_checkpoint":
             continue
         ov = getattr(new_model_params, k)
         if v != ov:
             print("Changing %s from %s to %s" % (k, ov, v))
             setattr(new_model_params, k, v)
+    for k, v in vars(game_params).items():
+        if not command_history.last_command_contains(k):
+            continue
+        ov = getattr(new_game_params, k)
+        if v != ov:
+            print("Changing %s from %s to %s" % (k, ov, v))
+            setattr(new_game_params, k, v)
 
     m = create_model(game_params=new_game_params,
                      model_params=new_model_params)
@@ -52,10 +60,23 @@ def convert_checkpoint(
     params_added = 0
     params_removed = 0
     params_reinitialized = 0
+    taken = []
     for k, src in model_state_dict.items():
         if not k in s:
-            params_removed += src.numel()
+            moved = False
+            for k2, dst in s.items():
+                if not k2 in model_state_dict and src.shape == dst.shape and not k2 in taken:
+                  print("%s shape %s moved to %s" % (k, src.shape, k2))
+                  taken.append(k2)
+                  dst.copy_(src)
+                  moved = True
+                  break
+            if not moved:
+              print("%s shape %s removed" % (k, src.shape))
+              params_removed += src.numel()
     for k, dst in s.items():
+        if k in taken:
+            continue
         if skip is not None and k in skip:
             print("%s shape %s skipped" % (k, src.shape))
             params_reinitialized += dst.numel()
@@ -86,6 +107,7 @@ def convert_checkpoint(
     print("Parameters reinitialized: %d" % params_reinitialized)
     checkpoint["model_state_dict"] = s
     checkpoint["model_params"] = new_model_params
+    checkpoint["game_params"] = new_game_params
     import gzip
     with gzip.open(out, "wb") as f:
         torch.save(checkpoint, f)

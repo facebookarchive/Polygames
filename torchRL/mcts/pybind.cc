@@ -35,5 +35,9 @@ PYBIND11_MODULE(mcts, m) {
       .def_readwrite("store_state_in_node", &MctsOption::virtualLoss)
       .def_readwrite("use_value_prior", &MctsOption::useValuePrior)
       .def_readwrite("time_ratio", &MctsOption::timeRatio)
-      .def_readwrite("total_time", &MctsOption::totalTime);
+      .def_readwrite("total_time", &MctsOption::totalTime)
+      .def_readwrite("randomized_rollouts", &MctsOption::randomizedRollouts)
+      .def_readwrite("sampling_mcts", &MctsOption::samplingMcts)
+      .def_readwrite(
+          "move_select_use_mcts_value", &MctsOption::moveSelectUseMctsValue);
 }

@@ -28,7 +28,7 @@
 
 using Chess = std::uint8_t;
 
-template <int ROW, int COL> class Chessboard {
+template <int ROW, int COL, bool INVERTY = true> class Chessboard {
   static_assert(ROW > 0 && ROW <= 26 && COL > 0 && COL <= 26,
                 "rows and columns of chessboard must be in range [1,26]");
 
@@ -90,9 +90,9 @@ template <int ROW, int COL> class Chessboard {
   std::uint64_t hash;
 };
 
-template <int ROW, int COL>
+template <int ROW, int COL, bool INVERTY>
 template <typename RE>
-void Chessboard<ROW, COL>::setup(const std::vector<std::string_view>& cn,
+void Chessboard<ROW, COL, INVERTY>::setup(const std::vector<std::string_view>& cn,
                                  const std::vector<std::string_view>& cs,
                                  const RE& re) {
   assert(cn.size() == cs.size());
@@ -107,88 +107,88 @@ void Chessboard<ROW, COL>::setup(const std::vector<std::string_view>& cn,
   hashTurn = genRandomBits();
 }
 
-template <int ROW, int COL>
-constexpr bool Chessboard<ROW, COL>::isPosInBoard(int x, int y) {
+template <int ROW, int COL, bool INVERTY>
+constexpr bool Chessboard<ROW, COL, INVERTY>::isPosInBoard(int x, int y) {
   return x >= 0 && x < rows && y >= 0 && y < columns;
 }
 
-template <int ROW, int COL>
-constexpr bool Chessboard<ROW, COL>::isPosInBoard(int xy) {
+template <int ROW, int COL, bool INVERTY>
+constexpr bool Chessboard<ROW, COL, INVERTY>::isPosInBoard(int xy) {
   auto [x, y] = posTo2D(xy);
   return isPosInBoard(x, y);
 }
 
-template <int ROW, int COL>
-constexpr int Chessboard<ROW, COL>::posTo1D(int x, int y) {
+template <int ROW, int COL, bool INVERTY>
+constexpr int Chessboard<ROW, COL, INVERTY>::posTo1D(int x, int y) {
   return rows * y + x;
 }
 
-template <int ROW, int COL>
-constexpr std::tuple<int, int> Chessboard<ROW, COL>::posTo2D(int xy) {
+template <int ROW, int COL, bool INVERTY>
+constexpr std::tuple<int, int> Chessboard<ROW, COL, INVERTY>::posTo2D(int xy) {
   return {xy % rows, xy / rows};
 }
 
-template <int ROW, int COL>
-constexpr std::string_view Chessboard<ROW, COL>::getMarkSymbol() {
+template <int ROW, int COL, bool INVERTY>
+constexpr std::string_view Chessboard<ROW, COL, INVERTY>::getMarkSymbol() {
   return markSymbol;
 }
 
-template <int ROW, int COL>
-constexpr std::string_view Chessboard<ROW, COL>::getChessName(Chess chess) {
+template <int ROW, int COL, bool INVERTY>
+constexpr std::string_view Chessboard<ROW, COL, INVERTY>::getChessName(Chess chess) {
   return chessesName.at(chess);
 }
 
-template <int ROW, int COL>
-constexpr std::string_view Chessboard<ROW, COL>::getChessSymbol(Chess chess) {
+template <int ROW, int COL, bool INVERTY>
+constexpr std::string_view Chessboard<ROW, COL, INVERTY>::getChessSymbol(Chess chess) {
   return chessesSymbol.at(chess);
 }
 
-template <int ROW, int COL> void Chessboard<ROW, COL>::initialize() {
+template <int ROW, int COL, bool INVERTY> void Chessboard<ROW, COL, INVERTY>::initialize() {
   board.fill(0U);
   updateHash();
 }
 
-template <int ROW, int COL>
-void Chessboard<ROW, COL>::initialize(const Chessboard<ROW, COL>::Board& b) {
+template <int ROW, int COL, bool INVERTY>
+void Chessboard<ROW, COL, INVERTY>::initialize(const Chessboard<ROW, COL, INVERTY>::Board& b) {
   board = b;
   updateHash();
 }
 
-template <int ROW, int COL>
-Chess Chessboard<ROW, COL>::getChess(int x, int y) const {
+template <int ROW, int COL, bool INVERTY>
+Chess Chessboard<ROW, COL, INVERTY>::getChess(int x, int y) const {
   return getChess(posTo1D(x, y));
 }
 
-template <int ROW, int COL> Chess Chessboard<ROW, COL>::getChess(int xy) const {
+template <int ROW, int COL, bool INVERTY> Chess Chessboard<ROW, COL, INVERTY>::getChess(int xy) const {
   return board[xy];
 }
 
-template <int ROW, int COL>
-void Chessboard<ROW, COL>::setChess(int x, int y, Chess chess) {
+template <int ROW, int COL, bool INVERTY>
+void Chessboard<ROW, COL, INVERTY>::setChess(int x, int y, Chess chess) {
   setChess(posTo1D(x, y), chess);
 }
 
-template <int ROW, int COL>
-void Chessboard<ROW, COL>::setChess(int xy, Chess chess) {
+template <int ROW, int COL, bool INVERTY>
+void Chessboard<ROW, COL, INVERTY>::setChess(int xy, Chess chess) {
   updateHash(xy, getChess(xy));
   board[xy] = chess;
   updateHash(xy, chess);
 }
 
-template <int ROW, int COL>
-std::vector<int> Chessboard<ROW, COL>::countChesses() const {
+template <int ROW, int COL, bool INVERTY>
+std::vector<int> Chessboard<ROW, COL, INVERTY>::countChesses() const {
   std::vector<int> counts(chessKinds, 0);
   for (Chess chess : board)
     counts[chess]++;
   return counts;
 }
 
-template <int ROW, int COL> void Chessboard<ROW, COL>::turnHash() {
+template <int ROW, int COL, bool INVERTY> void Chessboard<ROW, COL, INVERTY>::turnHash() {
   hash ^= hashTurn;
 }
 
-template <int ROW, int COL>
-std::string Chessboard<ROW, COL>::sprint(std::string_view prefix) const {
+template <int ROW, int COL, bool INVERTY>
+std::string Chessboard<ROW, COL, INVERTY>::sprint(std::string_view prefix) const {
   std::ostringstream oss;
   oss << prefix;
   for (std::size_t i = 0; i < chessKinds; i++) {
@@ -200,8 +200,8 @@ std::string Chessboard<ROW, COL>::sprint(std::string_view prefix) const {
   return oss.str();
 }
 
-template <int ROW, int COL>
-std::string Chessboard<ROW, COL>::sprintBoard(
+template <int ROW, int COL, bool INVERTY>
+std::string Chessboard<ROW, COL, INVERTY>::sprintBoard(
     std::string_view prefix,
     const std::set<std::tuple<int, int>>& markedPos) const {
   auto hr = [&](std::string_view l, std::string_view m, std::string_view r) {
@@ -225,7 +225,7 @@ std::string Chessboard<ROW, COL>::sprintBoard(
   oss << prefix << ossW.str() << prefix << hr("┌", "┬", "┐");
   for (int y = 0; y < columns; y++) {
     char yStr[4];
-    sprintf(yStr, columns < 10 ? "%d" : "%02d", columns - y);
+    sprintf(yStr, columns < 10 ? "%d" : "%02d", (INVERTY ? columns - y : y + 1));
     oss << prefix << yStr << " │ ";
     for (int x = 0; x < rows; x++) {
       if (markedPos.count({x, y}) == 0)
@@ -241,28 +241,28 @@ std::string Chessboard<ROW, COL>::sprintBoard(
   return oss.str();
 }
 
-template <int ROW, int COL>
-const typename Chessboard<ROW, COL>::Board& Chessboard<ROW, COL>::getBoard()
+template <int ROW, int COL, bool INVERTY>
+const typename Chessboard<ROW, COL, INVERTY>::Board& Chessboard<ROW, COL, INVERTY>::getBoard()
     const {
   return board;
 }
 
-template <int ROW, int COL>
-std::uint64_t Chessboard<ROW, COL>::getHash() const {
+template <int ROW, int COL, bool INVERTY>
+std::uint64_t Chessboard<ROW, COL, INVERTY>::getHash() const {
   return hash;
 }
 
-template <int ROW, int COL>
-std::string Chessboard<ROW, COL>::getPosStr(int xy) const {
+template <int ROW, int COL, bool INVERTY>
+std::string Chessboard<ROW, COL, INVERTY>::getPosStr(int xy) const {
   auto [x, y] = posTo2D(xy);
   return getPosStr(x, y);
 }
 
-template <int ROW, int COL>
-std::string Chessboard<ROW, COL>::getPosStr(int x, int y) const {
+template <int ROW, int COL, bool INVERTY>
+std::string Chessboard<ROW, COL, INVERTY>::getPosStr(int x, int y) const {
     char str[4] = {0};
   str[0] = 'A' + x;
-  y = columns - y;
+  y = INVERTY ? columns - y : y + 1;
   if (columns >= 10) {
     str[1] = '0' + y / 10;
     str[2] = '0' + y % 10;
@@ -272,8 +272,8 @@ std::string Chessboard<ROW, COL>::getPosStr(int x, int y) const {
   return std::string(str);
 }
 
-template <int ROW, int COL>
-std::optional<std::tuple<int, int>> Chessboard<ROW, COL>::parsePosStr(
+template <int ROW, int COL, bool INVERTY>
+std::optional<std::tuple<int, int>> Chessboard<ROW, COL, INVERTY>::parsePosStr(
     const std::string& str) const {
   int x = -1, y = -1, yBegin = -1, yEnd = -1;
   for (std::size_t i = 0; i < str.size(); i++) {
@@ -306,7 +306,8 @@ std::optional<std::tuple<int, int>> Chessboard<ROW, COL>::parsePosStr(
     yEnd = str.size();
   std::string yStr(str, yBegin, yEnd - yBegin);
   try {
-    y = columns - std::stoul(yStr, nullptr, 10);
+    y = std::stoul(yStr, nullptr, 10);
+    y = (INVERTY ? columns - y : y - 1);
   } catch (...) {
     return std::nullopt;
   }
@@ -315,27 +316,27 @@ std::optional<std::tuple<int, int>> Chessboard<ROW, COL>::parsePosStr(
   return std::nullopt;
 }
 
-template <int ROW, int COL>
-constexpr bool Chessboard<ROW, COL>::operator==(const Chessboard& cb) const {
+template <int ROW, int COL, bool INVERTY>
+constexpr bool Chessboard<ROW, COL, INVERTY>::operator==(const Chessboard& cb) const {
   if (hash == cb.hash && board == cb.board)
     return true;
   return false;
 }
 
-template <int ROW, int COL>
-constexpr bool Chessboard<ROW, COL>::operator!=(const Chessboard& cb) const {
+template <int ROW, int COL, bool INVERTY>
+constexpr bool Chessboard<ROW, COL, INVERTY>::operator!=(const Chessboard& cb) const {
   if (hash != cb.hash || board != cb.board)
     return true;
   return false;
 }
 
-template <int ROW, int COL> void Chessboard<ROW, COL>::updateHash() {
+template <int ROW, int COL, bool INVERTY> void Chessboard<ROW, COL, INVERTY>::updateHash() {
   hash = 0ULL;
   for (int xy = 0; xy < squares; xy++)
     updateHash(xy, getChess(xy));
 }
 
-template <int ROW, int COL>
-void Chessboard<ROW, COL>::updateHash(int xy, Chess chess) {
+template <int ROW, int COL, bool INVERTY>
+void Chessboard<ROW, COL, INVERTY>::updateHash(int xy, Chess chess) {
   hash ^= hashList[squares * chess + xy];
 }

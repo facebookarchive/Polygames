@@ -82,10 +82,10 @@ def save_checkpoint(
 def load_checkpoint(checkpoint_path: Path) -> Checkpoint:
     ext = checkpoint_path.suffix
     if ext == ".pt":
-        checkpoint = torch.load(checkpoint_path)
+        checkpoint = torch.load(checkpoint_path, map_location=torch.device('cpu'))
     elif ext == ".gz":
         with gzip.open(checkpoint_path, "rb") as f:
-            checkpoint = torch.load(f)
+            checkpoint = torch.load(f, map_location=torch.device('cpu'))
     elif ext == ".zip":
         with zipfile.ZipFile(checkpoint_path, "r", allowZip64=True) as z:
             checkpoint_unzipped_name = z.namelist()[0]

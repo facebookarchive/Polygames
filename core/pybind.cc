@@ -18,11 +18,12 @@ PYBIND11_MODULE(polygames, m) {
   py::class_<Game, tube::EnvThread, std::shared_ptr<Game>>(m, "Game")
       //      .def(py::init<std::string, int, int, bool>())
       .def(py::init<std::string, int, int, bool, bool, bool, bool, int, int,
-                    bool, int>())
+                    bool, int, int, bool, bool, int>())
       .def("add_player", &Game::addPlayer, py::keep_alive<1, 2>())
       .def("add_eval_player", &Game::addEvalPlayer)
       .def("add_human_player", &Game::addHumanPlayer)
       .def("add_tp_player", &Game::addTPPlayer)
+      .def("get_raw_feat_size", &Game::getRawFeatSize)
       .def("get_feat_size", &Game::getFeatSize)
       .def("is_one_player_game", &Game::isOnePlayerGame)
       .def("set_features", &Game::setFeatures)
@@ -33,6 +34,8 @@ PYBIND11_MODULE(polygames, m) {
       .def(py::init<std::shared_ptr<tube::DataChannel>,
                     const std::vector<int64_t>&,  // featSize
                     const std::vector<int64_t>&,  // actionSize
+                    const std::vector<int64_t>&,  // rnnStateSize
+                    int,                          // rnnSeqlen
                     bool,                         // useValue
                     bool,                         // usePolicy
                     std::shared_ptr<tube::ChannelAssembler>>());

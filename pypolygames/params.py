@@ -11,6 +11,12 @@ from typing import Iterator, Tuple, Union, List, Optional, Dict, Any
 
 from .weight_init import WEIGHT_INIT
 
+def boolarg(x):
+  if str(x).lower() in ["true", "yes", "on", "1"]:
+    return True
+  if str(x).lower() in ["false", "no", "off", "0"]:
+    return False
+  raise RuntimeError("Unknown bool value " + str(x))
 
 @dataclass
 class ArgFields:
@@ -27,6 +33,8 @@ class GameParams:
     random_features: int = 0
     one_feature: bool = False
     history: int = 0
+    predict_end_state: bool = False
+    predict_n_states: int = 0
 
     def __setattr__(self, attr, value):
         if value is None:
@@ -94,6 +102,18 @@ class GameParams:
                     "added in the featurization",
                 )
             ),
+            predict_end_state=ArgFields(
+                opts=dict(
+                    type=boolarg,
+                    help="Side learning: predict end state",
+                )
+            ),
+            predict_n_states=ArgFields(
+                opts=dict(
+                    type=int,
+                    help="Side learning: predict N next game states",
+                )
+            ),
         )
         for param, arg_field in params.items():
             if arg_field.name is None:
@@ -123,6 +143,12 @@ class ModelParams:
     bn: bool = False
     # bn_affine: bool = False
     init_method: str = next(iter(WEIGHT_INIT))
+    activation_function: str = "relu"
+    global_pooling: float = 0
+    layer_repeats: int = 0
+    layer_dropout: float = 0
+    batchnorm_momentum: float = 0.01
+    rnn_interval: float = 0
 
     def __setattr__(self, attr, value):
         if value is None:
@@ -223,6 +249,42 @@ class ModelParams:
                     choices=list(WEIGHT_INIT),
                 )
             ),
+            activation_function=ArgFields(
+                opts=dict(
+                    type=str,
+                    help="Activation function to use",
+                )
+            ),
+            global_pooling=ArgFields(
+                opts=dict(
+                    type=float,
+                    help="Global pooling",
+                )
+            ),
+            layer_repeats=ArgFields(
+                opts=dict(
+                    type=int,
+                    help="Layer repeat",
+                )
+            ),
+            layer_dropout=ArgFields(
+                opts=dict(
+                    type=float,
+                    help="Layer dropout",
+                )
+            ),
+            batchnorm_momentum=ArgFields(
+                opts=dict(
+                    type=float,
+                    help="Batch normalization momentum",
+                )
+            ),
+            rnn_interval=ArgFields(
+                opts=dict(
+                    type=float,
+                    help="RNN layer every this many CNN layers",
+                )
+            ),
         )
         for param, arg_field in params.items():
             if arg_field.name is None:
@@ -295,9 +357,15 @@ class SimulationParams:
     replay_warmup: int = 10_000
     sync_period: int = 100
     act_batchsize: int = 1
-    per_thread_batchsize: int = 0
+    per_thread_batchsize: int = -1
+    rewind: int = 0
+    randomized_rollouts: bool = False
+    sampling_mcts: bool = False
+    move_select_use_mcts_value: bool = False
+    sample_before_step_idx: int = 0
     train_channel_timeout_ms: int = 1
     train_channel_num_slots: int = 1000
+    persistent_tree: bool = False
 
     def __setattr__(self, attr, value):
         if value is None:
@@ -356,7 +424,44 @@ class SimulationParams:
                     type=int,
                     help="When non-zero, "
                     "number of games in each game-running threads run sequentially "
-                    "and batched together for inference (see '--act_batchsize')",
+                    "and batched together for inference (see '--act_batchsize'). "
+                    "This parameter will be automatically tuned if it is negative",
+                )
+            ),
+            rewind=ArgFields(
+                opts=dict(
+                    type=int,
+                    help="Rewind",
+                )
+            ),
+            randomized_rollouts=ArgFields(
+                opts=dict(
+                    type=bool,
+                    help="Randomized rollouts",
+                )
+            ),
+            sampling_mcts=ArgFields(
+                opts=dict(
+                    type=bool,
+                    help="sampling_mcts",
+                )
+            ),
+            move_select_use_mcts_value=ArgFields(
+                opts=dict(
+                    type=bool,
+                    help="move_select_use_mcts_value",
+                )
+            ),
+            sample_before_step_idx=ArgFields(
+                opts=dict(
+                    type=int,
+                    help="sample_before_step_idx",
+                )
+            ),
+            persistent_tree=ArgFields(
+                opts=dict(
+                    type=bool,
+                    help="persistent_tree",
                 )
             ),
             train_channel_timeout_ms=ArgFields(
@@ -395,12 +500,16 @@ class ExecutionParams:
     human_first: bool = False
     time_ratio: float = 0.07
     total_time: float = 0
-    device: List[str] = field(default_factory=lambda: ["cuda:0"])
+    device: List[str] = field(default_factory=lambda: []) # deprecated
+    device_train: List[str] = field(default_factory=lambda: ["cuda:0"])
+    device_eval: List[str] = field(default_factory=lambda: ["cuda:0"])
     seed: int = 1
     ddp: bool = False
     server_listen_endpoint: str = ""
     server_connect_hostname: str = ""
     opponent_model_path: Path = None
+    tournament_mode: bool = False
+    rnn_seqlen: int = 0
 
     def __setattr__(self, attr, value):
         if value is None:
@@ -417,6 +526,8 @@ class ExecutionParams:
             raise RuntimeError("""--save_dir is deprecated, use --checkpoint_dir instead, with slightly different behavior:
     - no subfolder creation.
     - resumes from latest checkpoint if available in the directory.""")
+        if len(self.device) > 0:
+          raise RuntimeError("--device is deprecated, use --device_train and/or --device_eval instead")
 
     @classmethod
     def arg_fields(cls) -> Iterator[Tuple[str, ArgFields]]:
@@ -487,6 +598,30 @@ class ExecutionParams:
                     "while the others will be used generating games",
                 )
             ),
+            device_train=ArgFields(
+                opts=dict(
+                    type=str,
+                    nargs="*",
+                    help="List of torch devices where the computation for the model"
+                    "will happen "
+                    '(e.g., "cpu", "cuda:0") '
+                    "- in training mode, if there are several devices in the list, "
+                    " the first device will be the one used for training "
+                    "while the others will be used generating games",
+                )
+            ),
+            device_eval=ArgFields(
+                opts=dict(
+                    type=str,
+                    nargs="*",
+                    help="List of torch devices where the computation for the model"
+                    "will happen "
+                    '(e.g., "cpu", "cuda:0") '
+                    "- in training mode, if there are several devices in the list, "
+                    " the first device will be the one used for training "
+                    "while the others will be used generating games",
+                )
+            ),
             seed=ArgFields(
                 opts=dict(type=int, help="Seed for pseudo-random number generator")
             ),
@@ -514,6 +649,18 @@ class ExecutionParams:
                     help="Load this model as the opponent - will not request model updates",
                 )
             ),
+            tournament_mode=ArgFields(
+                opts=dict(
+                    type=bool,
+                    help="Use tournament mode",
+                )
+            ),
+            rnn_seqlen=ArgFields(
+                opts=dict(
+                    type=int,
+                    help="RNN sequence length used for training",
+                )
+            ),
         )
         for param, arg_field in params.items():
             if arg_field.name is None:
@@ -531,7 +678,7 @@ class EvalParams:
     real_time: bool = False
     checkpoint_dir: Path = None
     checkpoint: Path = None
-    device_eval: List[str] = field(default_factory=lambda: ["cuda:1"])
+    #device_eval: List[str] = field(default_factory=lambda: ["cuda:1"])
     num_game_eval: int = 100
     num_parallel_games_eval: int = None
     num_actor_eval: int = 1
@@ -611,15 +758,15 @@ class EvalParams:
                     "- if set, '--checkpoint_dir' should not be set",
                 )
             ),
-            device_eval=ArgFields(
-                opts=dict(
-                    type=str,
-                    nargs="*",
-                    help="List of torch devices where the computation for the model"
-                    "to be tested will happen "
-                    '(e.g., "cpu", "cuda:0")',
-                )
-            ),
+#            device_eval=ArgFields(
+#                opts=dict(
+#                    type=str,
+#                    nargs="*",
+#                    help="List of torch devices where the computation for the model"
+#                    "to be tested will happen "
+#                    '(e.g., "cpu", "cuda:0")',
+#                )
+#            ),
             num_game_eval=ArgFields(
                 opts=dict(
                     type=int, help="Number of games played against a pure MCTS opponent"

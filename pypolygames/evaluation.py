@@ -14,7 +14,7 @@ import torch
 import tube
 from pytube.data_channel_manager import DataChannelManager
 
-from .params import GameParams, EvalParams
+from .params import GameParams, EvalParams, ExecutionParams
 from . import utils
 from .env_creation_helpers import (
     sanitize_game_params,
@@ -81,6 +81,12 @@ def create_models_and_devices_opponent(
             model_params=model_params_opponent,
             resume_training=False,
         ).to(device_opponent)
+        remove = []
+        for k, v in model_state_dict_opponent.items():
+          if "training" in k:
+            remove.append(k)
+        for k in remove:
+          model_state_dict_opponent.pop(k)
         model_opponent.load_state_dict(model_state_dict_opponent)
         model_opponent.eval()
         models_opponent.append(model_opponent)
@@ -139,6 +145,9 @@ def create_evaluation_environment(
             actor_channel=actor_channel_eval,
             assembler=None,
             human_mode=False,
+            sample_before_step_idx=8,
+            randomized_rollouts=False,
+            sampling_mcts=False,
         )
         if game.is_one_player_game():
             game.add_eval_player(player)
@@ -153,6 +162,9 @@ def create_evaluation_environment(
                 actor_channel=actor_channel_opponent,
                 assembler=None,
                 human_mode=False,
+                sample_before_step_idx=8,
+                randomized_rollouts=False,
+                sampling_mcts=False,
             )
             game_id = num_evaluated_games + game_no
             if player_moves_first(game_id, num_game):
@@ -362,7 +374,7 @@ def evaluate_on_checkpoint(
 #######################################################################################
 
 
-def run_evaluation(eval_params: EvalParams, only_last: bool = False) -> None:
+def run_evaluation(eval_params: EvalParams, execution_params: ExecutionParams, only_last: bool = False) -> None:
     start_time = time.time()
     logger_dir = eval_params.checkpoint_dir
     if eval_params.checkpoint_dir is None:
@@ -428,7 +440,7 @@ def run_evaluation(eval_params: EvalParams, only_last: bool = False) -> None:
         if not first_checkpoint:
             print("creating model(s) and device(s)...")
             devices_eval = [
-                torch.device(device_eval) for device_eval in eval_params.device_eval
+                torch.device(device_eval) for device_eval in execution_params.device_eval
             ]
             models_eval = []
             for device_eval in devices_eval:

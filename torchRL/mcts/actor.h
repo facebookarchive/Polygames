@@ -23,16 +23,30 @@ class Actor {
   Actor(const Actor&) = delete;
   Actor& operator=(const Actor&) = delete;
 
-  virtual PiVal evaluate(const State& s) = 0;
+  virtual PiVal& evaluate(const State& s, PiVal& pival) = 0;
 
   virtual ~Actor() {
   }
 
+  virtual void batchResize(size_t n) {
+  }
+  virtual void batchPrepare(size_t index,
+                            const State& s,
+                            const std::vector<float>& rnnState) {
+    std::terminate();
+  }
+  virtual void batchEvaluate(size_t n) {
+  }
+  virtual void batchResult(size_t index, const State& s, PiVal& pival) {
+    std::terminate();
+  }
+
   virtual void evaluate(
       const std::vector<const State*>& s,
-      const std::function<void(size_t, PiVal)>& resultCallback) {
+      std::vector<PiVal*>& pival,
+      const std::function<void(size_t, PiVal&)>& resultCallback) {
     for (size_t i = 0; i != s.size(); ++i) {
-      resultCallback(i, evaluate(*s[i]));
+      resultCallback(i, evaluate(*s[i], *pival[i]));
     }
   };
 
@@ -47,6 +61,21 @@ class Actor {
 
   virtual bool isTournamentOpponent() const {
     return false;
+  }
+
+  virtual double batchTiming() const {
+    return -1.0f;
+  }
+
+  virtual std::string getModelId() const {
+    return "";
+  }
+
+  virtual std::vector<int64_t> rnnStateSize() const {
+    return {};
+  }
+  virtual int rnnSeqlen() const {
+    return 0;
   }
 };
 

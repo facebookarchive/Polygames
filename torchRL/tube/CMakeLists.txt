@@ -8,11 +8,21 @@ find_package(PythonInterp 3.7 REQUIRED)
 find_package(PythonLibs 3.7 REQUIRED)
 
 
+file(GLOB zstd_sources ../third_party/zstd/lib/common/*.c ../third_party/zstd/lib/compress/*.c ../third_party/zstd/lib/decompress/*.c)
+
 # lib for other c++ programs
-add_library(_tube src_cpp/data_channel.cc src_cpp/replay_buffer.cc src_cpp/reqrepserver.cpp)
+add_library(_tube
+  src_cpp/data_channel.cc
+  src_cpp/replay_buffer.cc
+  src_cpp/reqrepserver.cpp
+  src_cpp/network.cpp
+  ${zstd_sources}
+)
 target_include_directories(_tube PUBLIC ${TORCH_INCLUDE_DIRS})
 target_include_directories(_tube PUBLIC ${PYTHON_INCLUDE_DIRS})
 target_link_libraries(_tube PUBLIC ${TORCH_LIBRARIES} fmt zmq)
+
+target_include_directories(_tube PUBLIC ../third_party ../third_party/zstd/lib ../third_party/zstd/lib/common)
 
 # tests
 add_executable(test_data_channel src_cpp/test/test_data_channel.cc)

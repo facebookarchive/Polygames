@@ -36,15 +36,15 @@ template<typename T, size_t SIZE>
 class Hasher {
 public:
 
-  Hasher(const HashBook<T, SIZE>& hashBook) : _hashBook(hashBook), _hash(0) {}
+  Hasher(const HashBook<T, SIZE>& hashBook) : _hashBook(&hashBook), _hash(0) {}
 
   void reset() { _hash = 0; }
 
-  void trigger(size_t i) { _hash ^= _hashBook[i]; }
+  void trigger(size_t i) { _hash ^= (*_hashBook)[i]; }
 
   uint64_t hash() const { return _hash; }
 
 private:
-  const HashBook<T, SIZE>& _hashBook;
+  const HashBook<T, SIZE>* _hashBook;
   uint64_t _hash;
 };

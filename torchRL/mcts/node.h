@@ -24,7 +24,6 @@ class Node {
   Node()
       : storage_(nullptr)
       , id_(0) {
-    reset();
   }
 
   void setStorageAndId(Storage* storage, NodeId id) {
@@ -32,29 +31,19 @@ class Node {
     id_ = id;
   }
 
-  // Node(Storage* storage, NodeId id)
-  //     : storage_(storage), id_(id) {}
-
   Node(const Node&) = delete;
   Node& operator=(const Node&) = delete;
 
-  void init(Node* parent, std::unique_ptr<State> s, uint64_t stateHash);
+  void init(Node* parent);
 
   void acquire();
 
   void release();
 
-  std::mutex& getMutex() {
-    return mSelf_;
-  }
-
   // caller is responsible for holding locks in case of multi-threading
-  Node* getOrAddChild(const Action& action,
-                      bool storeState,
-                      bool stochastic,
-                      uint64_t stateHash);
+  Node* newChild(Node* childNode, Action action);
 
-  const std::vector<Node*>& getChild(const Action& action) const;
+  Node* getChild(Action action) const;
 
   MctsStats& getMctsStats() {
     return mctsStats_;
@@ -68,11 +57,23 @@ class Node {
     return *state_;
   }
 
+  bool hasState() const {
+    return state_ != nullptr;
+  }
+
+  void setState(State* state) {
+    state_ = state;
+  }
+
+  std::unique_ptr<State>& localState() {
+    return localState_;
+  }
+
   NodeId getId() const {
     return id_;
   }
 
-  const std::unordered_map<Action, std::vector<Node*>> getChildren() const {
+  const auto& getChildren() const {
     return children_;
   }
 
@@ -80,24 +81,18 @@ class Node {
     return parent_;
   }
 
-  // int getDepth() const {
-  //   return depth_;
-  // }
-
   const PiVal& getPiVal() const {
     return piVal_;
   }
 
-  void settle(int rootPlayerId, PiVal piVal) {
+  void settle(int rootPlayerId) {
     // Only called when the node is locked.
     if (parent_ != nullptr) {
       auto& stats = parent_->getMctsStats();
-      float upValue = rootPlayerId == piVal.playerId
-                          ? piVal.value
-                          : -piVal.value;
+      float upValue =
+          rootPlayerId == piVal_.playerId ? piVal_.value : -piVal_.value;
       stats.atomicUpdateChildV(upValue);
     }
-    piVal_ = std::move(piVal);
     visited_ = true;
   }
 
@@ -114,23 +109,25 @@ class Node {
 
   void printTree(int level, int maxLevel, int action) const;
 
- private:
-  // called by constructor and freeTree
-  void reset();
+  // private:
+
+  // std::pair<Node*, Node*> link;
 
   // set in constructor, should never be changed
   Storage* storage_;
   NodeId id_;
 
   // sync tools
-  std::mutex mSelf_;
-  std::thread::id holderThreadId_;
+  // std::mutex mSelf_;
+  // std::thread::id holderThreadId_;
 
   // actual attributes
   Node* parent_;
-  std::unique_ptr<State> state_;
+  std::unique_ptr<State> localState_;
+  State* state_;
   uint64_t stateHash_;
-  std::unordered_map<Action, std::vector<Node*>> children_;
+  // std::unordered_map<Action, std::vector<Node*>> children_;
+  std::vector<std::pair<Action, Node*>> children_;
   // int depth_;
   bool visited_;
 

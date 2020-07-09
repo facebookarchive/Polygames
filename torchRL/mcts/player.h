@@ -41,6 +41,10 @@ class Player {
     return name_;
   }
 
+  virtual int rnnSeqlen() const {
+    return 0;
+  }
+
  private:
   std::string name_ = "unnamed";
   bool isHuman_;

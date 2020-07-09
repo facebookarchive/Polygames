@@ -33,7 +33,7 @@ class MctsOption {
   float puct = 0.0;
 
   // TODO[qucheng]: persistentTree is not implemented
-  // bool persistentTree = false;
+  bool persistentTree = false;
 
   // first K steps in the game where we use sample instead of greedily
   // pick the best action. For example, if K = 6, then each player will
@@ -62,6 +62,15 @@ class MctsOption {
   // rollout. Not storing it saves memory and can have greater performance
   // on simple games that are quick to recompute.
   bool storeStateInNode = false;
+
+  int storeStateInterval = 2;
+
+  bool randomizedRollouts = false;
+
+  bool samplingMcts = false;
+  bool moveSelectUseMctsValue = false;
+
+  float forcedRolloutsMultiplier = 2.0f;
 };
 
 class MctsStats {
@@ -112,12 +121,12 @@ class MctsStats {
   }
 
   void addVirtualLoss(float virtualLoss) {
-    std::lock_guard<std::mutex> lock(mSelf_);
+    // std::lock_guard<std::mutex> lock(mSelf_);
     virtualLoss_ += virtualLoss;
   }
 
   void atomicUpdate(float value, float virtualLoss) {
-    std::lock_guard<std::mutex> lock(mSelf_);
+    // std::lock_guard<std::mutex> lock(mSelf_);
     value_ += value;
     numVisit_++;
     virtualLoss_ -= virtualLoss;
@@ -126,7 +135,7 @@ class MctsStats {
   // Update child value estimate with a new obtained child value
   // (from the perspective of the root node
   void atomicUpdateChildV(float childV) {
-    std::lock_guard<std::mutex> lock(mSelf_);
+    // std::lock_guard<std::mutex> lock(mSelf_);
     sumChildV_ += childV;
     numChild_++;
   }
@@ -136,6 +145,13 @@ class MctsStats {
     ss << value_ << "/" << numVisit_ << " (" << value_ / numVisit_
        << "), vloss: " << virtualLoss_;
     return ss.str();
+  }
+
+  void subtractVisit() {
+    --numVisit_;
+  }
+  void addVisit() {
+    ++numVisit_;
   }
 
  private:
@@ -148,19 +164,26 @@ class MctsStats {
   // # child that has been explored.
   int numChild_;
 
-  std::mutex mSelf_;
+  // std::mutex mSelf_;
 };
 
 class MctsResult {
  public:
+  MctsResult() = default;
   MctsResult(std::minstd_rand* rng)
-      : maxVisits(0)
+      : maxVisits(-1000)
       , sumVisits(0)
       , bestAction(InvalidAction)
       , rng_(rng) {
   }
 
-  void add(const Action& a, int visits) {
+  void add(Action a, float visits) {
+    if (mctsPolicy.size() <= (size_t)a) {
+      if (mctsPolicy.capacity() <= (size_t)a) {
+        mctsPolicy.reserve(mctsPolicy.size() * 2);
+      }
+      mctsPolicy.resize(a + 1);
+    }
     mctsPolicy[a] = visits;
     sumVisits += visits;
     if (visits > maxVisits) {
@@ -170,33 +193,38 @@ class MctsResult {
   }
 
   void normalize() {
-    for (auto& pair : mctsPolicy) {
-      pair.second = pair.second / (float)sumVisits;
+    for (auto& value : mctsPolicy) {
+      value = value / (float)sumVisits;
     }
   }
 
   // assume already normalized
   void sample() {
     float best = 0.0f;
-    for (auto& pair : mctsPolicy) {
-      float v = std::exp(pair.second * pair.second * 2) - 0.92f;
+    for (mcts::Action actionIndex = 0; actionIndex != mctsPolicy.size();
+         ++actionIndex) {
+      float pival = mctsPolicy[actionIndex];
+      float v = std::exp(pival * pival * 2) - (1.0f - 0.5f / mctsPolicy.size());
+      // float v = pival;
       v = std::uniform_real_distribution<float>(0.0f, v)(*rng_);
       if (v > best) {
         best = v;
-        bestAction = pair.first;
+        bestAction = actionIndex;
       }
     }
   }
 
-  void setMctsPolicy(std::unordered_map<Action, float> pi) {
+  void setMctsPolicy(std::vector<float> pi) {
     mctsPolicy = std::move(pi);
   }
 
-  int maxVisits;
-  int sumVisits;
+  float maxVisits;
+  float sumVisits;
   Action bestAction;
-  std::unordered_map<Action, float> mctsPolicy;
-  float rootValue;
+  std::vector<float> mctsPolicy;
+  float rootValue = 0.0f;
+  int rollouts = 0;
+  std::vector<float> rnnState;
 
  private:
   std::minstd_rand* rng_;
@@ -208,26 +236,28 @@ class PiVal {
     reset();
   }
 
-  PiVal(int playerId, float value, std::unordered_map<Action, float>&& policy)
+  PiVal(int playerId, float value, std::vector<float> policy)
       : playerId(playerId)
       , value(value)
-      , policy(policy) {
+      , policy(std::move(policy)) {
   }
 
   void reset() {
     playerId = -999;
     value = 0.0;
     policy.clear();
+    rnnState.clear();
   }
 
   int playerId;
   float value;
-  std::unordered_map<Action, float> policy;
+  std::vector<float> policy;
+  std::vector<float> rnnState;
 };
 
-inline void printPolicy(const std::unordered_map<Action, float>& pi) {
-  for (const auto& a2p : pi) {
-    std::cout << a2p.first << ":" << a2p.second << std::endl;
+inline void printPolicy(const std::vector<float>& pi) {
+  for (mcts::Action i = 0; i != pi.size(); ++i) {
+    std::cout << i << ":" << pi[i] << std::endl;
   }
 }
 

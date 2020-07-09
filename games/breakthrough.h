@@ -114,8 +114,20 @@ class BTBoard {
       BTinitHash();
       BTinitHashCalled = true;
     }*/
-	std::call_once(BTinitHashCalled, BTinitHash);
+  std::call_once(BTinitHashCalled, BTinitHash);
 
+  }
+
+  int countPieces(int color) const {
+    int r= 0;
+    for (int i = 0; i < BTDx; i++) {
+      for (int j = 0; j < BTDy; j++) {
+        if (board[i][j] == color) {
+          ++r;
+        }
+      }
+    }
+    return r;
   }
 
   bool won(int color) {
@@ -179,7 +191,7 @@ class BTBoard {
     return (float)(nbOpponent - nb);
   }
 
-  int opponent(int joueur) {
+  int opponent(int joueur) const {
     if (joueur == White)
       return Black;
     return White;

@@ -18,18 +18,24 @@ namespace mcts {
 // should ONLY keep functions used by mcts
 class State {
  public:
-  bool stochasticReset() const { return _stochasticReset; }
+  bool stochasticReset() const {
+    return _stochasticReset;
+  }
   // State() {} //= default;
 
   // State(const State&) = delete;
   // State& operator=(const State&) = delete;
   virtual std::unique_ptr<State> clone() const = 0;
 
-  virtual bool isOnePlayerGame() const { return false; }
+  virtual bool isOnePlayerGame() const {
+    return false;
+  }
 
   virtual int getCurrentPlayer() const = 0;
 
   virtual int getStepIdx() const = 0;
+
+  virtual const std::vector<mcts::Action>& getMoves() const = 0;
 
   virtual float getReward(int player) const = 0;
 
@@ -47,6 +53,18 @@ class State {
     return _stochastic;
   }
 
+  void copy(const State& src) {
+    _copyImpl(this, &src);
+  }
+
+  const std::type_info& typeId() const {
+    return *_typeId;
+  }
+
+  virtual std::string history() {
+    return "<history not available>";
+  }
+
   virtual ~State() {
   }
   int forcedDice;
@@ -54,5 +72,8 @@ class State {
  protected:
   bool _stochastic;
   bool _stochasticReset;
+
+  const std::type_info* _typeId = nullptr;
+  void (*_copyImpl)(State* dst, const State* src) = nullptr;
 };
-}
+}  // namespace mcts

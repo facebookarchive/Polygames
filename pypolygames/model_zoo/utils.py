@@ -27,6 +27,7 @@ def get_game_info(game_params: params) -> Dict[str, list]:
         per_thread_batchsize=0,
     )
     info = {"feature_size": game.get_feat_size(), "action_size": game.get_action_size()}
+    info["raw_feature_size"] = game.get_raw_feat_size()
     return info
 
 

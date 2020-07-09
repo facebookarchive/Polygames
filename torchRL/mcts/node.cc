@@ -12,89 +12,49 @@
 
 using namespace mcts;
 
-void Node::init(Node* parent, std::unique_ptr<State> s, uint64_t stateHash) {
-  assert(parent_ == nullptr);
-  assert(state_ == nullptr);
-  assert(children_.empty());
-  // assert(depth_ == 0);
-  assert(visited_ == false);
+void Node::init(Node* parent) {
 
-  parent_ = parent;
-  state_ = std::move(s);
-  stateHash_ = stateHash;
-  // depth_ = parent == nullptr ? 0 : parent->getDepth() + 1;
-}
-
-void Node::reset() {
   parent_ = nullptr;
   state_ = nullptr;
   children_.clear();
-  // depth_ = 0;
+  //  for (auto& v : children_) {
+  //    v.clear();
+  //  }
   visited_ = false;
 
   mctsStats_.reset();
   piVal_.reset();
+
+  parent_ = parent;
 }
 
 void Node::acquire() {
-  mSelf_.lock();
-  holderThreadId_ = std::this_thread::get_id();
+  //  mSelf_.lock();
+  //  holderThreadId_ = std::this_thread::get_id();
 }
 
 void Node::release() {
-  assert(holderThreadId_ == std::this_thread::get_id());
-  mSelf_.unlock();
+  //  assert(holderThreadId_ == std::this_thread::get_id());
+  //  mSelf_.unlock();
 }
 
-Node* Node::getOrAddChild(const Action& action,
-                          bool storeState,
-                          bool stochastic,
-                          uint64_t stateHash) {
-  auto it = children_.find(action);
+Node* Node::newChild(Node* child, Action action) {
+  child->init(this);
 
-  std::unique_ptr<State> childState;
-  if (it != children_.end()) {
-    // std::cout << "child found" << std::endl;
-    if (!stochastic) {  // if not stochastic we keep one child in the list,
-                        // only.
-      assert(it->second.size() == 1);
-      // std::cout << "not stochastic" << std::endl;
-      return it->second[0];
-    } else {
-      // stochastic games always need to forward state to determine which child
-      // it lands, does not make sense to store state.
-      assert(!storeState);
-      for (const auto& node : it->second) {
-        // TODO:[qucheng] Do we want to compare against all nodes' state?
-        // answer[oteytaud] only the nodes corresponding to the right action.
-        if (node->getStateHash() == stateHash) {
-          // std::cout << "hash found" << std::endl;
-          return node;
-        }
-      }
+  //  size_t index = action % children_.size();
+  //  auto& list = children_[index];
+  //  auto i = std::lower_bound(list.begin(), list.end(), action, [](auto& a,
+  //  Action b) {
+  //    return a.first < b;
+  //  });
+  //  list.insert(i, std::make_pair(action, child));
 
-      // this is a new stochastic choice
-      Node* child = storage_->newNode();
-      child->init(this, std::move(childState), stateHash);
-      it->second.push_back(child);
-      // std::cout << " creating stochastic child" << std::endl;
-      return child;
-    }
-  }
-
-  uint64_t hash = stateHash;
-  if (storeState) {
-    childState = state_->clone();
-    childState->forward(action);
-    hash = childState->getHash();
-  }
-
-  std::vector<Node*> childList;
-  Node* child = storage_->newNode();
-  child->init(this, std::move(childState), hash);
-  childList.push_back(child);
-  children_.insert(it, {action, childList});
-  //std::cout << " new decision child" << std::endl;
+  auto i = std::lower_bound(
+      children_.begin(), children_.end(), action, [](auto& a, Action b) {
+        return a.first < b;
+      });
+  children_.insert(i, std::make_pair(action, child));
+  //  children_.emplace_back(action, child);
   return child;
 }
 
@@ -102,23 +62,36 @@ namespace {
 const std::vector<Node*> emptyList;
 }
 
-const std::vector<Node*>& Node::getChild(const Action& action) const {
-  auto it = children_.find(action);
-  if (it == children_.end()) {
-    return emptyList;
-  }
-  return it->second;
+Node* Node::getChild(Action action) const {
+  //  size_t index = action % children_.size();
+  //  auto& list = children_[index];
+  //  auto i = std::lower_bound(list.begin(), list.end(), action, [](auto& a,
+  //  Action b) {
+  //    return a.first < b;
+  //  });
+  //  return i == list.end() || i->first != action ? nullptr : i->second;
+
+  //  for (auto& v : children_) {
+  //    if (v.first == action) return v.second;
+  //  }
+  //  return nullptr;
+  auto i = std::lower_bound(
+      children_.begin(), children_.end(), action, [](auto& a, Action b) {
+        return a.first < b;
+      });
+  return i == children_.end() || i->first != action ? nullptr : i->second;
+  // return children_.size() > (size_t)action ? children_[action] : nullptr;
 }
 
 void Node::freeTree() {
-  if (!children_.empty()) {
-    for (auto& actionNode : children_) {
-      for (size_t u = 0; u < actionNode.second.size(); u++) {
-        actionNode.second[u]->freeTree();
-      }
-    }
+  for (auto& v : children_) {
+    v.second->freeTree();
   }
-  reset();
+  //  for (auto& v : children_) {
+  //    for (auto& v2 : v) {
+  //      v2.second->freeTree();
+  //    }
+  //  }
   storage_->freeNode(this);
 }
 
@@ -133,7 +106,7 @@ void Node::printTree(int level, int maxLevel, int action) const {
             << mctsStats_.getNumVisit();
   std::cout << "(" << mctsStats_.getValue() / mctsStats_.getNumVisit() << ")";
   std::cout << ", vloss:" << mctsStats_.getVirtualLoss() << std::endl;
-  for (const auto& pair : getChildren()) {
-    pair.second[0]->printTree(level + 1, maxLevel, pair.first);
-  }
+  // for (const Node* node : getChildren()) {
+  // pair.second[0]->printTree(level + 1, maxLevel, pair.first);
+  //}
 }

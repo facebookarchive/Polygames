@@ -22,7 +22,7 @@ class HumanPlayer : public mcts::Player {
     auto& legalActions = state.GetLegalActions();
     assert(index < (int)legalActions.size());
     std::cout << " applying action... " << std::endl;
-    return *(legalActions[index].get());
+    return legalActions[index];
     // std::cerr << " applied action... " << std::endl;
   }
 };
@@ -42,7 +42,7 @@ class TPPlayer : public mcts::Player {
     auto& legalActions = state.GetLegalActions();
     assert(index < (int)legalActions.size());
     std::cerr << " applying action... " << std::endl;
-    return *(legalActions[index].get());
+    return legalActions[index];
     // std::cerr << " applied action... " << std::endl;
   }
 };

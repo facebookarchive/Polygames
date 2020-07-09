@@ -8,38 +8,82 @@
 #include "mcts/mcts.h"
 #include <chrono>
 
-using namespace mcts;
+#include "async.h"
 
+namespace tube {
+inline thread_local int threadId;
+}
+
+namespace mcts {
+
+std::mutex freeStoragesMutex;
+std::list<Storage*> freeStorages;
+
+int forcedRollouts(float piValue, int numVisits, const MctsOption& option) {
+  return (int)std::sqrt(option.forcedRolloutsMultiplier * piValue * numVisits);
+}
+
+float puctValue(int rootPlayerId,
+                float puct,
+                const Node* node,
+                mcts::Action action) {
+  const auto& pi = node->getPiVal().policy;
+  const Node* child = node->getChild(action);
+  auto childNumVisit = child->getMctsStats().getNumVisit();
+  float piValue = pi[action];
+  auto parentNumVisit = node->getMctsStats().getNumVisit();
+  float priorScore =
+      (float)piValue / (1 + childNumVisit) * (float)std::sqrt(parentNumVisit);
+  int flip = (node->getPiVal().playerId == rootPlayerId) ? 1 : -1;
+  float value = child->getMctsStats().getValue();
+  float vloss = child->getMctsStats().getVirtualLoss();
+  float q = (value * flip - vloss) / (childNumVisit + vloss);
+  float score = priorScore * puct + q;
+  return score;
+}
+
+template <bool sample>
 Action pickBestAction(int rootPlayerId,
                       const Node* const node,
-                      float puct,
-                      bool useValuePrior,
-                      std::minstd_rand& rng) {
+                      const MctsOption& option,
+                      std::minstd_rand& rng,
+                      int maxnumrollouts) {
   float bestScore = -1e10;
+
+  float puct = option.puct;
+  bool useValuePrior = option.useValuePrior;
+
   // We need to flip here because at opponent's step, we need to find
   // opponent's best action which minimizes our value.  Careful not to
   // flip the exploration term.
   int flip = (node->getPiVal().playerId == rootPlayerId) ? 1 : -1;
-  // std::cout << "flip is " << flip << std::endl;
   Action bestAction = InvalidAction;
   const auto& pi = node->getPiVal().policy;
-  for (const auto& pair : pi) {
-    // std::cout << "*";
-    const auto& childList = node->getChild(pair.first);
+  //  if (pi.empty()) return InvalidAction;
+  //  return std::uniform_int_distribution<size_t>(0, pi.size() - 1)(rng);
+  float priorValue = node->getMctsStats().getAvgChildV() * flip;
+  for (mcts::Action actionIndex = 0; actionIndex != pi.size(); ++actionIndex) {
+    const Node* child = node->getChild(actionIndex);
 
     float q = 0;
     int childNumVisit = 0;
     float vloss = 0;
     float value = 0;
 
-    for (size_t i = 0; i < childList.size(); ++i) {
-      Node* child = childList[i];
+    float piValue = pi[actionIndex];
+    auto parentNumVisit = node->getMctsStats().getNumVisit();
+
+    if (child) {
       const MctsStats& mctsStats = child->getMctsStats();
       childNumVisit += mctsStats.getNumVisit();
       vloss += mctsStats.getVirtualLoss();
       value += mctsStats.getValue();
     }
     if (childNumVisit != 0) {
+      if (option.forcedRolloutsMultiplier && !node->getParent() &&
+          childNumVisit < forcedRollouts(piValue, maxnumrollouts, option)) {
+        return actionIndex;
+      }
       q = (value * flip - vloss) / (childNumVisit + vloss);
     } else {
       // When there is no child nodes under this action, replace the q value
@@ -49,167 +93,435 @@ Action pickBestAction(int rootPlayerId,
       // 0 and
       // we start with the child with highest policy probability.
       if (useValuePrior) {
-        q = node->getMctsStats().getAvgChildV() * flip;
+        q = priorValue;
       }
     }
 
-    auto parentNumVisit = node->getMctsStats().getNumVisit();
-    float priorScore = (float)pair.second / (1 + childNumVisit) *
-                       (float)std::sqrt(parentNumVisit);
+    float priorScore =
+        (float)piValue / (1 + childNumVisit) * (float)std::sqrt(parentNumVisit);
     float score = priorScore * puct + q;
+    if (sample) {
+      score =
+          std::uniform_real_distribution<float>(0.0f, std::exp(score * 4))(rng);
+    }
+    // score = std::uniform_real_distribution<float>(0.0f, 1.0f)(rng);
     if (score > bestScore) {
       bestScore = score;
-      bestAction = pair.first;
+      bestAction = actionIndex;
     }
   }
-  // std::cout << "best score is " << bestScore << std::endl;
-  // assert(false);
   return bestAction;
 }
 
-void mcts::computeRollouts(const std::vector<Node*>& rootNode,
-                           const std::vector<const State*>& rootState,
-                           Actor& actor,
-                           const MctsOption& option,
-                           double max_time,
-                           std::minstd_rand& rng) {
-  int numRollout = 0;
-  // int rootPlayerId = rootNode->getPiVal().playerId;
+namespace {
+AsyncThreads threads(10);
+
+struct Timer {
+  std::chrono::steady_clock::time_point start;
+  Timer() {
+    reset();
+  }
+  void reset() {
+    start = std::chrono::steady_clock::now();
+  }
+  double elapsed() {
+    return std::chrono::duration_cast<
+               std::chrono::duration<double, std::ratio<1, 1000>>>(
+               std::chrono::steady_clock::now() - start)
+        .count();
+  }
+  double elapsed_reset() {
+    auto now = std::chrono::steady_clock::now();
+    auto t = now - start;
+    start = now;
+    return std::chrono::duration_cast<
+               std::chrono::duration<double, std::ratio<1, 1000>>>(t)
+        .count();
+  }
+};
+
+}  // namespace
+
+template <bool storeStateInNode>
+int computeRolloutsImpl(const std::vector<Node*>& rootNode,
+                        const std::vector<const State*>& rootState,
+                        const std::vector<std::vector<float>>& rnnState,
+                        Actor& actor,
+                        const MctsOption& option,
+                        double max_time,
+                        std::minstd_rand& rng,
+                        const std::vector<std::vector<float>>& policyBias) {
+
+  double elapsedTime = 0;
+  auto begin = std::chrono::steady_clock::now();
 
   struct RolloutState {
     Node* root = nullptr;
     Node* node = nullptr;
     std::unique_ptr<State> state;
-    const State* rootState = nullptr;
+    bool terminated = false;
+    Storage* storage = nullptr;
+    std::vector<float> rnnState;
   };
 
   std::vector<RolloutState> states(rootNode.size());
 
-  std::vector<const State*> batch;
-  batch.reserve(states.size());
+  AsyncTask task(threads);
 
-  double elapsedTime = 0;
-  auto begin = std::chrono::steady_clock::now();
+  size_t stride =
+      (states.size() + threads.threads.size() - 1) / threads.threads.size();
 
-  while ((((max_time > 0) || (numRollout < option.numRolloutPerThread)) &&
-          ((elapsedTime < max_time) || (max_time <= 0))) ||
-         numRollout < 2) {
-    // std::cout << " new rollout
-    // ===================================================" << std::endl;
-    for (size_t i = 0; i != rootNode.size(); ++i) {
-      auto& st = states[i];
-      st.root = rootNode[i];
-      st.node = st.root;
-      if (!option.storeStateInNode) {
-        // std::cout << " clone " << std::endl;
-        st.state = rootState[i]->clone();
-      }
-      st.rootState = rootState[i];
-    }
+  std::vector<AsyncThreads::Thread*> reservedThreads(states.size());
+  for (size_t i = 0; i < states.size(); i += stride) {
+    reservedThreads[i] = &threads.getThread();
+  }
 
-    // 1.Selection
+  int numRollout = 0;
 
-    for (auto& st : states) {
-      int depth = 0;
-      while (true) {
-        ++depth;
-        st.node->acquire();
-        st.node->getMctsStats().addVirtualLoss(option.virtualLoss);
-        if (!st.node->isVisited()) {
-          // std::cout << " not visited" << std::endl;
-          break;
+  double enqueueTime = 0.0f;
+  double waitTime = 0.0f;
+  double otherTime = 0.0f;
+  double setupTime = 0.0f;
+  double evaluateTime = 0.0f;
+  double backpropTime = 0.0f;
+
+  std::atomic<double> sumftimes = 0.0f;
+  std::atomic_int nftimes = 0;
+
+  Timer timer;
+
+  std::vector<AsyncThreads::Thread::Handle> functionHandles(states.size());
+
+  int rollouts = option.totalTime ? 0 : option.numRolloutPerThread;
+
+  bool keepGoing = false;
+
+  for (size_t i = 0; i < states.size(); i += stride) {
+    rng.discard(1);
+    size_t n = std::min(states.size() - i, stride);
+
+    auto f = [&, ii = i, n, rng]() mutable {
+      Timer ftimer;
+
+      size_t i = ii;
+
+      for (size_t s = 0; s != n; ++s, ++i) {
+
+        auto& st = states[i];
+        Node* root = rootNode[i];
+        st.root = root;
+
+        if (!st.storage) {
+          st.storage = Storage::getStorage();
+        }
+        Storage* storage = st.storage;
+
+        if (numRollout != 0) {
+          Node* node = st.node;
+          if (!st.terminated) {
+            auto& state = storeStateInNode ? node->getState() : *st.state;
+            actor.batchResult(i, state, node->piVal_);
+            // node->piVal_.value += state.getReward(node->piVal_.playerId);
+            if (node->getParent() == nullptr && !policyBias.empty() &&
+                !policyBias.at(i).empty()) {
+              auto& bias = policyBias[i];
+              if (node->piVal_.policy.size() != bias.size()) {
+                throw std::runtime_error(
+                    "policyBias size mismatch, got " +
+                    std::to_string(bias.size()) + ", expected " +
+                    std::to_string(node->piVal_.policy.size()));
+              }
+              for (size_t i = 0; i != bias.size(); ++i) {
+                node->piVal_.policy[i] += bias[i];
+              }
+            }
+          }
+
+          node->settle(st.root->getPiVal().playerId);
+          node->release();
+
+          float value = node->getPiVal().value;
+          int flip = st.root->getPiVal().playerId == node->getPiVal().playerId
+                         ? 1
+                         : -1;
+          value = value * flip;
+          // We need to flip here because at opponent's node, we have opponent's
+          // value. We need to sum up our value.
+          while (node != nullptr) {
+            MctsStats& mctsStats = node->getMctsStats();
+            mctsStats.atomicUpdate(value, option.virtualLoss);
+            node = node->getParent();
+          }
         }
 
-        // If we have policy network then value prior collected at
-        // different nodes are more accurate. Otherwise it could harm the
-        // exploration.
-        Action bestAction = pickBestAction(st.root->getPiVal().playerId,
-                                           st.node,
-                                           option.puct,
-                                           option.useValuePrior,
-                                           rng);
-        // this is a terminal state that has been visited
-        if (bestAction == InvalidAction) {
-          // std::cout << " invalid action " << std::endl;
-          break;
-        }
-        bool stochasticFather = st.state->isStochastic();
-        if (!option.storeStateInNode) {
-          // std::cout << " forward" << std::endl;
-          st.state->forward(bestAction);
-          // std::cout << " forward done" << std::endl;
+        if (!keepGoing) {
+          continue;
         }
 
-        uint64_t hash = 0;
-        if (st.state != nullptr) {
-          hash = st.state->getHash();
+        Node* node = root;
+        std::unique_ptr<State> localState = std::move(st.state);
+        if (!storeStateInNode) {
+          if (!localState) {
+            localState = rootState[i]->clone();
+          } else {
+            localState->copy(*rootState[i]);
+          }
         }
 
-        // std::cout << " goac" << std::endl;
-        Node* childNode =
-            st.node->getOrAddChild(bestAction,
-                                   option.storeStateInNode,
-                                   stochasticFather,
-                                   // st.rootState->isStochastic(),
-                                   hash);
-        st.node->release();
-        st.node = childNode;
-        // std::cout << " endloop " << std::endl;
+        const std::vector<float>* rsp = nullptr;
+        if (!rnnState.empty()) {
+          rsp = &rnnState[i];
+        }
+
+        // 1. Selection
+
+        thread_local std::vector<Action> queuedActions;
+        if (!storeStateInNode) {
+          queuedActions.clear();
+        }
+
+        const State* checkpointState = nullptr;
+
+        auto flushActions = [&]() {
+          if (checkpointState) {
+            localState->copy(*checkpointState);
+            // printf("restored from checkpoint\n");
+          }
+          if (!queuedActions.empty()) {
+            for (Action a : queuedActions) {
+              localState->forward(a);
+            }
+            // printf("forwarded %d actions\n", queuedActions.size());
+            // printf("ff -> %s\n", localState->history().c_str());
+            queuedActions.clear();
+          }
+        };
+
+        while (true) {
+          node->acquire();
+          node->getMctsStats().addVirtualLoss(option.virtualLoss);
+          if (!node->isVisited()) {
+            // printf("not visited\n");
+            break;
+          }
+
+          rsp = &node->piVal_.rnnState;
+
+          // If we have policy network then value prior collected at
+          // different nodes are more accurate. Otherwise it could harm the
+          // exploration.
+          Action bestAction =
+              (option.samplingMcts
+                   ? pickBestAction<true>
+                   : pickBestAction<false>)(root->getPiVal().playerId,
+                                            node,
+                                            option,
+                                            rng,
+                                            rollouts);
+          // this is a terminal state that has been visited
+          if (bestAction == InvalidAction) {
+            flushActions();
+            break;
+          }
+          auto& state = storeStateInNode ? node->getState() : *localState;
+          bool save = false;
+          if (!storeStateInNode) {
+            Node* childNode = node->getChild(bestAction);
+            if (childNode) {
+              node = childNode;
+              if (node->hasState()) {
+                checkpointState = &node->getState();
+                queuedActions.clear();
+              } else {
+                queuedActions.push_back(bestAction);
+              }
+              node->release();
+              node = childNode;
+              // printf("skip\n");
+              continue;
+            }
+            save = queuedActions.size() >= (size_t)option.storeStateInterval;
+            flushActions();
+            localState->forward(bestAction);
+            // printf("forward -> %s\n", localState->history().c_str());
+          }
+
+          Node* childNode = node->newChild(storage->newNode(), bestAction);
+          if (save) {
+            if (childNode->localState() &&
+                childNode->localState()->typeId() == state.typeId()) {
+              State* dst = &*childNode->localState();
+              dst->copy(state);
+              childNode->setState(dst);
+            } else {
+              childNode->localState() = localState->clone();
+              childNode->setState(&*childNode->localState());
+            }
+          }
+          node->release();
+          node = childNode;
+        }
+
+        // 2. Expansion
+
+        auto& state = storeStateInNode ? node->getState() : *localState;
+        if (state.terminated()) {
+          PiVal& piVal = node->piVal_;
+          piVal.policy.clear();
+          piVal.value = state.getReward(state.getCurrentPlayer());
+          piVal.playerId = state.getCurrentPlayer();
+
+          st.terminated = true;
+        } else {
+          st.terminated = false;
+        }
+
+        st.node = node;
+        st.state = std::move(localState);
+        actor.batchPrepare(i, state, rsp ? *rsp : std::vector<float>{});
       }
+
+      double e = ftimer.elapsed();
+      double s;
+      do {
+        s = sumftimes;
+      } while (!sumftimes.compare_exchange_weak(s, s + e));
+      ++nftimes;
+    };
+
+    functionHandles[i] = task.getHandle(*reservedThreads[i], std::move(f));
+    functionHandles[i].setPriority(tube::threadId);
+  }
+
+  actor.batchResize(states.size());
+
+  if (option.randomizedRollouts && rollouts > 1) {
+    float mean = std::uniform_int_distribution<int>(0, 1)(rng) != 0
+                     ? rollouts / 8
+                     : rollouts * 2;
+    std::normal_distribution<float> r(mean, rollouts / 4);
+    int max = rollouts * 4;
+    do {
+      rollouts = r(rng);
+    } while (rollouts < 1 || rollouts > max);
+  }
+
+  while (true) {
+
+    keepGoing = ((((max_time > 0) || (numRollout < rollouts)) &&
+                  ((elapsedTime < max_time) || (max_time <= 0))) ||
+                 numRollout < 2);
+
+    otherTime += timer.elapsed_reset();
+
+    for (size_t i = 0; i < states.size(); i += stride) {
+      task.enqueue(functionHandles[i]);
     }
 
-    // 2. Expansion
+    enqueueTime += timer.elapsed_reset();
+    task.wait();
+    waitTime += timer.elapsed_reset();
 
-    batch.clear();
-    size_t e = states.size();
-    for (size_t i = 0; i != e; ++i) {
-      auto& st = states[i];
-      if (st.state->terminated()) {
-        PiVal piVal;
-        piVal.value = st.state->getReward(st.state->getCurrentPlayer());
-        piVal.playerId = st.state->getCurrentPlayer();
-
-        st.node->settle(st.root->getPiVal().playerId, piVal);
-        st.node->release();
-        std::swap(st, states[e - 1]);
-        --i;
-        --e;
-      } else {
-        batch.push_back(&*st.state);
-      }
+    if (!keepGoing) {
+      break;
     }
 
-    if (!batch.empty()) {
-      actor.evaluate(batch, [&](size_t index, PiVal piVal) {
-        auto& st = states[index];
-        st.node->settle(st.root->getPiVal().playerId, piVal);
-        st.node->release();
-      });
-    }
+    setupTime += timer.elapsed_reset();
 
-    // 3.Backpropgation
+    actor.batchEvaluate(states.size());
 
-    for (size_t i = 0; i != states.size(); ++i) {
-      auto& st = states[i];
-      float value = st.node->getPiVal().value;
-      int flip = (st.root->getPiVal().playerId == st.node->getPiVal().playerId)
-                     ? 1
-                     : -1;
-      value = value * flip;
-      // We need to flip here because at opponent's node, we have opponent's
-      // value. We need to sum up our value.
-      while (st.node != nullptr) {
-        MctsStats& mctsStats = st.node->getMctsStats();
-        mctsStats.atomicUpdate(value, option.virtualLoss);
-        st.node = st.node->getParent();
-      }
-    }
+    evaluateTime += timer.elapsed_reset();
+
+    backpropTime += timer.elapsed_reset();
 
     rolloutCount += states.size();
 
     ++numRollout;
     auto end = std::chrono::steady_clock::now();
     elapsedTime =
-        std::chrono::duration_cast<std::chrono::seconds>(end - begin).count();
+        std::chrono::duration_cast<
+            std::chrono::duration<double, std::ratio<1, 1>>>(end - begin)
+            .count();
+  }
+
+  double t3 = std::chrono::duration_cast<
+                  std::chrono::duration<double, std::ratio<1, 1000>>>(
+                  std::chrono::steady_clock::now() - begin)
+                  .count();
+
+  // printf("mcts x%d done in %fms  - enqueue %f wait %f other %f  setup %f
+  // evaluate %f backprop %f  ftimes %f x %d avg %f\n", states.size(), t3,
+  // enqueueTime, waitTime, otherTime, setupTime, evaluateTime, backpropTime,
+  // sumftimes.load(), nftimes.load(), sumftimes.load() / nftimes.load());
+
+  // std::terminate();
+
+  for (const Node* root : rootNode) {
+    const Node* bestChild = nullptr;
+    mcts::Action bestAction = -1;
+    int best = 0;
+    for (auto& v : root->getChildren()) {
+      const Node* child = v.second;
+      if (child->getMctsStats().getNumVisit() > best) {
+        best = child->getMctsStats().getNumVisit();
+        bestAction = v.first;
+        bestChild = child;
+      }
+    }
+    if (bestAction != -1) {
+      float bestPuct =
+          puctValue(root->getPiVal().playerId, option.puct, root, bestAction);
+      for (auto& v : root->getChildren()) {
+        if (v.first == bestAction) {
+          continue;
+        }
+        Node* child = v.second;
+        int forced =
+            forcedRollouts(root->getPiVal().policy[v.first], rollouts, option);
+        for (; forced && child->getMctsStats().getNumVisit(); --forced) {
+          child->getMctsStats().subtractVisit();
+          float pv =
+              puctValue(root->getPiVal().playerId, option.puct, root, v.first);
+          if (pv > bestPuct) {
+            child->getMctsStats().addVisit();
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  return rollouts;
+}
+
+int computeRollouts(const std::vector<Node*>& rootNode,
+                    const std::vector<const State*>& rootState,
+                    const std::vector<std::vector<float>>& rnnState,
+                    Actor& actor,
+                    const MctsOption& option,
+                    double max_time,
+                    std::minstd_rand& rng,
+                    const std::vector<std::vector<float>>& policyBias) {
+
+  if (option.storeStateInNode) {
+    return computeRolloutsImpl<true>(rootNode,
+                                     rootState,
+                                     rnnState,
+                                     actor,
+                                     option,
+                                     max_time,
+                                     rng,
+                                     policyBias);
+  } else {
+    return computeRolloutsImpl<false>(rootNode,
+                                      rootState,
+                                      rnnState,
+                                      actor,
+                                      option,
+                                      max_time,
+                                      rng,
+                                      policyBias);
   }
 }
+
+}  // namespace mcts

@@ -3,7 +3,7 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Optional, Iterator
+from typing import Optional, Iterator, List
 
 import torch  # must be loaded before tube
 import tube
@@ -31,6 +31,10 @@ def create_game(
     seed: int,
     eval_mode: bool,
     per_thread_batchsize: int = 0,
+    rewind: int = 0,
+    persistent_tree: bool = False,
+    predict_end_state: bool = False,
+    predict_n_states: int = 0,
 ) -> polygames.Game:
     return polygames.Game(
         game_params.game_name,
@@ -44,6 +48,10 @@ def create_game(
         game_params.random_features,
         game_params.one_feature,
         per_thread_batchsize,
+        rewind,
+        persistent_tree,
+        predict_end_state,
+        predict_n_states,
     )  # cannot use named parameters :(
 
 
@@ -86,17 +94,24 @@ def _set_mcts_option(
     human_mode: bool = False,
     time_ratio: float = 0.7,
     total_time: float = 0,
+    sample_before_step_idx: int = 0,
+    randomized_rollouts: bool = False,
+    sampling_mcts: bool = False,
+    move_select_use_mcts_value: bool = False
 ) -> mcts.MctsOption:
     # TODO: put hardcoded value in conf file
     mcts_option = mcts.MctsOption()
     mcts_option.use_mcts = True
-    mcts_option.puct = 1
-    mcts_option.sample_before_step_idx = 2 if human_mode else 32
+    mcts_option.puct = 1.1
+    mcts_option.sample_before_step_idx = sample_before_step_idx
     mcts_option.num_rollout_per_thread = num_rollouts
     mcts_option.seed = seed
-    mcts_option.virtual_loss = 1
+    mcts_option.virtual_loss = 0
     mcts_option.total_time = total_time
     mcts_option.time_ratio = time_ratio
+    mcts_option.randomized_rollouts = randomized_rollouts
+    mcts_option.sampling_mcts = sampling_mcts
+    mcts_option.move_select_use_mcts_value = move_select_use_mcts_value
     return mcts_option
 
 
@@ -107,7 +122,7 @@ def _create_pure_mcts_player(
     player = mcts.MctsPlayer(mcts_option)
     for _ in range(num_actor):
         actor = polygames.Actor(
-            None, game.get_feat_size(), game.get_action_size(), False, False, None
+            None, game.get_feat_size(), game.get_action_size(), [], False, False, None
         )
         player.add_actor(actor)
     return player
@@ -119,7 +134,15 @@ def _create_neural_mcts_player(
     num_actor: int,
     actor_channel: tube.DataChannel,
     assembler: Optional[tube.ChannelAssembler] = None,
+    rnn_state_shape: List[int] = [],
+    rnn_seqlen: int = 0,
 ) -> mcts.MctsPlayer:
+    if len(rnn_state_shape) > 0:
+      rnn_state_shape = [*rnn_state_shape]
+      rnn_state_shape.append(game.get_feat_size()[1])
+      rnn_state_shape.append(game.get_feat_size()[2])
+
+    print("final rnn_state_shape is ", rnn_state_shape)
     player = mcts.MctsPlayer(mcts_option)
     for _ in range(num_actor):
         num_actor += 1
@@ -127,6 +150,8 @@ def _create_neural_mcts_player(
             actor_channel,
             game.get_feat_size(),
             game.get_action_size(),
+            rnn_state_shape,
+            rnn_seqlen,
             True,
             True,
             assembler,
@@ -146,6 +171,12 @@ def create_player(
     human_mode: bool = False,
     time_ratio: float = 0.07,
     total_time: float = 0,
+    sample_before_step_idx: int = 0,
+    randomized_rollouts: bool = False,
+    sampling_mcts: bool = False,
+    move_select_use_mcts_value: bool = False,
+    rnn_state_shape: List[int] = [],
+    rnn_seqlen: int = 0,
 ):
     mcts_option = _set_mcts_option(
         num_rollouts=num_rollouts,
@@ -153,6 +184,10 @@ def create_player(
         human_mode=human_mode,
         time_ratio=time_ratio,
         total_time=total_time,
+        sample_before_step_idx=sample_before_step_idx,
+        randomized_rollouts=randomized_rollouts,
+        sampling_mcts=sampling_mcts,
+        move_select_use_mcts_value=move_select_use_mcts_value
     )
     if pure_mcts:
         return _create_pure_mcts_player(
@@ -165,4 +200,6 @@ def create_player(
             num_actor=num_actor,
             actor_channel=actor_channel,
             assembler=assembler,
+            rnn_state_shape=rnn_state_shape,
+            rnn_seqlen=rnn_seqlen,
         )

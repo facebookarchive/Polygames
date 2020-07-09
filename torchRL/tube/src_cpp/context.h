@@ -57,7 +57,7 @@ class Context {
 
   std::string getStatsStr() const {
     EnvThread::Stats cum_stats;
-    for (const auto& env: envs_) {
+    for (const auto& env : envs_) {
       const auto& stats = env->get_stats();
       for (const auto& key2stat : stats) {
         auto& cum_stats_val = cum_stats[key2stat.first];
@@ -74,9 +74,7 @@ class Context {
       const auto f2 = std::get<2>(key2stat.second);
       const auto mean = (f0 > 0 ? f1 / f0 : 0);
       const auto stddev = (f0 > 0 ? std::sqrt(f2 / f0 - mean * mean) : 0);
-      oss << key2stat.first
-          << ": N=" << f0
-          << ", avg=" << mean
+      oss << key2stat.first << ": N=" << f0 << ", avg=" << mean
           << ", std=" << stddev << std::endl;
     }
     return oss.str();
