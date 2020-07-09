@@ -232,8 +232,8 @@ class StateForConnect6 : public ::State, C6Board {
       return -1;
     }
     for (auto& a : _NewlegalActions) {
-      if (a->GetZ() == z && a->GetY() == y) {
-        return a->GetIndex();
+      if (a.GetZ() == z && a.GetY() == y) {
+        return a.GetIndex();
       }
     }
     return -1;
