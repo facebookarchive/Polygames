@@ -38,7 +38,6 @@
 #include "../games/othello.h"
 #include "../games/othello_opt.h"
 #include "../games/outeropengomoku_new.h"
-#include "../games/starcraft.h"
 #include "../games/surakarta_state.h"
 #include "../games/tristannogo_state.h"
 #include "../games/weakschur/weakschur_state.h"
