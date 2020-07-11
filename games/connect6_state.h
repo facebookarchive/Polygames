@@ -133,20 +133,20 @@ class StateForConnect6 : public ::State, C6Board {
 
       play(m);
 
-      if (nb == 0 && won(m) == false) {
-        _status = GameStatus::tie;
-      } else if (won(m)) {
-        // printf("\nplayer0Win\n");
+      bool hasWon = won(m);
+      if (hasWon) {
         _status = GameStatus::player0Win;
-        // show_board();
-        // exit(1);
       } else {
         findActions();
-        if (twice == 0) {
-          twice = 1;
-        } else if (twice == 1) {
-          twice = 0;
-          _status = GameStatus::player1Turn;
+        if (nb == 0) {
+          _status = GameStatus::tie;
+        } else {
+          if (twice == 0) {
+            twice = 1;
+          } else if (twice == 1) {
+            twice = 0;
+            _status = GameStatus::player1Turn;
+          }
         }
       }
     } else if (_status == GameStatus::player1Turn) {
@@ -156,28 +156,28 @@ class StateForConnect6 : public ::State, C6Board {
       m.y = action.GetZ();
 
       play(m);
-
-      if (nb == 0 && won(m) == false) {
-        _status = GameStatus::tie;
-      } else if (won(m)) {
-        // printf("player1Win\n");
-        // show_board();
+      bool hasWon = won(m);
+      if (hasWon) {
         _status = GameStatus::player1Win;
-        // exit(1);
       } else {
         findActions();
-        if (firhand) {
-          _status = GameStatus::player0Turn;
-          firhand = 0;
+        if (nb == 0) {
+          _status = GameStatus::tie;
         } else {
-          if (twice == 0)
-            twice = 1;
-          else if (twice == 1) {
-            twice = 0;
+          if (firhand) {
             _status = GameStatus::player0Turn;
+            firhand = 0;
+          } else {
+            if (twice == 0)
+              twice = 1;
+            else if (twice == 1) {
+              twice = 0;
+              _status = GameStatus::player0Turn;
+            }
           }
         }
       }
+
     }
     findFeatures();
     _hash = hash;
