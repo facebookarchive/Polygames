@@ -40,11 +40,15 @@ class MctsPlayer : public Player {
       , option_(option)
       , rng_(option.seed)
       , storage_(option.storageCap) {
-    remaining_time = option.totalTime;
+    reset();
   }
 
   void addActor(std::shared_ptr<Actor> actor) {
     actors_.push_back(actor);
+  }
+
+  virtual void reset() override {
+    remaining_time = option_.totalTime;
   }
 
   void newEpisode() override {

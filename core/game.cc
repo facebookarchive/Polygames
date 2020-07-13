@@ -463,6 +463,9 @@ std::optional<int> Game::parseSpecialAction(const std::string& str) {
         return -1;
       } else if (str == "r" || str == "reset") {
         state_->reset();
+        for (auto& v : players_) {
+          v->reset();
+        }
         return -1;
       } else if (str == "u" || str == "undo") {
         state_->undoLastMove();
