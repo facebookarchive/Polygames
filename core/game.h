@@ -74,7 +74,9 @@ class Game : public tube::EnvThread {
                        randomFeatures, oneFeature);
     gameName_ = gameName;
     if (isGameNameMatched({"Connect6"})) {
-      state_ = std::make_unique<Connect6::StateForConnect6>(seed);
+      state_ = std::make_unique<Connect6::StateForConnect6<1>>(seed);
+    } else if (isGameNameMatched({"Connect6v2"})) {
+      state_ = std::make_unique<Connect6::StateForConnect6<2>>(seed);
     } else if (isGameNameMatched({"Connect4"})) {
       state_ = std::make_unique<StateForConnectFour>(seed);
       /*
