@@ -85,12 +85,11 @@ class MctsPlayer : public Player {
       }
 
       double thisMoveTime = remaining_time * option_.timeRatio;
-      if (thisMoveTime > 0) {
+      if (option_.totalTime > 0) {
         std::cerr << "Remaining time:" << remaining_time << std::endl;
         std::cerr << "This move time:" << thisMoveTime << std::endl;
       }
-      std::chrono::time_point<std::chrono::system_clock> begin =
-          std::chrono::system_clock::now();
+      auto begin = std::chrono::steady_clock::now();
       if (actors_.size() == 1) {
         computeRollouts(
             roots, states, *actors_[0], option_, thisMoveTime, rng_);
@@ -112,14 +111,17 @@ class MctsPlayer : public Player {
           futures[i].get();
         }
       }
-      std::chrono::time_point<std::chrono::system_clock> end =
-          std::chrono::system_clock::now();
-      remaining_time -=
-          std::chrono::duration_cast<std::chrono::seconds>(end - begin).count();
+      if (option_.totalTime) {
+        auto end = std::chrono::steady_clock::now();
+        remaining_time -=
+            std::chrono::duration_cast<
+                std::chrono::duration<double, std::ratio<1, 1>>>(end - begin)
+                .count();
+      }
       for (size_t i = 0; i != states.size(); ++i) {
         Node* rootNode = roots[i];
         assert(rootNode->getMctsStats().getVirtualLoss() == 0);
-        if (thisMoveTime > 0) {
+        if (option_.totalTime > 0) {
           std::cerr << "Value : " << rootNode->getMctsStats().getValue()
                     << " total rollouts : "
                     << rootNode->getMctsStats().getNumVisit() << std::endl;

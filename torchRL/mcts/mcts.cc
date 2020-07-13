@@ -91,8 +91,8 @@ void mcts::computeRollouts(const std::vector<Node*>& rootNode,
   double elapsedTime = 0;
   auto begin = std::chrono::steady_clock::now();
 
-  while ((((max_time > 0) || (numRollout < option.numRolloutPerThread)) &&
-          ((elapsedTime < max_time) || (max_time <= 0))) ||
+  while ((option.totalTime ? elapsedTime < max_time
+                           : numRollout < option.numRolloutPerThread) ||
          numRollout < 2) {
     // std::cout << " new rollout
     // ===================================================" << std::endl;
@@ -210,6 +210,8 @@ void mcts::computeRollouts(const std::vector<Node*>& rootNode,
     ++numRollout;
     auto end = std::chrono::steady_clock::now();
     elapsedTime =
-        std::chrono::duration_cast<std::chrono::seconds>(end - begin).count();
+        std::chrono::duration_cast<
+            std::chrono::duration<double, std::ratio<1, 1>>>(end - begin)
+            .count();
   }
 }
