@@ -229,9 +229,12 @@ def create_training_environment(
 
     def get_train_reward() -> Callable[[], List[int]]:
         nonlocal games
+        nonlocal opgame
         reward = []
         for game in games:
             reward.append(game.get_result()[0])
+        if opgame is not None:
+          reward.append(opgame.get_result()[0])
 
         return reward
 

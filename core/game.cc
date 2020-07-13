@@ -155,6 +155,8 @@ void Game::mainLoop() {
       std::vector<int> useNoiseModel;
       std::vector<std::vector<float>> rnnState;
       std::vector<std::vector<float>> rnnState2;
+
+      std::vector<int> allowRandomMoves;
     };
 
     std::list<GameState> states;
@@ -222,6 +224,10 @@ void Game::mainLoop() {
       gst.start = std::chrono::steady_clock::now();
       gst.resignCounter.resize(players_.size());
       gst.canResign = !evalMode && players_.size() == 2 && randint(3) != 0;
+      gst.allowRandomMoves.resize(players_.size());
+      for (auto& v : gst.allowRandomMoves) {
+        v = randint(4) == 0;
+      }
       gst.useNoiseModel.resize(players_.size());
       for (auto& v : gst.useNoiseModel) {
         // v = randint(4) == 0;
@@ -669,6 +675,16 @@ void Game::mainLoop() {
           }
           sendTrajectory();
 
+          if (doRewind) {
+            for (size_t slot = 0; slot != players_.size(); ++slot) {
+              size_t dstp = i->players.at(slot);
+              if (mctsPlayers[dstp]->wantsTournamentResult()) {
+                doRewind = false;
+                break;
+              }
+            }
+          }
+
           ++completedGameCount;
           if (doRewind && i->rewindCount < maxRewinds &&
               rewind(&*i, rewindPlayer, rewindToNegativeValue)) {
@@ -840,6 +856,31 @@ void Game::mainLoop() {
           auto result =
               mctsPlayers.at(playerIndex)
                   ->actMcts(playerActStates, rnnState, trees, policyBias);
+
+          if (true) {
+            offset = 0;
+            for (size_t pi = 0; pi != statePlayerSize.size(); ++pi) {
+              size_t currentPlayerIndex = statePlayerSize[pi].first;
+              size_t currentPlayerStates = statePlayerSize[pi].second;
+              for (size_t i = 0; i != currentPlayerStates; ++i) {
+                State* state = (State*)states.at(offset + i);
+                GameState* gameState =
+                    actGameStates.at(currentPlayerIndex).at(i);
+
+                size_t slot =
+                    gameState->playersReverseMap.at(currentPlayerIndex);
+
+                if (gameState->allowRandomMoves.at(slot)) {
+                  float x = 4.0f / std::pow(state->getStepIdx() + 10, 2.0f);
+                  if (std::uniform_real_distribution<float>(0, 1.0f)(rng) < x) {
+                    result.at(offset + i).bestAction = randint(state->GetLegalActions().size());
+                    fmt::printf("at state '%s' - performing random move %s\n", state->history(), state->actionDescription(state->GetLegalActions().at(result.at(offset + i).bestAction)));
+                  }
+                }
+              }
+              offset += currentPlayerStates;
+            }
+          }
 
           std::vector<std::vector<float>> nextRnnState;
           if (&*playerGame_.at(playerIndex) != this) {

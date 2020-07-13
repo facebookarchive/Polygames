@@ -70,14 +70,14 @@ struct Serializer {
     return buf.size();
   }
 
-  void compress() {
+  void compress(int level = 0) {
     std::vector<char> newbuf;
     newbuf.resize(sizeof(size_t) + ZSTD_compressBound(buf.size()));
     auto n = ZSTD_compress(newbuf.data() + sizeof(size_t),
                            newbuf.size() - sizeof(size_t),
                            buf.data(),
                            buf.size(),
-                           2);
+                           level);
     if (!ZSTD_isError(n)) {
       size_t sn = buf.size();
       std::memcpy(newbuf.data(), &sn, sizeof(sn));

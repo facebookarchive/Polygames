@@ -206,6 +206,8 @@ class ChannelAssembler {
 #endif
       models_.back()->eval();
 
+      models_.back()->to(at::ScalarType::Half);
+
       auto channel = std::make_shared<DataChannel>(
           std::string("act") + std::to_string(i), actBatchsize, -1);
       actChannels_.push_back(std::move(channel));
@@ -255,10 +257,16 @@ class ChannelAssembler {
   }
 
   void startClient(std::string serverConnectHostname) {
+    auto firstUpdate = std::make_shared<std::promise<bool>>();
+    auto firstUpdateFuture = firstUpdate->get_future();
     client_.emplace();
     client_->onUpdateModel =
-        [this](std::string_view id,
-               std::unordered_map<std::string, torch::Tensor> dict) {
+        [this, firstUpdate](std::string_view id,
+               std::unordered_map<std::string, torch::Tensor> dict) mutable {
+          if (firstUpdate) {
+            firstUpdate->set_value(true);
+            firstUpdate.reset();
+          }
           if (!dontRequestModelUpdates_) {
             fmt::printf("onUpdateModel '%s'\n", id);
             updateModel(dict);
@@ -278,6 +286,15 @@ class ChannelAssembler {
         }
       }
     });
+
+    if (!dontRequestModelUpdates_) {
+      fmt::printf("Waiting for model\n");
+      firstUpdateFuture.wait();
+      fmt::printf("Received model\n");
+    } else {
+      fmt::printf("Not requesting model updates\n");
+    }
+
   }
 
   std::unique_ptr<rpc::Rpc> replayBufferRpc;
@@ -338,7 +355,7 @@ class ChannelAssembler {
     torch::NoGradGuard ng;
     std::unordered_map<std::string, torch::Tensor> r;
     for (auto& [name, tensor] : stateDict) {
-      r[name] = tensor.clone().detach().cpu();
+      r[name] = tensor.detach().to(torch::TensorOptions().device(torch::kCPU).dtype(at::ScalarType::Half), false, true);
     }
     return r;
   }
@@ -544,9 +561,9 @@ class ChannelAssembler {
       g.emplace(c10::cuda::getStreamFromPool(false, actDevices_[n].index()));
     }
     std::vector<torch::jit::IValue> inp;
-    inp.push_back(input.to(actDevices_[n], true));
+    inp.push_back(input.to(actDevices_[n], at::ScalarType::Half, true));
     if (rnnState.defined()) {
-      inp.push_back(rnnState.to(actDevices_[n], true));
+      inp.push_back(rnnState.to(actDevices_[n], at::ScalarType::Half, true));
     }
     std::unique_lock<PriorityMutex> lk(mModels_[n]);
     auto output = models_[n]->forward(inp);
@@ -621,6 +638,10 @@ class ChannelAssembler {
     dontRequestModelUpdates_ = v;
   }
 
+  bool wantsTournamentResult() {
+    return client_ ? client_->wantsTournamentResult() : false;
+  }
+
   std::string_view getTournamentModelId() {
     if (client_) {
       return client_->getModelId();
@@ -655,7 +676,6 @@ class ChannelAssembler {
   std::thread modelUpdateThread;
   bool isTournamentOpponent_ = false;
   bool dontRequestModelUpdates_ = false;
-  int clientModelVersion_ = -1;
 };
 
 }  // namespace tube

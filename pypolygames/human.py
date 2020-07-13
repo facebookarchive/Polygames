@@ -200,15 +200,16 @@ def _play_game_against_neural_mcts(
           )
         futures = []
         reply_eval = {"v": None, "pi": None}
-#        print(len(batches_s))
-#        print(len(batches_s[0]))
+        #print(len(batches_s))
+        #print(len(batches_s[0]))
 #        if time.time() - lastforward > 1 and len(batches_s) == 1 and len(batches_s[0]) == 1:
-#          print(batches_s[0][0])
-#          v, pi, predict = models[0]._forward(utils.to_device(batches_s[0], devices[0]), True)
+#          #print(batches_s[0][0])
+#          #v, pi, predict = models[0]._forward(utils.to_device(batches_s[0], devices[0]), True)
 #          #pi = models[0].forward(utils.to_device(batches_s[0], devices[0]))["pi"]
 #          print("Pi:")
 #          #p = pi[0].cpu()
-#          p = predict[0].cpu()
+#          #p = predict[0].cpu()
+#          p = batches_s[0][0].cpu()
 #          for i in range(p.size(0)):
 #            for y in range(p.size(1)):
 #              s = ""

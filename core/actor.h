@@ -276,6 +276,10 @@ class Actor : public mcts::Actor {
     return assembler_ ? assembler_->isTournamentOpponent() : false;
   }
 
+  virtual bool wantsTournamentResult() const override {
+    return assembler_ ? assembler_->wantsTournamentResult() : false;
+  }
+
   virtual double batchTiming() const override {
     return batchTiming_;
   }

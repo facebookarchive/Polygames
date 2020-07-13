@@ -7,6 +7,9 @@
 
 #include "rpc.h"
 
+#define ZSTD_STATIC_LINKING_ONLY
+#include "zstd/lib/zstd.h"
+
 #include <fmt/printf.h>
 #include <torch/torch.h>
 
@@ -180,7 +183,7 @@ void addnetworkstats(const T& obj, NetStatsCounter& counter) {
 inline rpc::Rpc& getRpc() {
   static std::unique_ptr<rpc::Rpc> rpc = []() {
     auto rpc = std::make_unique<rpc::Rpc>();
-    rpc->asyncRun(20);
+    rpc->asyncRun(40);
     return rpc;
   }();
   return *rpc;
@@ -389,6 +392,61 @@ class DistributedServer {
     }
   }
 
+  std::optional<std::vector<char>>
+  requestCompressedStateDict(std::string_view modelId) {
+    std::unique_lock l(mut);
+    auto i = models.find(modelId);
+    if (i == models.end()) {
+      return {};
+    } else {
+      if (i->second.compressedStateDict.empty()) {
+        for (int n = 0; n != 500 && i->second.compressing.exchange(true); ++n) {
+          l.unlock();
+          std::this_thread::sleep_for(std::chrono::milliseconds(50));
+          l.lock();
+          i = models.find(modelId);
+          if (i == models.end()) {
+            return {};
+          }
+          if (!i->second.compressedStateDict.empty()) {
+            return i->second.compressedStateDict;
+          }
+        }
+        auto copy = i->second.stateDict;
+        l.unlock();
+        auto start = std::chrono::steady_clock::now();
+        rpc::Serializer s;
+        rpc::Serialize ser(s);
+        ser(i->second.stateDict);
+        auto now = std::chrono::steady_clock::now();
+        double t1 = std::chrono::duration_cast<
+                       std::chrono::duration<double, std::ratio<1, 1000>>>(now - start)
+                       .count();
+        start = now;
+        size_t oldsize = s.size();
+        s.compress(15);
+        size_t newsize = s.size();
+        s.buf.shrink_to_fit();
+        now = std::chrono::steady_clock::now();
+        double t2 = std::chrono::duration_cast<
+                       std::chrono::duration<double, std::ratio<1, 1000>>>(now - start)
+                       .count();
+        start = now;
+
+        fmt::printf("State dict serialized in %gms, compressed (from %gM to %gM) in %gms\n", t1, oldsize / 1024.0 / 1024.0, newsize / 1024.0 / 1024.0, t2);
+
+        l.lock();
+        i = models.find(modelId);
+        if (i == models.end()) {
+          return {};
+        }
+        i->second.compressedStateDict = std::move(s.buf);
+        i->second.compressing = false;
+      }
+      return i->second.compressedStateDict;
+    }
+  }
+
   void trainData(std::string_view data) {
     onTrainData(data.data(), data.size());
   }
@@ -409,6 +467,8 @@ class DistributedServer {
     int version = 0;
     float rating = 0.0f;
     std::unordered_map<std::string, torch::Tensor> stateDict;
+    std::vector<char> compressedStateDict;
+    std::atomic<bool> compressing{false};
     uint64_t ngames = 0;
     double rewardsum = 0.0;
     float avgreward = 0.0f;
@@ -439,6 +499,8 @@ class DistributedServer {
     server->define("requestModel", &DistributedServer::requestModel, this);
     server->define(
         "requestStateDict", &DistributedServer::requestStateDict, this);
+    server->define(
+        "requestCompressedStateDict", &DistributedServer::requestCompressedStateDict, this);
     server->define("trainData", &DistributedServer::trainData, this);
     server->define("gameResult", &DistributedServer::gameResult, this);
 
@@ -460,6 +522,7 @@ class DistributedServer {
     auto& m = i.first->second;
     m.stateDict = std::move(stateDict);
     ++m.version;
+    m.compressedStateDict.clear();
   }
 };
 
@@ -467,12 +530,16 @@ class DistributedClient {
 
   std::shared_ptr<rpc::Client> client;
 
-  std::mutex mut;
+  mutable std::mutex mut;
   std::unordered_set<std::string> allModelIds;
   std::string_view currentModelId = *allModelIds.emplace("dev").first;
   int currentModelVersion = -1;
   int gamesDoneWithCurrentModel = 0;
   bool wantsNewModelId = false;
+  bool wantsTournamentResult_ = false;
+
+  std::chrono::steady_clock::time_point lastCheckTournamentResult = std::chrono::steady_clock::now();
+  std::chrono::steady_clock::time_point lastTournamentResult = std::chrono::steady_clock::now();
 
   std::vector<std::pair<float, std::unordered_map<std::string_view, float>>>
       resultQueue;
@@ -484,18 +551,22 @@ class DistributedClient {
       std::unique_lock l(mut);
       auto modelId = currentModelId;
       auto result = client->async<
-          std::optional<std::unordered_map<std::string, torch::Tensor>>>(
-          "requestStateDict", modelId);
+          std::optional<std::vector<char>>>(
+          "requestCompressedStateDict", modelId);
       l.unlock();
-      auto stateDict = result.get();
+      auto compressed = result.get();
       addnetworkstats(*client, netstatsCounter);
-      l.lock();
-      if (!stateDict) {
+      if (!compressed) {
+        l.lock();
         currentModelId = "dev";
         currentModelVersion = -1;
       } else {
-        l.unlock();
-        onUpdateModel(modelId, *stateDict);
+        std::unordered_map<std::string, torch::Tensor> stateDict;
+        rpc::Deserializer d(compressed->data(), compressed->size());
+        d.decompress();
+        rpc::Deserialize des(d);
+        des(stateDict);
+        onUpdateModel(modelId, stateDict);
       }
     } catch (const rpc::RPCException& e) {
       fmt::printf("RPC exception: %s\n", e.what());
@@ -515,6 +586,8 @@ class DistributedClient {
         resultQueue.clear();
       }
 
+      fmt::printf("Request mode, isTournamentOpponent %d, wantsNewModelId %d\n", isTournamentOpponent, wantsNewModelId);
+
       auto result = client->async<std::pair<std::string, int>>(
           "requestModel",
           isTournamentOpponent ? std::exchange(wantsNewModelId, false) : false,
@@ -524,7 +597,20 @@ class DistributedClient {
       auto [newId, version] = result.get();
       addnetworkstats(*client, netstatsCounter);
 
+      fmt::printf("Got model '%s'\n", newId);
+
       l.lock();
+      auto now = std::chrono::steady_clock::now();
+      if (isTournamentOpponent && now - lastCheckTournamentResult >= std::chrono::minutes(2)) {
+        lastCheckTournamentResult = now;
+        wantsTournamentResult_ = now - lastTournamentResult >= std::chrono::minutes(5);
+        if (!wantsTournamentResult_) {
+          wantsNewModelId = true;
+        }
+        fmt::printf("wantsTournamentResult_ is %d, wantsNewModelId is %d\n", wantsTournamentResult_, wantsNewModelId);
+      } else if (!isTournamentOpponent) {
+        wantsTournamentResult_ = false;
+      }
       if (currentModelId != newId) {
         currentModelId = *allModelIds.emplace(newId).first;
         currentModelVersion = -1;
@@ -561,11 +647,17 @@ class DistributedClient {
   void sendResult(float reward,
                   std::unordered_map<std::string_view, float> models) {
     std::unique_lock l(mut);
+    fmt::printf("sendResult %g\n", reward);
+    for (auto& [k, v] : models) {
+      fmt::printf("  model '%s' %g\n", k, v);
+    }
     auto i = models.find(currentModelId);
     if (i != models.end()) {
       if (i->second >= 0.9f) {
         ++gamesDoneWithCurrentModel;
-        if (gamesDoneWithCurrentModel >= 64) {
+        printf("gamesDoneWithCurrentModel is now %d\n", gamesDoneWithCurrentModel);
+        if (gamesDoneWithCurrentModel >= 20) {
+          lastTournamentResult = std::chrono::steady_clock::now();
           wantsNewModelId = true;
         }
       }
@@ -573,7 +665,12 @@ class DistributedClient {
     resultQueue.emplace_back(reward, std::move(models));
   }
 
-  std::string_view getModelId() {
+  bool wantsTournamentResult() const {
+    std::unique_lock l(mut);
+    return wantsTournamentResult_;
+  }
+
+  std::string_view getModelId() const {
     std::unique_lock l(mut);
     return currentModelId;
   }

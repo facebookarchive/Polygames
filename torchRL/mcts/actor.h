@@ -62,6 +62,9 @@ class Actor {
   virtual bool isTournamentOpponent() const {
     return false;
   }
+  virtual bool wantsTournamentResult() const {
+    return false;
+  }
 
   virtual double batchTiming() const {
     return -1.0f;
