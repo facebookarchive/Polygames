@@ -174,6 +174,15 @@ class MctsPlayer : public Player {
     return rolloutsPerSecond_;
   }
 
+  const MctsOption& option() {
+    return option_;
+  }
+
+  float calculateValue(const State& state) {
+    PiVal result =actors_.at(0)->evaluate(state);
+    return result.value;
+  }
+
  private:
   MctsOption option_;
   double remaining_time;

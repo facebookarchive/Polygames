@@ -304,6 +304,18 @@ void Game::mainLoop() {
     }
   } else {
 
+    // Warm up model. This can take several seconds, so do it before we start
+    // time counting.
+    for (auto& v : players_) {
+      auto mctsPlayer = std::dynamic_pointer_cast<mcts::MctsPlayer>(v);
+      if (mctsPlayer && mctsPlayer->option().totalTime) {
+        std::cout << "Warming up model.\n";
+        for (int i = 0; i != 10; ++i) {
+          mctsPlayer->calculateValue(*state_);
+        }
+      }
+    }
+
     int64_t gameCount = 0;
 #ifdef DEBUG_GAME
     std::thread::id thread_id = std::this_thread::get_id();
