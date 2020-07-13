@@ -156,7 +156,9 @@ class State : public mcts::State {
     auto rngs = _moveRngs;
     s->reset();
     for (size_t i = 0; i != moves.size(); ++i) {
-      // if (!str.empty()) str += " ";
+      if (!str.empty()) {
+        str += " ";
+      }
       str += s->actionDescription(*s->GetLegalActions().at(moves.at(i)));
       std::tie(s->_rng, s->forcedDice) = rngs.at(i);
       s->forward(moves.at(i));
