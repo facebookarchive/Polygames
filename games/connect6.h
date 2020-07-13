@@ -55,7 +55,7 @@ class C6Board {
 
  public:
   int nb;
-  int board[C6Dx][C6Dy];
+  char board[C6Dx][C6Dy];
   unsigned long long hash;
 
   void init() {
@@ -200,26 +200,5 @@ class C6Board {
     return nb;
   }
 
-  void show_board() const {
-    printf("   ");
-    for (int k = 65; k < 84; k++)
-      printf("%c ", k);
-    printf("\n");
-    for (int i = 0; i < C6Dx; i++) {
-      if (i < 9)
-        std::cout << i + 1 << "  ";
-      else
-        std::cout << i + 1 << ' ';
-      for (int j = 0; j < C6Dy; j++) {
-        if (board[i][j] == C6Black)
-          std::cout << "X ";
-        else if (board[i][j] == C6White)
-          std::cout << "O ";
-        else
-          std::cout << ". ";
-      }
-      printf("\n");
-    }
-  }
 };
 }
