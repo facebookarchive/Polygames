@@ -368,7 +368,7 @@ int computeRolloutsImpl(const std::vector<Node*>& rootNode,
         if (state.terminated()) {
           PiVal& piVal = node->piVal_;
           piVal.policy.clear();
-          piVal.value = state.getReward(state.getCurrentPlayer());
+          piVal.value = state.getReward(state.getCurrentPlayer()) * 2.0f;
           piVal.playerId = state.getCurrentPlayer();
 
           st.terminated = true;
@@ -408,9 +408,10 @@ int computeRolloutsImpl(const std::vector<Node*>& rootNode,
 
   while (true) {
 
-    keepGoing = ((((max_time > 0) || (numRollout < rollouts)) &&
-                  ((elapsedTime < max_time) || (max_time <= 0))) ||
-                 numRollout < 2);
+//    keepGoing = ((((max_time > 0) || (numRollout < rollouts)) &&
+//                  ((elapsedTime < max_time) || (max_time <= 0))) ||
+//                 numRollout < 2);
+    keepGoing = (option.totalTime ? elapsedTime < max_time : numRollout < option.numRolloutPerThread) || numRollout < 2;
 
     otherTime += timer.elapsed_reset();
 

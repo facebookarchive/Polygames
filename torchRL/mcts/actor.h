@@ -59,6 +59,9 @@ class Actor {
   virtual void result(const State* state, float reward) {
   }
 
+  virtual void forget(const State* state) {
+  }
+
   virtual bool isTournamentOpponent() const {
     return false;
   }

@@ -272,6 +272,15 @@ class Actor : public mcts::Actor {
     }
   }
 
+  virtual void forget(const mcts::State* state) override {
+    if (assembler_) {
+      auto i = modelTrackers_.find(state);
+      if (i != modelTrackers_.end()) {
+        modelTrackers_.erase(i);
+      }
+    }
+  }
+
   virtual bool isTournamentOpponent() const override {
     return assembler_ ? assembler_->isTournamentOpponent() : false;
   }

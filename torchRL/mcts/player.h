@@ -33,6 +33,8 @@ class Player {
   }
   virtual void result(const State*, float reward) {
   }
+  virtual void forget(const State*) {
+  }
 
   virtual void setName(std::string name) {
     name_ = std::move(name);

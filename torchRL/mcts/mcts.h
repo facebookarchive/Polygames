@@ -83,6 +83,10 @@ class MctsPlayer : public Player {
     actors_[0]->result(state, reward);
   }
 
+  void forget(const State* state) override {
+    actors_[0]->forget(state);
+  }
+
   bool isTournamentOpponent() const {
     return actors_[0]->isTournamentOpponent();
   }

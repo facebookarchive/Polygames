@@ -157,6 +157,7 @@ void Game::mainLoop() {
       std::vector<std::vector<float>> rnnState2;
 
       std::vector<int> allowRandomMoves;
+      bool validTournamentGame = false;
     };
 
     std::list<GameState> states;
@@ -183,6 +184,33 @@ void Game::mainLoop() {
     };
 
     std::list<GameState> freeGameList;
+
+    float runningAverageGameSteps = 0.0f;
+
+    auto doRandomMoves = [&](GameState& gst, int n) {
+      auto o = cloneState(gst.state);
+      std::vector<size_t> moves;
+      for (;n > 0; --n) {
+        if (gst.state->terminated()) {
+          break;
+        }
+        size_t n = randint(gst.state->GetLegalActions().size());
+        moves.push_back(n);
+        gst.state->forward(n);
+      }
+      if (gst.state->terminated()) {
+        gst.state = std::move(o);
+      } else {
+        for (auto m : moves) {
+          for (auto& x : gst.playerState) {
+            if (x) {
+              x->forward(m);
+            }
+          }
+        }
+        fmt::printf("Did %d random moves: '%s'\n", gst.state->getStepIdx(), gst.state->history());
+      }
+    };
 
     auto addGame = [&](auto at) {
       if (!freeGameList.empty()) {
@@ -224,14 +252,29 @@ void Game::mainLoop() {
       gst.start = std::chrono::steady_clock::now();
       gst.resignCounter.resize(players_.size());
       gst.canResign = !evalMode && players_.size() == 2 && randint(3) != 0;
+      gst.validTournamentGame = true;
       gst.allowRandomMoves.resize(players_.size());
       for (auto& v : gst.allowRandomMoves) {
         v = randint(4) == 0;
       }
       gst.useNoiseModel.resize(players_.size());
       for (auto& v : gst.useNoiseModel) {
-        // v = randint(4) == 0;
+        //v = randint(8) == 0;
         v = false;
+      }
+      if (randint(250) == 0) {
+        switch (randint(2)) {
+        case 0:
+          doRandomMoves(gst, randint(std::max((int)runningAverageGameSteps, 1)));
+          break;
+        case 1:
+          doRandomMoves(gst, randint(std::max((int)runningAverageGameSteps / 10, 1)));
+          break;
+        case 2:
+          doRandomMoves(gst, randint(std::max((int)runningAverageGameSteps / 5, 1)));
+          break;
+        }
+        gst.validTournamentGame = false;
       }
       return states.insert(at, std::move(gst));
     };
@@ -461,6 +504,8 @@ void Game::mainLoop() {
             fmt::printf("game ended normally: %s\n", state->history().c_str());
           }
 
+          runningAverageGameSteps = runningAverageGameSteps * 0.99f + state->getStepIdx() * 0.01f;
+
           bool doRewind = false;
           int rewindPlayer = 0;
           bool rewindToNegativeValue = false;
@@ -614,8 +659,10 @@ void Game::mainLoop() {
               }
             }
 
-            if (i->rewindCount == 0) {
+            if (i->rewindCount == 0 && i->validTournamentGame) {
               players_[dstp]->result(state, result_[dstp]);
+            } else {
+              players_[dstp]->forget(state);
             }
 
             float a = 0.9875;
@@ -623,8 +670,8 @@ void Game::mainLoop() {
               float reward = result_[dstp];
               noiseRunningReward.at(slot) =
                   noiseRunningReward.at(slot) * a + reward * (1 - a);
-              // fmt::printf("running reward for noise slot %d: %f\n", slot,
-              // noiseRunningReward.at(slot)); if (reward > 0) {
+              //fmt::printf("running reward for noise slot %d: %f\n", slot, noiseRunningReward.at(slot));
+              //if (reward > 0) {
               if (true) {
                 std::vector<torch::Tensor> inputs;
                 std::vector<torch::Tensor> target;
@@ -669,8 +716,7 @@ void Game::mainLoop() {
               float reward = result_[dstp];
               nonoiseRunningReward.at(slot) =
                   nonoiseRunningReward.at(slot) * a + reward * (1 - a);
-              // fmt::printf("running reward for nonoise slot %d: %f\n", slot,
-              // nonoiseRunningReward.at(slot));
+              //fmt::printf("running reward for nonoise slot %d: %f\n", slot, nonoiseRunningReward.at(slot));
             }
           }
           sendTrajectory();
@@ -875,6 +921,7 @@ void Game::mainLoop() {
                   if (std::uniform_real_distribution<float>(0, 1.0f)(rng) < x) {
                     result.at(offset + i).bestAction = randint(state->GetLegalActions().size());
                     fmt::printf("at state '%s' - performing random move %s\n", state->history(), state->actionDescription(state->GetLegalActions().at(result.at(offset + i).bestAction)));
+                    gameState->validTournamentGame = false;
                   }
                 }
               }
