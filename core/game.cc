@@ -304,15 +304,23 @@ void Game::mainLoop() {
     }
   } else {
 
-    // Warm up model. This can take several seconds, so do it before we start
-    // time counting.
+    // Warm up JIT/model. This can take several seconds, so do it before we
+    // start time counting.
     for (auto& v : players_) {
       auto mctsPlayer = std::dynamic_pointer_cast<mcts::MctsPlayer>(v);
       if (mctsPlayer && mctsPlayer->option().totalTime) {
         std::cout << "Warming up model.\n";
-        for (int i = 0; i != 10; ++i) {
-          mctsPlayer->calculateValue(*state_);
-        }
+        auto opt = mctsPlayer->option();
+        mctsPlayer->option().totalTime = 0;
+        mctsPlayer->option().numRolloutPerThread = 20;
+        mctsPlayer->reset();
+        mctsPlayer->actMcts(*state_);
+        mctsPlayer->actMcts(*state_);
+        mctsPlayer->actMcts(*state_);
+        mctsPlayer->actMcts(*state_);
+
+        mctsPlayer->option() = opt;
+        mctsPlayer->reset();
       }
     }
 

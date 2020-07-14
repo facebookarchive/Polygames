@@ -182,7 +182,11 @@ class MctsPlayer : public Player {
     return rolloutsPerSecond_;
   }
 
-  const MctsOption& option() {
+  MctsOption& option() {
+    return option_;
+  }
+
+  const MctsOption& option() const {
     return option_;
   }
 
