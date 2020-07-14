@@ -557,6 +557,8 @@ class State : public mcts::State {
     _turnFeaturesOffset = 0;
     _outFeatSize.clear();
     _fullFeatures.clear();
+    _features.clear();
+    _legalActions.clear();
     Initialize();
   }
 

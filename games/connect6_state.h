@@ -21,9 +21,6 @@
 namespace Connect6{
   
 const int StateForConnect6NumActions = 19 * 19 * 3;
-const int StateForConnect6X = 2 * 6 + 1;
-const int StateForConnect6Y = 19;
-const int StateForConnect6Z = 19;
 
 class ActionForConnect6 : public ::_Action {
  public:
@@ -36,6 +33,7 @@ class ActionForConnect6 : public ::_Action {
   }  // step is 2 or 3.
 };
 
+template<int version = 2>
 class StateForConnect6 : public ::State, C6Board {
  public:
   int twice;
@@ -49,6 +47,10 @@ class StateForConnect6 : public ::State, C6Board {
     // People implementing classes should not have much to do in _moves; just
     // _moves.clear().
     _moves.clear();
+
+    const int StateForConnect6X = version == 2 ? 2 + 1 : 2 * 6 + 1;
+    const int StateForConnect6Y = 19;
+    const int StateForConnect6Z = 19;
 
     _featSize[0] = StateForConnect6X;
     _featSize[1] = StateForConnect6Y;
@@ -79,10 +81,6 @@ class StateForConnect6 : public ::State, C6Board {
     return std::make_unique<StateForConnect6>(*this);
   }
 
-  virtual void printCurrentBoard() const override {
-    show_board();
-  }
-
   void findActions() {
     // printf("findActions\n");
     C6Move moves[C6MaxLegalMoves];
@@ -99,7 +97,6 @@ class StateForConnect6 : public ::State, C6Board {
   }
 
   void findFeatures() {
-    std::vector<float> old(_features);
 
     // printf("findFeatures\n");
     if ((_status == GameStatus::player0Win) ||
@@ -107,19 +104,24 @@ class StateForConnect6 : public ::State, C6Board {
       return;
     }
 
-    for (int i = 0; i < C6Dx * C6Dy * 2; i++)
-      _features[i] = 0;
-    for (int i = 0; i < C6Dx * C6Dy; i++)
-      if (board[i % C6Dx][i / C6Dy] == C6Black)
-        _features[i] = 1;
-    for (int i = 0; i < C6Dx * C6Dy; i++)
-      if (board[i % C6Dx][i / C6Dy] == C6White)
-        _features[C6Dx * C6Dy + i] = 1;
+    if (version == 2) {
+      std::fill(_features.begin() + 2 * C6Dx * C6Dy, _features.end(), twice || firhand ? 1.0f : 0.0f);
+    } else {
+      std::vector<float> old(_features);
+      for (int i = 0; i < C6Dx * C6Dy * 2; i++)
+        _features[i] = 0;
+      for (int i = 0; i < C6Dx * C6Dy; i++)
+        if (board[i % C6Dx][i / C6Dy] == C6Black)
+          _features[i] = 1;
+      for (int i = 0; i < C6Dx * C6Dy; i++)
+        if (board[i % C6Dx][i / C6Dy] == C6White)
+          _features[C6Dx * C6Dy + i] = 1;
 
-    std::copy(old.begin(), old.begin() + 3610, _features.begin() + 722);
+      std::copy(old.begin(), old.begin() + 3610, _features.begin() + 722);
 
-    // 4332-4693
-    std::fill(_features.begin() + 4332, _features.end(), getCurrentPlayer());
+      // 4332-4693
+      std::fill(_features.begin() + 4332, _features.end(), getCurrentPlayer());
+    }
   }
 
   virtual void ApplyAction(const ::_Action& action) override {
@@ -134,20 +136,24 @@ class StateForConnect6 : public ::State, C6Board {
 
       play(m);
 
-      if (nb == 0 && won(m) == false) {
-        _status = GameStatus::tie;
-      } else if (won(m)) {
-        // printf("\nplayer0Win\n");
+      if (version == 2) {
+        _features[m.x * C6Dy + m.y + C6Dx * C6Dy * 0] = 1.0f;
+      }
+
+      bool hasWon = won(m);
+      if (hasWon) {
         _status = GameStatus::player0Win;
-        // show_board();
-        // exit(1);
       } else {
         findActions();
-        if (twice == 0) {
-          twice = 1;
-        } else if (twice == 1) {
-          twice = 0;
-          _status = GameStatus::player1Turn;
+        if (nb == 0) {
+          _status = GameStatus::tie;
+        } else {
+          if (twice == 0) {
+            twice = 1;
+          } else if (twice == 1) {
+            twice = 0;
+            _status = GameStatus::player1Turn;
+          }
         }
       }
     } else if (_status == GameStatus::player1Turn) {
@@ -158,27 +164,32 @@ class StateForConnect6 : public ::State, C6Board {
 
       play(m);
 
-      if (nb == 0 && won(m) == false) {
-        _status = GameStatus::tie;
-      } else if (won(m)) {
-        // printf("player1Win\n");
-        // show_board();
+      if (version == 2) {
+        _features[m.x * C6Dy + m.y + C6Dx * C6Dy * 1] = 1.0f;
+      }
+
+      bool hasWon = won(m);
+      if (hasWon) {
         _status = GameStatus::player1Win;
-        // exit(1);
       } else {
         findActions();
-        if (firhand) {
-          _status = GameStatus::player0Turn;
-          firhand = 0;
+        if (nb == 0) {
+          _status = GameStatus::tie;
         } else {
-          if (twice == 0)
-            twice = 1;
-          else if (twice == 1) {
-            twice = 0;
+          if (firhand) {
             _status = GameStatus::player0Turn;
+            firhand = 0;
+          } else {
+            if (twice == 0)
+              twice = 1;
+            else if (twice == 1) {
+              twice = 0;
+              _status = GameStatus::player0Turn;
+            }
           }
         }
       }
+
     }
     findFeatures();
     _hash = hash;
@@ -196,14 +207,14 @@ class StateForConnect6 : public ::State, C6Board {
       s += fmt::sprintf("%c ", k);
     s += fmt::sprintf("\n");
     for (int i = 0; i < C6Dx; i++) {
-      if (i < 9)
-        s += fmt::sprintf("%d  ", i + 1);
+      if (C6Dx - i < 10)
+        s += fmt::sprintf("%d  ", C6Dx - i);
       else
-        s += fmt::sprintf("%d ", i + 1);
+        s += fmt::sprintf("%d ", C6Dx - i);
       for (int j = 0; j < C6Dy; j++) {
-        if (board[i][j] == C6Black)
+        if (board[C6Dx - 1 - i][j] == C6Black)
           s += "X ";
-        else if (board[i][j] == C6White)
+        else if (board[C6Dx - 1 - i][j] == C6White)
           s += "O ";
         else
           s += ". ";
