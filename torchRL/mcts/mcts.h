@@ -89,12 +89,16 @@ class MctsPlayer : public Player {
       }
 
       double thisMoveTime = remaining_time * option_.timeRatio;
+      bool forceSingleActor = false;
       if (option_.totalTime > 0) {
         std::cerr << "Remaining time:" << remaining_time << std::endl;
         std::cerr << "This move time:" << thisMoveTime << std::endl;
+        if (remaining_time < 1 || thisMoveTime < 0.25) {
+          forceSingleActor = true;
+        }
       }
       auto begin = std::chrono::steady_clock::now();
-      if (actors_.size() == 1) {
+      if (actors_.size() == 1 || forceSingleActor) {
         computeRollouts(
             roots, states, *actors_[0], option_, thisMoveTime, rng_);
       } else {
