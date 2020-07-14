@@ -327,12 +327,11 @@ class State : public mcts::State {
   }
 
   virtual int parseAction(const std::string& str) {
-    for (size_t i = 0; i != _legalActions.size(); ++i) {
-      if (str == actionDescription(*_legalActions[i])) {
-        return i;
-      }
+    try {
+      return std::stoul(str, nullptr, 10);
+    } catch (...) {
+      return -1;
     }
-    return -1;
   }
 
   int TPInputAction(
