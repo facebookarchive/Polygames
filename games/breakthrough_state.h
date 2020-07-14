@@ -37,6 +37,7 @@ class ActionForBreakthrough : public _Action {
   }
 };
 
+template<bool fixedPolicy = true>
 class StateForBreakthrough : public State, BTBoard {
  public:
   StateForBreakthrough(int seed)
@@ -133,7 +134,7 @@ class StateForBreakthrough : public State, BTBoard {
         StateForBreakthroughX * StateForBreakthroughY * StateForBreakthroughZ;
     std::fill(_features.begin(), _features.begin() + numFeats, 0.);
     for (int i = 0; i < 64; i++) {
-      auto value = board[i % 8][i / 8];
+      auto value = fixedPolicy ? board[i / 8][i % 8] : board[i % 8][i / 8];
       if (value == Black)
         _features[i] = 1;
       else if (value == White)

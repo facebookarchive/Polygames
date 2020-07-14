@@ -220,7 +220,9 @@ to look into this) if the strategy is identical to knuth’s.
     } else if (isGameNameMatched({"Havannah10"})) {
       state_ = std::make_unique<Havannah::State<10, false, false>>(seed);
     } else if (isGameNameMatched({"Breakthrough"})) {
-      state_ = std::make_unique<StateForBreakthrough>(seed);
+      state_ = std::make_unique<StateForBreakthrough<false>>(seed);
+    } else if (isGameNameMatched({"BreakthroughV2"})) {
+      state_ = std::make_unique<StateForBreakthrough<true>>(seed);
     } else if (gameName.rfind("Ludii", 0) == 0) {
 #ifdef NO_JAVA
       throw std::runtime_error(
@@ -344,6 +346,10 @@ to look into this) if the strategy is identical to knuth’s.
     piMask_.push_back(piMask);
     v_.push_back(v);
     dispatchers_.push_back(dispatcher);
+  }
+
+  const std::vector<int64_t>& getRawFeatSize() {
+    return state_->GetRawFeatureSize();
   }
 
   const std::vector<int64_t>& getFeatSize() {

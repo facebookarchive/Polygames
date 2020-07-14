@@ -523,6 +523,13 @@ class State : public mcts::State {
     return _hash;
   }
 
+  const std::vector<float>& GetRawFeatures() const {
+    return _features;
+  }
+  const std::vector<int64_t>& GetRawFeatureSize() const {
+    return _featSize;
+  }
+
   // Returns GetXSize x GetYSize x GetZSize float input for the NN.
   const std::vector<float>& GetFeatures() const {
     return _fullFeatures.empty() ? _features : _fullFeatures;

@@ -27,6 +27,8 @@ class GameParams:
     random_features: int = 0
     one_feature: bool = False
     history: int = 0
+    predict_end_state: bool = False
+    predict_n_states: int = 0
 
     def __setattr__(self, attr, value):
         if value is None:
@@ -94,6 +96,18 @@ class GameParams:
                     "added in the featurization",
                 )
             ),
+            predict_end_state=ArgFields(
+                opts=dict(
+                    type=bool,
+                    help="Side learning: predict end state (not functional for training yet)",
+                )
+            ),
+            predict_n_states=ArgFields(
+                opts=dict(
+                    type=int,
+                    help="Side learning: predict N next game states (not functional for training yet)",
+                )
+            ),
         )
         for param, arg_field in params.items():
             if arg_field.name is None:
@@ -123,6 +137,9 @@ class ModelParams:
     bn: bool = False
     # bn_affine: bool = False
     init_method: str = next(iter(WEIGHT_INIT))
+    activation_function: str = "relu"
+    global_pooling: float = 0
+    batchnorm_momentum: float = 0.01
 
     def __setattr__(self, attr, value):
         if value is None:
@@ -221,6 +238,27 @@ class ModelParams:
                     type=str,
                     help="Weight initialisation method",
                     choices=list(WEIGHT_INIT),
+                )
+            ),
+            activation_function=ArgFields(
+                opts=dict(
+                    type=str,
+                    help="Activation function to use",
+                )
+            ),
+            global_pooling=ArgFields(
+                opts=dict(
+                    type=float,
+                    help="Global pooling - this will, for the models that support it, "
+                    "add global pooling over some channels after convolutional layers. "
+                    "The parameter is the proportion of the channels that should be pooled. "
+                    "Eg. 0.1 will specify that we should pool 10% of the channels"
+                )
+            ),
+            batchnorm_momentum=ArgFields(
+                opts=dict(
+                    type=float,
+                    help="Batch normalization momentum",
                 )
             ),
         )
