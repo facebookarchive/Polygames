@@ -156,7 +156,9 @@ class State : public mcts::State {
     auto rngs = _moveRngs;
     s->reset();
     for (size_t i = 0; i != moves.size(); ++i) {
-      // if (!str.empty()) str += " ";
+      if (!str.empty()) {
+        str += " ";
+      }
       str += s->actionDescription(*s->GetLegalActions().at(moves.at(i)));
       std::tie(s->_rng, s->forcedDice) = rngs.at(i);
       s->forward(moves.at(i));
@@ -317,20 +319,20 @@ class State : public mcts::State {
   }
 
   virtual std::string actionsDescription() {
-    std::stringstream ss;
-    for (int i = 0; i < (int)_legalActions.size(); i++) {
-      _Action& action = *(_legalActions[i]);
-      ss << "Action " << i << ": " << actionDescription(action) << std::endl;
+    std::string str;
+    for (auto& v : _legalActions) {
+      str += actionDescription(*v) + " ";
     }
-    return ss.str();
+    return str;
   }
 
   virtual int parseAction(const std::string& str) {
-    try {
-      return std::stoul(str, nullptr, 10);
-    } catch (...) {
-      return -1;
+    for (size_t i = 0; i != _legalActions.size(); ++i) {
+      if (str == actionDescription(*_legalActions[i])) {
+        return i;
+      }
     }
+    return -1;
   }
 
   int TPInputAction(

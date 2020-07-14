@@ -304,6 +304,26 @@ void Game::mainLoop() {
     }
   } else {
 
+    // Warm up JIT/model. This can take several seconds, so do it before we
+    // start time counting.
+    for (auto& v : players_) {
+      auto mctsPlayer = std::dynamic_pointer_cast<mcts::MctsPlayer>(v);
+      if (mctsPlayer && mctsPlayer->option().totalTime) {
+        std::cout << "Warming up model.\n";
+        auto opt = mctsPlayer->option();
+        mctsPlayer->option().totalTime = 0;
+        mctsPlayer->option().numRolloutPerThread = 20;
+        mctsPlayer->reset();
+        mctsPlayer->actMcts(*state_);
+        mctsPlayer->actMcts(*state_);
+        mctsPlayer->actMcts(*state_);
+        mctsPlayer->actMcts(*state_);
+
+        mctsPlayer->option() = opt;
+        mctsPlayer->reset();
+      }
+    }
+
     int64_t gameCount = 0;
 #ifdef DEBUG_GAME
     std::thread::id thread_id = std::this_thread::get_id();
@@ -451,6 +471,9 @@ std::optional<int> Game::parseSpecialAction(const std::string& str) {
         return -1;
       } else if (str == "r" || str == "reset") {
         state_->reset();
+        for (auto& v : players_) {
+          v->reset();
+        }
         return -1;
       } else if (str == "u" || str == "undo") {
         state_->undoLastMove();

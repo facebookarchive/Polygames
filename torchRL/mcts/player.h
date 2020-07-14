@@ -27,6 +27,8 @@ class Player {
 
   virtual void terminate() {
   }
+  virtual void reset() {
+  }
   virtual void newEpisode() {
   }
   virtual void recordMove(const State* state) {

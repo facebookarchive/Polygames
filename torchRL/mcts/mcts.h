@@ -40,11 +40,15 @@ class MctsPlayer : public Player {
       , option_(option)
       , rng_(option.seed)
       , storage_(option.storageCap) {
-    remaining_time = option.totalTime;
+    reset();
   }
 
   void addActor(std::shared_ptr<Actor> actor) {
     actors_.push_back(actor);
+  }
+
+  virtual void reset() override {
+    remaining_time = option_.totalTime;
   }
 
   void newEpisode() override {
@@ -85,13 +89,16 @@ class MctsPlayer : public Player {
       }
 
       double thisMoveTime = remaining_time * option_.timeRatio;
-      if (thisMoveTime > 0) {
+      bool forceSingleActor = false;
+      if (option_.totalTime > 0) {
         std::cerr << "Remaining time:" << remaining_time << std::endl;
         std::cerr << "This move time:" << thisMoveTime << std::endl;
+        if (remaining_time < 1 || thisMoveTime < 0.25) {
+          forceSingleActor = true;
+        }
       }
-      std::chrono::time_point<std::chrono::system_clock> begin =
-          std::chrono::system_clock::now();
-      if (actors_.size() == 1) {
+      auto begin = std::chrono::steady_clock::now();
+      if (actors_.size() == 1 || forceSingleActor) {
         computeRollouts(
             roots, states, *actors_[0], option_, thisMoveTime, rng_);
       } else {
@@ -112,14 +119,17 @@ class MctsPlayer : public Player {
           futures[i].get();
         }
       }
-      std::chrono::time_point<std::chrono::system_clock> end =
-          std::chrono::system_clock::now();
-      remaining_time -=
-          std::chrono::duration_cast<std::chrono::seconds>(end - begin).count();
+      if (option_.totalTime) {
+        auto end = std::chrono::steady_clock::now();
+        remaining_time -=
+            std::chrono::duration_cast<
+                std::chrono::duration<double, std::ratio<1, 1>>>(end - begin)
+                .count();
+      }
       for (size_t i = 0; i != states.size(); ++i) {
         Node* rootNode = roots[i];
         assert(rootNode->getMctsStats().getVirtualLoss() == 0);
-        if (thisMoveTime > 0) {
+        if (option_.totalTime > 0) {
           std::cerr << "Value : " << rootNode->getMctsStats().getValue()
                     << " total rollouts : "
                     << rootNode->getMctsStats().getNumVisit() << std::endl;
@@ -170,6 +180,19 @@ class MctsPlayer : public Player {
 
   double rolloutsPerSecond() {
     return rolloutsPerSecond_;
+  }
+
+  MctsOption& option() {
+    return option_;
+  }
+
+  const MctsOption& option() const {
+    return option_;
+  }
+
+  float calculateValue(const State& state) {
+    PiVal result =actors_.at(0)->evaluate(state);
+    return result.value;
   }
 
  private:
