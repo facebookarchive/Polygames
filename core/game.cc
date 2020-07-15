@@ -158,6 +158,8 @@ void Game::mainLoop() {
 
       std::vector<int> allowRandomMoves;
       bool validTournamentGame = false;
+
+      std::vector<size_t> startMoves;
     };
 
     std::list<GameState> states;
@@ -210,6 +212,7 @@ void Game::mainLoop() {
         }
         fmt::printf("Did %d random moves: '%s'\n", gst.state->getStepIdx(), gst.state->history());
       }
+      gst.startMoves = std::move(moves);
     };
 
     auto addGame = [&](auto at) {
@@ -363,6 +366,15 @@ void Game::mainLoop() {
         if (x) {
           int player = gst.players.at(i);
           x = cloneState(playerGame_.at(player)->state_);
+        }
+      }
+
+      for (auto m : gst.startMoves) {
+        gst.state->forward(m);
+        for (auto& x : gst.playerState) {
+          if (x) {
+            x->forward(m);
+          }
         }
       }
 
@@ -1529,14 +1541,14 @@ void Game::step() {
     if (!state_->isStochastic()) {
       if (!noHuman) {
         std::cout << "Performing action "
-                  << state_->performActionDescription(
+                  << state_->actionDescription(
                          state_->GetLegalActions().at(result.bestAction))
                   << "\n";
       }
     } else if (!noHuman) {
       std::string line;
       std::cout << "Performing action "
-                << state_->performActionDescription(
+                << state_->actionDescription(
                        state_->GetLegalActions().at(result.bestAction))
                 << "\n";
       std::cout << "Random outcome ?" << std::endl;

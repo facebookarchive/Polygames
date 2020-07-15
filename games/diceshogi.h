@@ -517,7 +517,7 @@ class StateForDiceshogi : public State, public Shogi {
         hash ^= HashTurn;
 
         if (length < MaxPlayoutLength) {
-            rollout[length] = m;
+            //rollout[length] = m;
             length++;
         } else {
             // set draw when the moves bigger than 1000

@@ -22,29 +22,32 @@
 #include <queue>
 #include <sstream>
 
-class ActionForMinishogi : public _Action {
-  public:
-    ActionForMinishogi(int x, int y, int p, size_t index) : _Action() {
-        _loc[0] = p;
-        _loc[1] = x;
-        _loc[2] = y;
-        _hash = (x + y * 5) * 19 + p;
-        _i = (int)index;
-    }
-};
+#include <mutex>
 
+//class ActionForMinishogi : public _Action {
+//  public:
+//    ActionForMinishogi(int x, int y, int p, size_t index) : _Action() {
+//        _loc[0] = p;
+//        _loc[1] = x;
+//        _loc[2] = y;
+//        _hash = (x + y * 5) * 19 + p;
+//        _i = (int)index;
+//    }
+//};
+
+template<int version = 2>
 class StateForMinishogi : public State, public Shogi {
   public:
-    unsigned long long HashArray[2][10][Dx][Dy];
-    unsigned long long HashArrayJail[20];
-    unsigned long long HashTurn;
+    static inline unsigned long long HashArray[2][10][Dx][Dy];
+    static inline unsigned long long HashArrayJail[20];
+    static inline unsigned long long HashTurn;
     int length;
 
     int repeat;
+    int perpetualCheckPlayer;
     std::queue<unsigned long long> situation;
 
     StateForMinishogi(int seed) : State(seed), Shogi() {
-        Initialize();
     }
 
     virtual void Initialize() override {
@@ -53,9 +56,15 @@ class StateForMinishogi : public State, public Shogi {
         _hash = 0;
         _status = GameStatus::player0Turn;
         _featSize[0] = 217;
+        if (version == 2) {
+          _featSize[0] = (6 + 4) * 2; // 6 pieces + 4 promoted
+        }
         _featSize[1] = Dy;
         _featSize[2] = Dx;
         _actionSize[0] = 19;  // 11 pieces + 8 promoted
+        if (version == 2) {
+          _actionSize[0] = 6;
+        }
         _actionSize[1] = Dy;
         _actionSize[2] = Dx;
         _features.clear();
@@ -63,7 +72,8 @@ class StateForMinishogi : public State, public Shogi {
         // setFeatures(false, false, false, 0, 0, false);
 
         gameInit();
-        initHash();
+        static std::once_flag initFlag;
+        std::call_once(initFlag, initHash);
         // printCurrentBoard();
 
         findFeature();
@@ -96,11 +106,13 @@ class StateForMinishogi : public State, public Shogi {
         
         length = 0;
         repeat = 0;
+        perpetualCheckPlayer = -1;
         situation.push(_hash);
 
     }
 
-    void initHash() {
+    static void initHash() {
+        static std::minstd_rand _rng(std::chrono::steady_clock::now().time_since_epoch().count());
         for(int a=0; a<2; ++a) 
             for(int b=0; b<10; ++b)
                 for(int c=0; c<5; ++c)
@@ -123,6 +135,37 @@ class StateForMinishogi : public State, public Shogi {
     }
 
     void findFeature() {
+        if (version == 2) {
+          std::fill(_features.begin(), _features.end(), 0);
+          for (int y = 0; y != Dy; ++y) {
+            for (int x = 0; x != Dx; ++x) {
+              Piece p = board[y][x];
+              if (p.color != Empty) {
+                size_t offset = y * Dx + x;
+                size_t index = (int)p.type - 1;
+                if (p.color == Black) {
+                  index += 6 + 4;
+                }
+                if (offset + Dx * Dy * index >= _features.size()) {
+                  throw std::runtime_error("bad index :((");
+                }
+                _features[offset + Dx * Dy * index] = 1.0f;
+                if (p.promoted) {
+                  index = 6 + (int)p.type - 3;
+                  if (p.color == Black) {
+                    index += 6 + 4;
+                  }
+                  _features[offset + Dx * Dy * index] = 1.0f;
+                  if (offset + Dx * Dy * index >= _features.size()) {
+                    throw std::runtime_error("bad index :((");
+                  }
+                }
+              }
+            }
+          }
+          return;
+        }
+
         std::vector<float> old(_features);
         for (int i = 0; i < 5425; ++i)
             _features[i] = 0;
@@ -301,10 +344,14 @@ class StateForMinishogi : public State, public Shogi {
         std::fill(_features.begin() + 5400, _features.end(), (int)_status);
     }
 
+    std::vector<Move> moves;
+
     void findActions() {
         // fprintf(stderr, "find action\n");
         // fprintf(stderr, "color: %d\n", (int)_status);
-        std::vector<Move> moves;
+
+        moves.clear();
+
         for(auto i : chess[(int)_status]) {
             // std::cerr << i.print() << std::endl;
             legalMoves(i, moves);
@@ -322,19 +369,25 @@ class StateForMinishogi : public State, public Shogi {
         }
 
         int i = 0;
-        _legalActions.clear();
+        _NewlegalActions.clear();
         for(auto m : moves) {
             m.piece.promoted = m.promote;
             // std::cerr << m.piece.print();
             // fprintf(stderr, " (%c, %d) to (%c, %d) ---%d\n", m.piece.pos.x+'A', m.piece.pos.y, m.next.x+'A', m.next.y, i);
 
-            int x = m.next.x;
-            int y = m.next.y;
-            int z = type_to_z(m.piece);
+            if (version == 2) {
+              _NewlegalActions.emplace_back(_NewlegalActions.size(), (int)m.piece.type - 1, m.next.y, m.next.x);
+            } else {
 
-            _legalActions.push_back(
-                std::make_shared<ActionForMinishogi>(x, y, z, _legalActions.size())
-            );
+              int x = m.next.x;
+              int y = m.next.y;
+              int z = type_to_z(m.piece);
+
+              _NewlegalActions.emplace_back(_NewlegalActions.size(), z, x, y);
+            }
+//            _legalActions.push_back(
+//                std::make_shared<ActionForMinishogi>(x, y, z, _legalActions.size())
+//            );
             i++;
         }
 
@@ -385,51 +438,45 @@ class StateForMinishogi : public State, public Shogi {
         return str;
     }
 
-    virtual std::string actionsDescription() override {
-        std::stringstream ss;
-        int i=0;
-        for(auto action : _legalActions) {
-            int z = (*action).GetX();
-            int x = (*action).GetY();
-            int y = (*action).GetZ();
+//    virtual std::string actionsDescription() override {
+//        std::stringstream ss;
+//        int i=0;
+//        for(auto action : _NewlegalActions) {
+//            int z = action.GetX();
+//            int x = action.GetY();
+//            int y = action.GetZ();
 
-            Piece p;
-            p.type = z_to_type(z);
-            p.promoted = z_promoted(z);
-            p.color = (int)_status;
+//            Piece p;
+//            p.type = z_to_type(z);
+//            p.promoted = z_promoted(z);
+//            p.color = (int)_status;
 
-            for(auto i : chess[p.color])
-                if(i.type == p.type) p.pos = i.pos;
+//            for(auto i : chess[p.color])
+//                if(i.type == p.type) p.pos = i.pos;
            
-            ss << p.print();
-            char buff[53];
-            sprintf(buff, " (%c, %c) to (%c, %c) ---%d\n", p.pos.x+'A', p.pos.y+'1', x+'A', y+'1', i++);
-            ss << buff;
-        }
-        ss << "\nInput format: action index e.g. 0\n";
-        return ss.str();
-    }
+//            ss << p.print();
+//            char buff[53];
+//            sprintf(buff, " (%c, %c) to (%c, %c) ---%d\n", p.pos.x+'A', p.pos.y+'1', x+'A', y+'1', i++);
+//            ss << buff;
+//        }
+//        ss << "\nInput format: action index e.g. 0\n";
+//        return ss.str();
+//    }
 
     virtual std::string actionDescription(const _Action & action) const {
         std::stringstream ss;
-        int z = action.GetX();
-        int x = action.GetY();
-        int y = action.GetZ();
+        auto move = moves.at(action.GetIndex());
 
-        Piece p;
-        p.type =  z_to_type(z);
-        p.promoted = z_promoted(z);
-        p.color = opponent((int)_status);
-        
-        for(auto i : chess[p.color])
-          if(i.type == p.type) p.pos = i.pos;
+        const Piece& p = move.piece;
      
-        ss << p.print();
-        char buff[21];
-        sprintf(buff, " to (%c, %c)\n", x+'A', y+'1');
-        ss << buff;
+        std::string s = p.print();
+        for (auto& v : s) {
+          v = std::toupper(v);
+        }
+        s += 'a' + move.next.x;
+        s += std::to_string(move.next.y);
 
-        return ss.str();
+        return s;
     }
 
     // fixxx
@@ -470,12 +517,16 @@ class StateForMinishogi : public State, public Shogi {
                 _hash ^= HashArray[opp][getHashNum(board[m.next.x][m.next.y])][m.next.x][m.next.y];
                 _hash ^= HashArrayJail[getHashNumjail(m.piece)];
 
-                Piece tmp(m.piece.color, new_type(board[m.next.x][m.next.y].type), false);
+                auto type = board[m.next.x][m.next.y].type;
+                if (version == 1) {
+                  type = new_type(type);
+                }
+                Piece tmp(m.piece.color, type, false);
                 chess[m.piece.color].push_back(tmp);
                 
                 std::vector<Piece>::iterator it;
                 for (it = chess[opp].begin(); it != chess[opp].end(); ++it) {
-                    if ((*it).type == board[m.next.x][m.next.y].type) {
+                    if (it->pos == m.next) {
                         chess[opp].erase(it);
                         break;
                     }
@@ -488,8 +539,9 @@ class StateForMinishogi : public State, public Shogi {
                 if((*it).type == m.piece.type) {
                     (*it).pos = m.next;
                     // decide promoted
-                    if (m.piece.promoted)
-		      (*it).promoted = true;
+                    if (m.piece.promoted) {
+                      (*it).promoted = true;
+                    }
 
                     board[m.next.x][m.next.y] = (*it);
                     board[m.piece.pos.x][m.piece.pos.y] = Piece();
@@ -500,7 +552,7 @@ class StateForMinishogi : public State, public Shogi {
             _hash ^= HashArrayJail[getHashNumjail(m.piece)];
             std::vector<Piece>::iterator it;
             for(it = chess[m.piece.color].begin(); it != chess[m.piece.color].end(); ++it) {
-                if((*it).type == m.piece.type) {
+                if((*it).type == m.piece.type && !it->pos.on_board()) {
                     (*it).pos = m.next;
                     board[m.next.x][m.next.y] = (*it);
                     break;
@@ -511,7 +563,7 @@ class StateForMinishogi : public State, public Shogi {
         _hash ^= HashTurn;
 
         if (length < MaxPlayoutLength) {
-            rollout[length] = m;
+            //rollout[length] = m;
             length++;
         } else {
             // set draw when the moves bigger than 1000
@@ -519,8 +571,20 @@ class StateForMinishogi : public State, public Shogi {
         }
 
         // find repeat
-        if (_hash != situation.front()) repeat = 0;
-        else repeat += 1;
+        if (_hash != situation.front()) {
+          repeat = 0;
+          perpetualCheckPlayer = -1;
+        } else {
+          for(auto i : chess[opponent(m.piece.color)]) {
+           if(i.type == PieceType::King) {
+             if(check(i.pos, m.piece.color)) {
+               perpetualCheckPlayer = m.piece.color;
+             }
+             break;
+           }
+          }
+          repeat += 1;
+        }
         // fprintf(stderr, "end play\n");
     }
 
@@ -528,76 +592,30 @@ class StateForMinishogi : public State, public Shogi {
         if (repeat < 9) return false;
         return true;
     }
-
-    bool won(int color) {
-        // fprintf(stderr, "won: ");
-        // for(auto i : chess[opponent(color)]) {
-        //     if(i.type == PieceType::King) {
-        //         if(checkmate(i)) return true;
-        //         break;
-        //     }
-        // }
-        if(checkmate(opponent(color))) return true;
- 
-        if (fourfold() && opponent((int)_status) == opponent(color))
-            return true;
-        return false;
-    }
     
     virtual void ApplyAction(const _Action& action) override {
         // fprintf(stderr, "\nApply Action %d\n", (int)_status);
-        
-        Move m;
-        int z = action.GetX();
-        int x = action.GetY();
-        int y = action.GetZ();
 
-        m.next.x = x;
-        m.next.y = y;
-        m.piece.type = z_to_type(z);
-        m.promote = z_promoted(z);
+        const Move& m = moves.at(action.GetIndex());
 
-        if(_status == GameStatus::player0Turn) {  // White to move
-            m.piece.color = White;
-            // find original position
-            for(auto i : chess[White]) {
-                if(i.type == m.piece.type)
-                    m.piece.pos = i.pos;
+        play(m);
+        if(_status == GameStatus::player0Turn ||
+           _status == GameStatus::player1Turn) {
+          _status = _status == GameStatus::player0Turn ? GameStatus::player1Turn : GameStatus::player0Turn;
+          findActions();
+          if (moves.empty()) {
+            _status = _status == GameStatus::player1Turn ? GameStatus::player0Win : GameStatus::player1Win;
+          } else if (fourfold()) {
+            if (perpetualCheckPlayer != -1) {
+              _status = perpetualCheckPlayer == White ? GameStatus::player1Win : GameStatus::player0Win;
+            } else {
+              _status = GameStatus::player1Win;
             }
-
-            play(m);
-            // printCurrentBoard();
-            // fprintf(stderr, "hash: %llu\n", _hash);
-            // fprintf(stderr, "repeat: %d\n", repeat);
-            if ((GameStatus)_status == GameStatus::tie) {}
-            else if (!won(White))
-                _status = GameStatus::player1Turn;  // Black turn
-            else
-                _status = GameStatus::player0Win;  // White won
-        } else {  // Black to move
-            m.piece.color = Black;
-            // find original position
-            for(auto i : chess[Black]) {
-                if(i.type == m.piece.type)
-                    m.piece.pos = i.pos;
-            }
-
-            play(m);
-            // printCurrentBoard();
-            // fprintf(stderr, "hash: %llu\n", _hash);
-            // fprintf(stderr, "repeat: %d\n", repeat);
-
-            if ((GameStatus)_status == GameStatus::tie)
-                {}
-            else if (!won(Black))
-                _status = GameStatus::player0Turn;  // White turn
-            else
-                _status = GameStatus::player1Win;  // Black won
+          }
         }
         if(_status == GameStatus::player0Turn ||
            _status == GameStatus::player1Turn) {
                findFeature();
-               findActions();
             //    fixxx
                fillFullFeatures();
 
@@ -607,7 +625,7 @@ class StateForMinishogi : public State, public Shogi {
             } else 
                 situation.push(_hash);
         } else {
-            _legalActions.clear();
+            _NewlegalActions.clear();
             // if(_status == GameStatus::player0Win)
             //     fprintf(stderr, "white win\n");
             // else if(_status == GameStatus::player1Win)

@@ -248,7 +248,9 @@ to look into this) if the strategy is identical to knuth’s.
     } else if (isGameNameMatched({"OuterOpenGomoku", "OOGomoku"})) {
       state_ = newState<StateForOOGomoku>(seed);
     } else if (isGameNameMatched({"Minishogi"})) {
-      state_ = newState<StateForMinishogi>(seed);
+      state_ = newState<StateForMinishogi<1>>(seed);
+    } else if (isGameNameMatched({"MinishogiV2"})) {
+      state_ = newState<StateForMinishogi<2>>(seed);
     } else if (isGameNameMatched({"Surakarta"})) {
       state_ = newState<StateForSurakarta>(seed);
     } else if (isGameNameMatched({"DiceShogi"})) {

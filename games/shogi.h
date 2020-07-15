@@ -18,7 +18,7 @@ const static int White = 0;  // player0
 const static int Black = 1;  // player1
 const static int Empty = 2;
 
-const int MaxPlayoutLength = 1000;
+const static int MaxPlayoutLength = 1000;
 
 
 enum class PieceType {
@@ -86,20 +86,19 @@ class Piece {
                 str += "  "; break;
 
             case PieceType::King:
-                if (color == Black) str += " k";
-                else str += " K";
+                if (color == Black) str += "k";
+                else str += "K";
                 break;
 
             case PieceType::Gold:
             case PieceType::Gold2:
-                if (color == Black) str += " g";
-                else str += " G";
+                if (color == Black) str += "g";
+                else str += "G";
                 break;
 
             case PieceType::Silver:
             case PieceType::Silver2:
                 if (promoted) str += "+";
-                else str += " ";
                 if (color == Black) str += "s";
                 else str += "S";
                 break;
@@ -107,7 +106,6 @@ class Piece {
             case PieceType::Bishop:
             case PieceType::Bishop2:
                 if (promoted) str += "+";
-                else str += " ";
                 if (color == Black) str += "b";
                 else str += "B";
                 break;
@@ -115,7 +113,6 @@ class Piece {
             case PieceType::Rook:
             case PieceType::Rook2:
                 if (promoted) str += "+";
-                else str += " ";
                 if (color == Black) str += "r";
                 else str += "R";
                 break;
@@ -123,7 +120,6 @@ class Piece {
             case PieceType::Pawn:
             case PieceType::Pawn2:
                 if (promoted) str += "+";
-                else str += " ";
                 if (color == Black) str += "p";
                 else str += "P";
                 break;
@@ -143,7 +139,7 @@ class Move {
 
 Piece board[5][5];
 std::vector<std::vector<Piece>> chess;  // 0 = White, 1 = Black
-Move rollout[1000];
+//Move rollout[1000];
 
 void king_moves(Piece p, std::vector<Move>& moves) {
     Move m;

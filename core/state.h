@@ -546,16 +546,6 @@ class State : public mcts::State {
 
   // -----other non-virtual functions-----
 
-  // only for stochastic games
-  std::string performActionDescription(const _Action& action) {
-    _status = (_status == GameStatus::player0Turn) ? GameStatus::player1Turn
-                                                   : GameStatus::player0Turn;
-    std::string ss = actionDescription(action);
-    _status = (_status == GameStatus::player0Turn) ? GameStatus::player1Turn
-                                                   : GameStatus::player0Turn;
-    return ss;
-  }
-
   void fillFullFeatures();
 
   void DoRandomAction() {
