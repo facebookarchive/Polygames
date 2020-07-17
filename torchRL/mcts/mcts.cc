@@ -10,6 +10,8 @@
 
 #include "async.h"
 
+#include "../../core/state.h"
+
 namespace tube {
 inline thread_local int threadId;
 }
@@ -162,6 +164,9 @@ int computeRolloutsImpl(const std::vector<Node*>& rootNode,
     bool terminated = false;
     Storage* storage = nullptr;
     std::vector<float> rnnState;
+
+    Node* forcedParent = nullptr;
+    Action forcedAction = InvalidAction;
   };
 
   std::vector<RolloutState> states(rootNode.size());
@@ -238,7 +243,6 @@ int computeRolloutsImpl(const std::vector<Node*>& rootNode,
           }
 
           node->settle(st.root->getPiVal().playerId);
-          node->release();
 
           float value = node->getPiVal().value;
           int flip = st.root->getPiVal().playerId == node->getPiVal().playerId
@@ -249,7 +253,7 @@ int computeRolloutsImpl(const std::vector<Node*>& rootNode,
           // value. We need to sum up our value.
           while (node != nullptr) {
             MctsStats& mctsStats = node->getMctsStats();
-            mctsStats.atomicUpdate(value, option.virtualLoss);
+            mctsStats.atomicUpdate(value, 0.0f);
             node = node->getParent();
           }
         }
@@ -261,10 +265,14 @@ int computeRolloutsImpl(const std::vector<Node*>& rootNode,
         Node* node = root;
         std::unique_ptr<State> localState = std::move(st.state);
         if (!storeStateInNode) {
+          const State* src = st.forcedParent ? &*st.forcedParent->localState() : rootState[i];
+          if (!src) {
+            throw std::runtime_error("src state is null");
+          }
           if (!localState) {
-            localState = rootState[i]->clone();
+            localState = src->clone();
           } else {
-            localState->copy(*rootState[i]);
+            localState->copy(*src);
           }
         }
 
@@ -297,35 +305,48 @@ int computeRolloutsImpl(const std::vector<Node*>& rootNode,
           }
         };
 
-        while (true) {
-          node->acquire();
-          node->getMctsStats().addVirtualLoss(option.virtualLoss);
-          if (!node->isVisited()) {
-            // printf("not visited\n");
-            break;
-          }
+        Node* parent = nullptr;
+        Action action = InvalidAction;
 
-          rsp = &node->piVal_.rnnState;
+        bool save = false;
 
-          // If we have policy network then value prior collected at
-          // different nodes are more accurate. Otherwise it could harm the
-          // exploration.
-          Action bestAction =
-              (option.samplingMcts
-                   ? pickBestAction<true>
-                   : pickBestAction<false>)(root->getPiVal().playerId,
-                                            node,
-                                            option,
-                                            rng,
-                                            rollouts);
-          // this is a terminal state that has been visited
-          if (bestAction == InvalidAction) {
-            flushActions();
-            break;
-          }
+        if (st.forcedParent) {
+          parent = st.forcedParent;
+          action = st.forcedAction;
+          st.forcedParent = nullptr;
+
+          node = parent->newChild(storage->newNode(), action);
+
           auto& state = storeStateInNode ? node->getState() : *localState;
-          bool save = false;
-          if (!storeStateInNode) {
+
+          const ::State* s = dynamic_cast<const ::State*>(&state);
+          if (action >= s->GetLegalActions().size()) {
+            throw std::runtime_error("forced rollout bad action :((");
+          }
+
+        } else {
+
+          while (true) {
+
+            rsp = &node->piVal_.rnnState;
+
+            // If we have policy network then value prior collected at
+            // different nodes are more accurate. Otherwise it could harm the
+            // exploration.
+            Action bestAction =
+                (option.samplingMcts
+                     ? pickBestAction<true>
+                     : pickBestAction<false>)(root->getPiVal().playerId,
+                                              node,
+                                              option,
+                                              rng,
+                                              rollouts);
+            // this is a terminal state that has been visited
+            if (bestAction == InvalidAction) {
+              flushActions();
+              break;
+            }
+
             Node* childNode = node->getChild(bestAction);
             if (childNode) {
               node = childNode;
@@ -335,36 +356,66 @@ int computeRolloutsImpl(const std::vector<Node*>& rootNode,
               } else {
                 queuedActions.push_back(bestAction);
               }
-              node->release();
-              node = childNode;
               // printf("skip\n");
               continue;
             }
             save = queuedActions.size() >= (size_t)option.storeStateInterval;
             flushActions();
-            localState->forward(bestAction);
             // printf("forward -> %s\n", localState->history().c_str());
+
+            childNode = node->newChild(storage->newNode(), bestAction);
+
+            action = bestAction;
+            parent = node;
+            node = childNode;
+            break;
           }
 
-          Node* childNode = node->newChild(storage->newNode(), bestAction);
-          if (save) {
-            if (childNode->localState() &&
-                childNode->localState()->typeId() == state.typeId()) {
-              State* dst = &*childNode->localState();
-              dst->copy(state);
-              childNode->setState(dst);
-            } else {
-              childNode->localState() = localState->clone();
-              childNode->setState(&*childNode->localState());
+        }
+
+        auto& state = storeStateInNode ? node->getState() : *localState;
+
+        auto saveState = [&](Node* saveNode) {
+          if (saveNode->localState() &&
+              saveNode->localState()->typeId() == state.typeId()) {
+            State* dst = &*saveNode->localState();
+            dst->copy(state);
+            saveNode->setState(dst);
+          } else {
+            saveNode->localState() = localState->clone();
+            saveNode->setState(&*saveNode->localState());
+          }
+        };
+
+        if (parent) {
+          const ::State* s = dynamic_cast<const ::State*>(&state);
+          if (s) {
+            const _Action& a = s->GetLegalActions().at(action);
+            for (auto& x : s->GetLegalActions()) {
+              if (x.GetIndex() != action && x.GetX() == a.GetX() && x.GetY() == a.GetY() && x.GetZ() == a.GetZ()) {
+                if (!parent->getChild(x.GetIndex())) {
+                  //printf("Forcing rollout to %s as it has the same pi as %s\n", s->actionDescription(x).c_str(), s->actionDescription(a).c_str());
+                  st.forcedParent = parent;
+                  st.forcedAction = x.GetIndex();
+
+                  if (!parent->hasState()) {
+                    saveState(parent);
+                  }
+                  break;
+                }
+              }
             }
           }
-          node->release();
-          node = childNode;
+
+          localState->forward(action);
+
+          if (save) {
+            saveState(node);
+          }
         }
 
         // 2. Expansion
 
-        auto& state = storeStateInNode ? node->getState() : *localState;
         if (state.terminated()) {
           PiVal& piVal = node->piVal_;
           piVal.policy.clear();

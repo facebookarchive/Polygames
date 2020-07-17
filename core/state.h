@@ -366,7 +366,7 @@ class State : public mcts::State {
 
   virtual std::string actionDescription(const _Action& action) const {
     std::stringstream ss;
-    ss << action;
+    ss << action.GetIndex();
     return ss.str();
   }
 
