@@ -877,7 +877,8 @@ def run_training(
         execution_params=execution_params,
         rnn_state_shape=rnn_state_shape
     )
-    assembler.update_model(models[0].state_dict())
+    if not is_client:
+        assembler.update_model(models[0].state_dict())
     assembler.add_tournament_model("init", models[0].state_dict())
     context.start()
 
