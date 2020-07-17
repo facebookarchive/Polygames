@@ -64,7 +64,8 @@ class StateForMinishogi : public State, public Shogi {
     _status = GameStatus::player0Turn;
     _featSize[0] = 217;
     if (version == 2) {
-      _featSize[0] = (6 + 4 + 6) * 2;  // 6 pieces + 4 promoted + 6 off board (counts)
+      _featSize[0] =
+          (6 + 4 + 6) * 2;  // 6 pieces + 4 promoted + 6 off board (counts)
     }
     _featSize[1] = Dy;
     _featSize[2] = Dx;
@@ -118,7 +119,8 @@ class StateForMinishogi : public State, public Shogi {
   }
 
   static void initHash() {
-    std::independent_bits_engine<std::mt19937_64, 64, uint64_t> rng(std::chrono::steady_clock::now().time_since_epoch().count());
+    std::independent_bits_engine<std::mt19937_64, 64, uint64_t> rng(
+        std::chrono::steady_clock::now().time_since_epoch().count());
     rng.discard(128);
     for (int a = 0; a < 2; ++a)
       for (int b = 0; b < 10; ++b)
@@ -270,20 +272,20 @@ class StateForMinishogi : public State, public Shogi {
       }
     }
 
-//    // 500 ~ 575
-//    switch (repeat) {
-//    case 1:
-//      std::fill(_features.begin() + 500, _features.begin() + 525, 1);
-//      break;
-//    case 5:
-//      std::fill(_features.begin() + 525, _features.begin() + 550, 1);
-//      break;
-//    case 9:
-//      std::fill(_features.begin() + 550, _features.begin() + 575, 1);
-//      break;
-//    default:
-//      break;
-//    }
+    //    // 500 ~ 575
+    //    switch (repeat) {
+    //    case 1:
+    //      std::fill(_features.begin() + 500, _features.begin() + 525, 1);
+    //      break;
+    //    case 5:
+    //      std::fill(_features.begin() + 525, _features.begin() + 550, 1);
+    //      break;
+    //    case 9:
+    //      std::fill(_features.begin() + 550, _features.begin() + 575, 1);
+    //      break;
+    //    default:
+    //      break;
+    //    }
 
     // prison w 575 ~ 625
     // prison b 625 ~ 675
@@ -389,7 +391,6 @@ class StateForMinishogi : public State, public Shogi {
       }
       i++;
     }
-
   }
 
   virtual void printCurrentBoard() const override {
@@ -469,7 +470,9 @@ class StateForMinishogi : public State, public Shogi {
     bool disx = false;
     if (p.pos.on_board()) {
       for (const Move& m : moves) {
-        if ((m.piece.type == p.type || new_type(m.piece.type) == p.type) && m.piece.pos.on_board() && m.piece.pos != p.pos && m.next == move.next) {
+        if ((m.piece.type == p.type || new_type(m.piece.type) == p.type) &&
+            m.piece.pos.on_board() && m.piece.pos != p.pos &&
+            m.next == move.next) {
           if (m.piece.pos.x == p.pos.x) {
             disy = true;
           } else {
@@ -552,7 +555,8 @@ class StateForMinishogi : public State, public Shogi {
             break;
           }
         }
-        if (!found) throw std::runtime_error("Could not find piece to erase");
+        if (!found)
+          throw std::runtime_error("Could not find piece to erase");
       }
 
       std::vector<Piece>::iterator it;
@@ -620,7 +624,8 @@ class StateForMinishogi : public State, public Shogi {
         v.lastStepIdx = _moves.size();
         if (v.count >= 4) {
           // sennichite
-          if (m.piece.color == Black && checkCount[m.piece.color] * 2 >= repetitionLength) {
+          if (m.piece.color == Black &&
+              checkCount[m.piece.color] * 2 >= repetitionLength) {
             _status = GameStatus::player0Win;
           } else {
             _status = GameStatus::player1Win;
@@ -633,7 +638,6 @@ class StateForMinishogi : public State, public Shogi {
     if (!found) {
       repetitions[index].push_back({_hash, 1, _moves.size()});
     }
-
   }
 
   virtual void ApplyAction(const _Action& action) override {
@@ -644,7 +648,8 @@ class StateForMinishogi : public State, public Shogi {
                                                    : GameStatus::player0Turn;
       findActions();
       if (moves.empty()) {
-        _status = _status == GameStatus::player1Turn ? GameStatus::player0Win : GameStatus::player1Win;
+        _status = _status == GameStatus::player1Turn ? GameStatus::player0Win
+                                                     : GameStatus::player1Win;
       }
     }
     if (_status == GameStatus::player0Turn ||
