@@ -45,9 +45,9 @@ class StateForMinishogi : public State, public Shogi {
   static inline unsigned long long HashTurn;
   int length;
 
-  int repeat;
-  int perpetualCheckPlayer;
-  std::deque<unsigned long long> situation;
+  bool sennichite;
+  std::array<int, 2> checkCount;
+  std::array<std::vector<std::pair<uint64_t, char>>, 16> repetitions;
 
   StateForMinishogi(int seed)
       : State(seed)
@@ -109,10 +109,13 @@ class StateForMinishogi : public State, public Shogi {
     chess[Black].push_back(board[4][3]);
 
     length = 0;
-    repeat = 0;
-    perpetualCheckPlayer = -1;
-    situation.clear();
-    situation.push_back(_hash);
+    _hash = 0;
+    sennichite = false;
+    checkCount = {0, 0};
+    for (auto& v : repetitions) {
+      v.clear();
+    }
+    repetitions[_hash % repetitions.size()].emplace_back(_hash, 0);
   }
 
   static void initHash() {
@@ -277,20 +280,20 @@ class StateForMinishogi : public State, public Shogi {
       }
     }
 
-    // 500 ~ 575
-    switch (repeat) {
-    case 1:
-      std::fill(_features.begin() + 500, _features.begin() + 525, 1);
-      break;
-    case 5:
-      std::fill(_features.begin() + 525, _features.begin() + 550, 1);
-      break;
-    case 9:
-      std::fill(_features.begin() + 550, _features.begin() + 575, 1);
-      break;
-    default:
-      break;
-    }
+//    // 500 ~ 575
+//    switch (repeat) {
+//    case 1:
+//      std::fill(_features.begin() + 500, _features.begin() + 525, 1);
+//      break;
+//    case 5:
+//      std::fill(_features.begin() + 525, _features.begin() + 550, 1);
+//      break;
+//    case 9:
+//      std::fill(_features.begin() + 550, _features.begin() + 575, 1);
+//      break;
+//    default:
+//      break;
+//    }
 
     // prison w 575 ~ 625
     // prison b 625 ~ 675
@@ -670,44 +673,33 @@ class StateForMinishogi : public State, public Shogi {
     //test("pre repeat");
 
     // find repeat
-    if (_hash != situation.front()) {
-      repeat = 0;
-      perpetualCheckPlayer = -1;
-    } else {
-      for (auto i : chess[opponent(m.piece.color)]) {
-        if (i.type == PieceType::King) {
-          if (check(i.pos, m.piece.color)) {
-            perpetualCheckPlayer = m.piece.color;
-          }
-          break;
+    bool found = false;
+    size_t index = _hash % repetitions.size();
+    for (auto& v : repetitions[index]) {
+      if (v.first == _hash) {
+        ++v.second;
+        if (v.second >= 4) {
+          sennichite = true;
         }
+        found = true;
+        break;
       }
-      repeat += 1;
     }
-    // fprintf(stderr, "end play\n");
+    if (!found) {
+      repetitions[index].emplace_back(_hash, 1);
+    }
 
-    //test("play leave");
-  }
+    for (auto i : chess[opponent(m.piece.color)]) {
+      if (i.type == PieceType::King) {
+        if (check(i.pos, m.piece.color)) {
+          ++checkCount.at(m.piece.color);
+        } else {
+          checkCount.at(m.piece.color) = 0;
+        }
+        break;
+      }
+    }
 
-  bool fourfold() {
-    if (repeat < 9)
-      return false;
-    return true;
-  }
-
-  bool won(int color) {
-      // fprintf(stderr, "won: ");
-      // for(auto i : chess[opponent(color)]) {
-      //     if(i.type == PieceType::King) {
-      //         if(checkmate(i)) return true;
-      //         break;
-      //     }
-      // }
-      if(checkmate(opponent(color))) return true;
-
-      if (fourfold() && opponent((int)_status) == opponent(color))
-          return true;
-      return false;
   }
 
   virtual void ApplyAction(const _Action& action) override {
@@ -727,10 +719,11 @@ class StateForMinishogi : public State, public Shogi {
       if (moves.empty()) {
         _status = _status == GameStatus::player1Turn ? GameStatus::player0Win
                                                      : GameStatus::player1Win;
-      } else if (fourfold()) {
-        if (perpetualCheckPlayer != -1) {
-          _status = perpetualCheckPlayer == White ? GameStatus::player1Win
-                                                  : GameStatus::player0Win;
+      } else if (sennichite) {
+        if (checkCount[White] >= 4) {
+          _status = GameStatus::player1Win;
+        } else if (checkCount[Black] >= 4) {
+          _status = GameStatus::player0Win;
         } else {
           _status = GameStatus::player1Win;
         }
@@ -741,12 +734,6 @@ class StateForMinishogi : public State, public Shogi {
       findFeature();
       //    fixxx
       fillFullFeatures();
-
-      if (situation.size() == 4) {
-        situation.pop_front();
-        situation.push_back(_hash);
-      } else
-        situation.push_back(_hash);
     } else {
       _NewlegalActions.clear();
       // if(_status == GameStatus::player0Win)
