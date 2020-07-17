@@ -864,14 +864,6 @@ void legal_pawn_moves(Piece p, std::vector<Move>& moves) {
 }
 
 void legal_pawn_drop(Piece p, std::vector<Move>& moves) {
-    // std::cerr << "legal pawn drop " << p.print() << std::endl;
-    // for(int i=0; i<2; ++i) {
-    //     for(auto j : chess[i]) {
-    //         fprintf(stderr, "(%c,%d) ", j.pos.x+'A', j.pos.y);
-    //     }
-    //     std::cerr << std::endl;
-    // }
-    // std::cerr << std::endl;
     Move m;
     m.piece = p;
     m.promote = false;
@@ -885,12 +877,10 @@ void legal_pawn_drop(Piece p, std::vector<Move>& moves) {
     
     // find another pawn
     int cannotdrop = Dx;
-    // for(int i=0; i<2; ++i) {
-        for(auto c : chess[p.color]) {
-            if((c.type == PieceType::Pawn || c.type == PieceType::Pawn2) && c.pos.x != -1)
-            cannotdrop = c.pos.x;
-        }
-    // }
+      for(auto c : chess[p.color]) {
+          if((c.type == PieceType::Pawn || c.type == PieceType::Pawn2) && c.pos.x != -1)
+          cannotdrop = c.pos.x;
+      }
 
     if (p.color == White) {
         for (int i = 0; i < Dx; ++i) {
@@ -899,14 +889,25 @@ void legal_pawn_drop(Piece p, std::vector<Move>& moves) {
                 if (board[i][j].color == Empty) {
                     if(board[i][j+1].type == PieceType::King && board[i][j+1].color != p.color) {
                         board[i][j] = p;
-                        // board[i][j].pos = Position(i, j);
+                        for(auto& v : chess[m.piece.color]) {
+                            if(v.type == p.type && !v.pos.on_board()) {
+                                v.pos = Position(i, j);
+                                break;
+                            }
+                        }
                         
-                        if(checkmate(board[i][j+1].color)) {
-                            board[i][j] = Piece();
+                        bool cm = checkmate(board[i][j+1].color);
+                        board[i][j] = Piece();
+
+                        for(auto& v : chess[m.piece.color]) {
+                            if(v.pos == Position(i, j)) {
+                                v.pos = Position(-1, -1);
+                                break;
+                            }
+                        }
+                        if(cm) {
                             continue;
                         }
-                        board[i][j] = Piece();
-                        
                     }
                     m.next = Position(i, j);
 
@@ -918,15 +919,6 @@ void legal_pawn_drop(Piece p, std::vector<Move>& moves) {
                     }
 
                     board[m.next.x][m.next.y] = pp;
-
-                    // fprintf(stderr, "xy: %d %d\n", i, j);
-                    // for(int i=0; i<2; ++i) {
-                    //     for(auto j : chess[i]) {
-                    //         fprintf(stderr, "(%c,%d) ", j.pos.x+'A', j.pos.y);
-                    //     }
-                    //     std::cerr << std::endl;
-                    // }
-                    // std::cerr << std::endl;
                 }
             }
         }
@@ -937,12 +929,25 @@ void legal_pawn_drop(Piece p, std::vector<Move>& moves) {
                 if (board[i][j].color == Empty) {
                     if (board[i][j - 1].type == PieceType::King && board[i][j - 1].color != p.color) {
                         board[i][j] = p;
-                        // board[i][j].pos = Position(i, j);
-                        if(checkmate(board[i][j-1].color)) {
-                            board[i][j] = Piece();
+                        for(auto& v : chess[m.piece.color]) {
+                            if(v.type == p.type && !v.pos.on_board()) {
+                                v.pos = Position(i, j);
+                                break;
+                            }
+                        }
+
+                        bool cm = checkmate(board[i][j-1].color);
+                        board[i][j] = Piece();
+
+                        for(auto& v : chess[m.piece.color]) {
+                            if(v.pos == Position(i, j)) {
+                                v.pos = Position(-1, -1);
+                                break;
+                            }
+                        }
+                        if(cm) {
                             continue;
                         }
-                        board[i][j] = Piece();
                     }
                     m.next = Position(i, j);
                     Piece pp;
@@ -957,13 +962,6 @@ void legal_pawn_drop(Piece p, std::vector<Move>& moves) {
             }
         }
     }
-    // for(int i=0; i<2; ++i) {
-    //     for(auto j : chess[i]) {
-    //         fprintf(stderr, "(%c,%d) ", j.pos.x+'A', j.pos.y);
-    //     }
-    //     std::cerr << std::endl;
-    // }
-    // std::cerr << std::endl;
 }
 
 void legal_drop(Piece p, std::vector<Move>& moves) {
@@ -984,18 +982,6 @@ void legal_drop(Piece p, std::vector<Move>& moves) {
                 Piece pp;
                 board[m.next.x][m.next.y] = m.piece;
 
-                // std::string str;
-                // str += "   A| B| C| D| E\n";
-                // for(int i=Dy-1; i>=0; --i) {
-                //     str += std::to_string(i) + ' ';
-                //     for(int j=0; j<Dx; ++j) {
-                //         if(j > 0) str += '|';
-                //         str += board[j][i].print();
-                //     }
-                //     str += '\n';
-                // }
-                // std::cerr << str;
-
                 if(!check(king.pos, opponent(king.color)))
                     moves.push_back(m);
 
@@ -1014,7 +1000,6 @@ int opponent(int player) const {
 // pos: king position
 // opponent can eat king
 bool check(Position pos, int op) {
-    // fprintf(stderr, "check %d: (%c,%d)\n", op, pos.x+'A', pos.y);
     for(auto i : chess[op]) {
         std::vector<Move> moves;
         if(i.pos.on_board()) {    
@@ -1051,18 +1036,8 @@ bool check(Position pos, int op) {
                 default: break;
             }
         }
-        // std::cerr << i.print() << std::endl;
-        // for(int i=0; i<2; ++i) {
-        //     for(auto j : chess[i]) {
-        //         fprintf(stderr, "(%c,%d) ", j.pos.x+'A', j.pos.y);
-        //     }
-        //     std::cerr << std::endl;
-        // }
         for(auto m : moves) {
-            // std::cerr << i.print() << "  ";
-            // fprintf(stderr, "(%c %d) to (%c %d)\n", m.piece.pos.x+'A', m.piece.pos.y, m.next.x+'A', m.next.y);
             if(m.next == pos) {
-                // std::cerr << "ccccccccheck!!!!!!!!!!!!!" << std::endl;
                 return true;
             }
         }
@@ -1071,13 +1046,8 @@ bool check(Position pos, int op) {
 }
 
 bool checkmate(int color) {
-    // fprintf(stderr, "checkmate %d k:(%c,%d)\n", king.color, king.pos.x+'A', king.pos.y);
     std::vector<Move> moves;
-    
-    // legal_king_moves(king, moves);
-    // std::cerr << "king move size " << moves.size() << std::endl;
-    
-    // return (moves.empty() && check(king.pos, opponent(king.color)));
+
     for(auto i : chess[color]) {
         legalMoves(i, moves);
     }
@@ -1085,14 +1055,6 @@ bool checkmate(int color) {
 }
 
 void legalMoves(Piece p, std::vector<Move>& moves) {
-    // std::cerr << "legal moves " << p.print() << std::endl;
-    // for(int i=0; i<2; ++i) {
-    //         for(auto j : chess[i]) {
-    //             fprintf(stderr, "(%c,%d) ", j.pos.x+'A', j.pos.y);
-    //         }
-    //         std::cerr << std::endl;
-    //     }
-    //     std::cerr << std::endl;
     if(p.pos.on_board()) {
         switch (p.type) {
             case PieceType::King:

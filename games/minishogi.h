@@ -24,8 +24,6 @@
 
 #include <mutex>
 
-#include <fmt/printf.h>
-
 // class ActionForMinishogi : public _Action {
 //  public:
 //    ActionForMinishogi(int x, int y, int p, size_t index) : _Action() {
@@ -45,9 +43,14 @@ class StateForMinishogi : public State, public Shogi {
   static inline unsigned long long HashTurn;
   int length;
 
-  bool sennichite;
   std::array<int, 2> checkCount;
-  std::array<std::vector<std::pair<uint64_t, char>>, 16> repetitions;
+  struct Repetition {
+    uint64_t hash;
+    char count;
+    int lastStepIdx;
+  };
+
+  std::array<std::vector<Repetition>, 16> repetitions;
 
   StateForMinishogi(int seed)
       : State(seed)
@@ -73,16 +76,13 @@ class StateForMinishogi : public State, public Shogi {
     _actionSize[2] = Dx;
     _features.clear();
     _features.resize(_featSize[0] * _featSize[1] * _featSize[2]);
-    // setFeatures(false, false, false, 0, 0, false);
 
     gameInit();
     static std::once_flag initFlag;
     std::call_once(initFlag, initHash);
-    // printCurrentBoard();
 
     findFeature();
     findActions();
-    // fixxx
     fillFullFeatures();
   }
 
@@ -110,36 +110,26 @@ class StateForMinishogi : public State, public Shogi {
 
     length = 0;
     _hash = 0;
-    sennichite = false;
     checkCount = {0, 0};
     for (auto& v : repetitions) {
       v.clear();
     }
-    repetitions[_hash % repetitions.size()].emplace_back(_hash, 0);
+    repetitions[_hash % repetitions.size()].push_back({_hash, 1, 0});
   }
 
   static void initHash() {
-    static std::minstd_rand _rng(
-        std::chrono::steady_clock::now().time_since_epoch().count());
+    std::independent_bits_engine<std::mt19937_64, 64, uint64_t> rng(std::chrono::steady_clock::now().time_since_epoch().count());
+    rng.discard(128);
     for (int a = 0; a < 2; ++a)
       for (int b = 0; b < 10; ++b)
         for (int c = 0; c < 5; ++c)
           for (int d = 0; d < 5; ++d) {
-            HashArray[a][b][c][d] = 0;
-            for (int k = 0; k < 64; ++k)
-              if ((_rng() / (RAND_MAX + 1.0)) > 0.5)
-                HashArray[a][b][c][d] |= (1ULL << k);
+            HashArray[a][b][c][d] = rng();
           }
     for (int a = 0; a < 20; ++a) {
-      for (int k = 0; k < 64; ++k)
-        if ((_rng() / (RAND_MAX + 1.0)) > 0.5)
-          HashArrayJail[a] |= (1ULL << k);
+      HashArrayJail[a] = rng();
     }
-
-    HashTurn = 0;
-    for (int k = 0; k < 64; k++)
-      if ((_rng() / (RAND_MAX + 1.0)) > 0.5)
-        HashTurn |= (1ULL << k);
+    HashTurn = rng();
   }
 
   void findFeature() {
@@ -360,9 +350,6 @@ class StateForMinishogi : public State, public Shogi {
   std::vector<Move> moves;
 
   void findActions() {
-    // fprintf(stderr, "find action\n");
-    // fprintf(stderr, "color: %d\n", (int)_status);
-
     moves.clear();
 
     auto& list = chess[(int)_status];
@@ -388,14 +375,10 @@ class StateForMinishogi : public State, public Shogi {
     _NewlegalActions.clear();
     for (auto m : moves) {
       m.piece.promoted = m.promote;
-      // std::cerr << m.piece.print();
-      // fprintf(stderr, " (%c, %d) to (%c, %d) ---%d\n", m.piece.pos.x+'A',
-      // m.piece.pos.y, m.next.x+'A', m.next.y, i);
 
       if (version == 2) {
         _NewlegalActions.emplace_back(
             _NewlegalActions.size(), (int)m.piece.type - 1, m.next.y, m.next.x);
-        //fmt::printf("FindAction found action %s\n", actionDescription(_NewlegalActions.back()));
       } else {
 
         int x = m.next.x;
@@ -404,24 +387,13 @@ class StateForMinishogi : public State, public Shogi {
 
         _NewlegalActions.emplace_back(_NewlegalActions.size(), z, x, y);
       }
-      //            _legalActions.push_back(
-      //                std::make_shared<ActionForMinishogi>(x, y, z,
-      //                _legalActions.size())
-      //            );
       i++;
     }
 
-    // fprintf(stderr, "end find action\n");
   }
 
   virtual void printCurrentBoard() const override {
-    std::cerr << stateDescription();
-    // for(int i=0; i<2; ++i) {
-    //     for(auto j : chess[i]) {
-    //         fprintf(stderr, "(%c,%d) ", j.pos.x+'A', j.pos.y);
-    //     }
-    //     std::cerr << std::endl;
-    // }
+    std::cerr << stateDescription() << "\n";
   }
 
   std::string print_chess(const int color) const {
@@ -466,6 +438,27 @@ class StateForMinishogi : public State, public Shogi {
     return str;
   }
 
+  std::string lcase(std::string str) {
+    for (auto& v : str) {
+      v = std::tolower(v);
+    }
+    return str;
+  }
+
+  virtual int parseAction(const std::string& str) override {
+    for (size_t i = 0; i != _NewlegalActions.size(); ++i) {
+      if (str == actionDescription(_NewlegalActions[i])) {
+        return i;
+      }
+    }
+    auto lstr = lcase(str);
+    for (size_t i = 0; i != _NewlegalActions.size(); ++i) {
+      if (str == lcase(actionDescription(_NewlegalActions[i]))) {
+        return i;
+      }
+    }
+    return -1;
+  }
 
   virtual std::string actionDescription(const _Action& action) const {
     const Move& move = moves.at(action.GetIndex());
@@ -498,8 +491,7 @@ class StateForMinishogi : public State, public Shogi {
     }
     if (board[move.next.x][move.next.y].color != Empty) {
       s += 'x';
-    }
-    if (!p.pos.on_board()) {
+    } else if (!p.pos.on_board()) {
       s += '@';
     }
     s += 'a' + move.next.x;
@@ -531,65 +523,14 @@ class StateForMinishogi : public State, public Shogi {
     return (int)p.type - 2 + 10 * p.color;
   }
 
-  void test(std::string str) {
-    bool bad = false;
-    for (auto& v : chess) {
-      for (Piece& p : v) {
-        if (p.pos.on_board()) {
-          Piece& x = board[p.pos.x][p.pos.y];
-          if (x.color != p.color || x.type != p.type || x.promoted != p.promoted || !(x.pos == p.pos)) {
-            fmt::printf("piece not found on board %d %d %d %d %d\n", p.color, (int)p.type, p.promoted, p.pos.x, p.pos.y);
-            bad = true;
-          }
-        }
-      }
-    }
-    for (int y = 0; y != 5; ++y) {
-      for (int xx = 0; xx != 5; ++xx) {
-        Piece& x = board[xx][y];
-        if (x.color != Empty) {
-          bool found = false;
-          for (auto& p : chess[x.color]) {
-            if (x.color == p.color && x.type == p.type && x.promoted == p.promoted && x.pos == p.pos) {
-              found = true;
-            }
-          }
-          if (!found) {
-            fmt::printf("board piece not found %d %d %d %d %d\n", x.color, (int)x.type, x.promoted, x.pos.x, x.pos.y);
-            bad = true;
-          }
-        }
-      }
-    }
-    if (bad) {
-      for (auto& v : chess) {
-        for (Piece& x : v) {
-          fmt::printf("piece %d %d %d %d %d\n", x.color, (int)x.type, x.promoted, x.pos.x, x.pos.y);
-        }
-      }
-      fmt::printf("%s\n", stateDescription());
-      throw std::runtime_error("bad " + str);
-    }
-    fmt::printf("%s passed\n", str);
-  }
-
   void play(Move m) {
-    // std::cerr << m.piece.print();
-    // fprintf(stderr, " play (%c, %d) to (%c, %d)\n\n", m.piece.pos.x+'A',
-    // m.piece.pos.y, m.next.x+'A', m.next.y);
-    //test("play enter");
     m.piece.promoted |= m.promote;
-
-    //printf("play %d %d %d %d   %d %d\n", m.piece.color, (int)m.piece.type, m.piece.pos.x, m.piece.pos.y, m.next.x, m.next.y);
 
     if (m.piece.pos.on_board()) {
       _hash ^= HashArray[m.piece.color][getHashNum(m.piece)][m.piece.pos.x]
                         [m.piece.pos.y];
       // eat
       if (board[m.next.x][m.next.y].color != Empty) {
-        //test("enter eat");
-        //auto& x = board[m.next.x][m.next.y];
-        //printf("eat %d %d %d %d\n", x.color, (int)x.type, x.pos.x, x.pos.y);
         int opp = opponent(m.piece.color);
         _hash ^= HashArray[opp][getHashNum(board[m.next.x][m.next.y])][m.next.x]
                           [m.next.y];
@@ -599,7 +540,6 @@ class StateForMinishogi : public State, public Shogi {
         if (version == 1) {
           type = new_type(type);
         }
-        //test("eat pre push");
         Piece tmp(m.piece.color, type, false);
         chess[m.piece.color].push_back(tmp);
 
@@ -625,14 +565,6 @@ class StateForMinishogi : public State, public Shogi {
           if (m.piece.promoted) {
             (*it).promoted = true;
           }
-
-//          if (it->type != m.piece.type || it->color != m.piece.color) {
-//            fmt::printf("it is %d %d %d %d\n", it->color, (int)it->type, it->pos.x, it->pos.y);
-//            fmt::printf("m.piece is %d %d %d %d\n", m.piece.color, (int)m.piece.type, m.piece.pos.x, m.piece.pos.y);
-//            throw std::runtime_error("piece mismatch");
-//          }
-
-          //printf("piece moved\n");
           found = true;
 
           board[m.next.x][m.next.y] = (*it);
@@ -643,9 +575,7 @@ class StateForMinishogi : public State, public Shogi {
       if (!found) {
         throw std::runtime_error("could not find piece to move");
       }
-      //test("post move");
     } else {  // Drop move
-      //test("pre drop");
       _hash ^= HashArrayJail[getHashNumjail(m.piece)];
       std::vector<Piece>::iterator it;
       for (it = chess[m.piece.color].begin(); it != chess[m.piece.color].end();
@@ -656,7 +586,6 @@ class StateForMinishogi : public State, public Shogi {
           break;
         }
       }
-      //test("post drop");
     }
     _hash ^= HashArray[m.piece.color][getHashNum(board[m.next.x][m.next.y])]
                       [m.next.x][m.next.y];
@@ -670,25 +599,6 @@ class StateForMinishogi : public State, public Shogi {
       _status = GameStatus::tie;
     }
 
-    //test("pre repeat");
-
-    // find repeat
-    bool found = false;
-    size_t index = _hash % repetitions.size();
-    for (auto& v : repetitions[index]) {
-      if (v.first == _hash) {
-        ++v.second;
-        if (v.second >= 4) {
-          sennichite = true;
-        }
-        found = true;
-        break;
-      }
-    }
-    if (!found) {
-      repetitions[index].emplace_back(_hash, 1);
-    }
-
     for (auto i : chess[opponent(m.piece.color)]) {
       if (i.type == PieceType::King) {
         if (check(i.pos, m.piece.color)) {
@@ -700,60 +610,53 @@ class StateForMinishogi : public State, public Shogi {
       }
     }
 
+    // find repeat
+    bool found = false;
+    size_t index = _hash % repetitions.size();
+    for (auto& v : repetitions[index]) {
+      if (v.hash == _hash) {
+        ++v.count;
+        int repetitionLength = _moves.size() - v.lastStepIdx;
+        v.lastStepIdx = _moves.size();
+        if (v.count >= 4) {
+          // sennichite
+          if (m.piece.color == Black && checkCount[m.piece.color] * 2 >= repetitionLength) {
+            _status = GameStatus::player0Win;
+          } else {
+            _status = GameStatus::player1Win;
+          }
+        }
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      repetitions[index].push_back({_hash, 1, _moves.size()});
+    }
+
   }
 
   virtual void ApplyAction(const _Action& action) override {
-    // fprintf(stderr, "\nApply Action %d\n", (int)_status);
-
-    //fmt::printf("%s\n", stateDescription());
-
-    //fmt::printf(" ApplyAction %d index %d, %s\n", (int)_status, action.GetIndex(), actionDescription(action));
-
     play(moves.at(action.GetIndex()));
     if (_status == GameStatus::player0Turn ||
         _status == GameStatus::player1Turn) {
       _status = _status == GameStatus::player0Turn ? GameStatus::player1Turn
                                                    : GameStatus::player0Turn;
       findActions();
-      //printf("there are %d moves yey\n", moves.size());
       if (moves.empty()) {
-        _status = _status == GameStatus::player1Turn ? GameStatus::player0Win
-                                                     : GameStatus::player1Win;
-      } else if (sennichite) {
-        if (checkCount[White] >= 4) {
-          _status = GameStatus::player1Win;
-        } else if (checkCount[Black] >= 4) {
-          _status = GameStatus::player0Win;
-        } else {
-          _status = GameStatus::player1Win;
-        }
+        _status = _status == GameStatus::player1Turn ? GameStatus::player0Win : GameStatus::player1Win;
       }
     }
     if (_status == GameStatus::player0Turn ||
         _status == GameStatus::player1Turn) {
       findFeature();
-      //    fixxx
       fillFullFeatures();
     } else {
       _NewlegalActions.clear();
-      // if(_status == GameStatus::player0Win)
-      //     fprintf(stderr, "white win\n");
-      // else if(_status == GameStatus::player1Win)
-      //     fprintf(stderr, "black win\n");
-      // else fprintf(stderr, "tie\n");
     }
-    // fprintf(stderr, "end apply action\n");
   }
 
   virtual void DoGoodAction() override {
-    // int i;
-    // printCurrentBoard();
-    // std::cout << actionsDescription();
-    // std::cin >> i;
-    // _Action a = *(_legalActions[i].get());
-    // ApplyAction(a);
-    // std::cout << actionDescription(a);
-
     return DoRandomAction();
   }
 };
