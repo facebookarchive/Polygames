@@ -206,7 +206,9 @@ class ChannelAssembler {
 #endif
       models_.back()->eval();
 
-      models_.back()->to(at::ScalarType::Half);
+      if (actDevices_.back().is_cuda()) {
+        models_.back()->to(at::ScalarType::Half);
+      }
 
       auto channel = std::make_shared<DataChannel>(
           std::string("act") + std::to_string(i), actBatchsize, -1);
@@ -355,7 +357,11 @@ class ChannelAssembler {
     torch::NoGradGuard ng;
     std::unordered_map<std::string, torch::Tensor> r;
     for (auto& [name, tensor] : stateDict) {
-      r[name] = tensor.detach().to(torch::TensorOptions().device(torch::kCPU).dtype(at::ScalarType::Half), false, true);
+      auto t = at::ScalarType::Float;
+      if (hasCuda()) {
+        t = at::ScalarType::Half;
+      }
+      r[name] = tensor.detach().to(torch::TensorOptions().device(torch::kCPU).dtype(t), false, true);
     }
     return r;
   }
@@ -561,9 +567,13 @@ class ChannelAssembler {
       g.emplace(c10::cuda::getStreamFromPool(false, actDevices_[n].index()));
     }
     std::vector<torch::jit::IValue> inp;
-    inp.push_back(input.to(actDevices_[n], at::ScalarType::Half, true));
+    auto dtype = at::ScalarType::Float;
+    if (hasCuda()) {
+      dtype = at::ScalarType::Half;
+    }
+    inp.push_back(input.to(actDevices_[n], dtype, true));
     if (rnnState.defined()) {
-      inp.push_back(rnnState.to(actDevices_[n], at::ScalarType::Half, true));
+      inp.push_back(rnnState.to(actDevices_[n], dtype, true));
     }
     std::unique_lock<PriorityMutex> lk(mModels_[n]);
     auto output = models_[n]->forward(inp);

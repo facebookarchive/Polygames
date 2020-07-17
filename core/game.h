@@ -321,8 +321,10 @@ to look into this) if the strategy is identical to knuth’s.
                    int history,
                    int randomFeatures,
                    bool oneFeature) {
+//    featopts.emplace_back();
+//    FeatureOptions& opt = featopts.back();
     featopts.emplace_back();
-    FeatureOptions& opt = featopts.back();
+    FeatureOptions& opt = *new FeatureOptions();
     opt.outFeatures = outFeatures;
     opt.turnFeatures = turnFeatures;
     opt.geometricFeatures = geometricFeatures;

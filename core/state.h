@@ -266,9 +266,9 @@ class State : public mcts::State {
     //             << ", " << aa.GetZ() << std::endl;
     // }
     assert(action != mcts::InvalidAction);
+    ApplyAction(GetLegalActions().at(action));
     _moves.push_back(action);
     _moveRngs.emplace_back(_rng, forcedDice);
-    ApplyAction(GetLegalActions().at(action));
 
     // printCurrentBoard();
     // std::cout << "=========" << std::endl;

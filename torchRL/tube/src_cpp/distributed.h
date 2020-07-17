@@ -485,9 +485,52 @@ class DistributedServer {
   std::mutex mut;
   std::unordered_map<std::string_view, ModelInfo> models;
 
+  std::mutex timemut;
+  std::unordered_map<std::string, float> calltimes;
+  std::chrono::steady_clock::time_point lasttimereport;
+
  public:
   std::function<void(const void* data, size_t len)> onTrainData;
   NetStatsCounter netstatsCounter;
+
+  template<typename R, typename... Args>
+  auto define(std::string name, R (DistributedServer::*f)(Args...)) {
+    server->define(name, std::function<R(Args...)>([this, f, name](Args&&... args) {
+      auto begin = std::chrono::steady_clock::now();
+      auto finish = [&]() {
+        auto end = std::chrono::steady_clock::now();
+        double t = std::chrono::duration_cast<
+                       std::chrono::duration<double, std::ratio<1, 1000>>>(end - begin)
+                       .count();
+        {
+          std::lock_guard l(timemut);
+          auto i = calltimes.find(name);
+          if (i == calltimes.end()) {
+            i = calltimes.emplace(name, t).first;
+          }
+          float& v = i->second;
+          v = v * 0.99 + t * 0.01;
+
+          if (end - lasttimereport >= std::chrono::seconds(60)) {
+            lasttimereport = end;
+            std::string s = "RPC call times (running average):\n";
+            for (auto& v : calltimes) {
+              s += fmt::sprintf("  %s  %fms\n", v.first, v.second);
+            }
+            fmt::printf("%s", s);
+          }
+        }
+      };
+      if constexpr (std::is_same_v<R, void>) {
+        (this->*f)(std::forward<Args>(args)...);
+        finish();
+      } else {
+        auto rv = (this->*f)(std::forward<Args>(args)...);
+        finish();
+        return rv;
+      }
+    }));
+  }
 
   void start(std::string_view endpoint) {
     if (endpoint.substr(0, 6) == "tcp://") {
@@ -496,13 +539,11 @@ class DistributedServer {
     printf("actual listen endpoint is %s\n", std::string(endpoint).c_str());
     server = getRpc().listen("");
 
-    server->define("requestModel", &DistributedServer::requestModel, this);
-    server->define(
-        "requestStateDict", &DistributedServer::requestStateDict, this);
-    server->define(
-        "requestCompressedStateDict", &DistributedServer::requestCompressedStateDict, this);
-    server->define("trainData", &DistributedServer::trainData, this);
-    server->define("gameResult", &DistributedServer::gameResult, this);
+    define("requestModel", &DistributedServer::requestModel);
+    define("requestStateDict", &DistributedServer::requestStateDict);
+    define("requestCompressedStateDict", &DistributedServer::requestCompressedStateDict);
+    define("trainData", &DistributedServer::trainData);
+    define("gameResult", &DistributedServer::gameResult);
 
     server->listen(endpoint);
   }
@@ -586,7 +627,7 @@ class DistributedClient {
         resultQueue.clear();
       }
 
-      fmt::printf("Request mode, isTournamentOpponent %d, wantsNewModelId %d\n", isTournamentOpponent, wantsNewModelId);
+      fmt::printf("Request model, isTournamentOpponent %d, wantsNewModelId %d\n", isTournamentOpponent, wantsNewModelId);
 
       auto result = client->async<std::pair<std::string, int>>(
           "requestModel",

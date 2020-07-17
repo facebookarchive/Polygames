@@ -84,6 +84,8 @@ struct AsyncThreads {
         }
         dtor = [](void* ptr) { ((F*)ptr)->~F(); };
         call = [](void* ptr) { (*(F*)ptr)(); };
+
+        return *this;
       }
       ~Function() {
         if (storage) {
