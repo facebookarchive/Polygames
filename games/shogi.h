@@ -308,7 +308,7 @@ void pawn_moves(Piece p, std::vector<Move>& moves) {
     if (m.piece.color == White) {
         m.next = m.piece.pos + Position(0, 1);
         if (m.next.on_board() && board[m.next.x][m.next.y].color != m.piece.color) {
-            if (m.next.y != 5) moves.push_back(m);
+            if (m.next.y != 4) moves.push_back(m);
             else {
                 m.promote = true;
                 moves.push_back(m);
@@ -808,7 +808,7 @@ void legal_pawn_moves(Piece p, std::vector<Move>& moves) {
             board[m.next.x][m.next.y] = m.piece;
 
             if(!check(king.pos, opponent(king.color))) {
-                if (m.next.y != 5) moves.push_back(m);
+                if (m.next.y != 4) moves.push_back(m);
                 else if(!m.piece.promoted){
                     m.promote = true;
                     moves.push_back(m);
