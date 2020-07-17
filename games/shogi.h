@@ -45,7 +45,7 @@ class Position {
         x = X; y = Y;
     }
 
-    bool on_board() {
+    bool on_board() const {
         assert((x==-1 && y==-1) || (x>=-1 && y>=-1 && x<=Dx && y<=Dy));
         return (x >= 0 && y >= 0 && x < Dx && y < Dy);
     }
@@ -54,8 +54,11 @@ class Position {
         return Position(x + p.x, y + p.y);
     }
 
-    bool operator==(const Position& p) {
+    bool operator==(const Position& p) const {
         return (x == p.x && y == p.y);
+    }
+    bool operator!=(const Position& p) const {
+      return x != p.x || y != p.y;
     }
 };
 
@@ -339,7 +342,7 @@ void legal_king_moves(Piece p, std::vector<Move>& moves) {
             if(board[m.next.x][m.next.y].color != Empty) {
                 pp = board[m.next.x][m.next.y];
                 for(auto& i : chess[opponent(m.piece.color)]) {
-                    if(i.type == pp.type) {
+                    if(i.pos == pp.pos) {
                         i.pos = Position(-1, -1);
                         break;
                     }
@@ -355,7 +358,7 @@ void legal_king_moves(Piece p, std::vector<Move>& moves) {
             board[m.next.x][m.next.y] = pp;
             board[m.piece.pos.x][m.piece.pos.y] = m.piece;
             for(auto& i : chess[opponent(m.piece.color)]) {
-                if(i.type == pp.type) {
+                if(i.type == pp.type && !i.pos.on_board()) {
                     i.pos = pp.pos;
                     break;
                 }
@@ -389,7 +392,7 @@ void legal_gold_moves(Piece p, std::vector<Move>& moves){
                 if(board[m.next.x][m.next.y].color != Empty) {
                     pp = board[m.next.x][m.next.y];
                     for(auto& i : chess[opponent(m.piece.color)]) {
-                        if(i.type == pp.type) {
+                        if(i.pos == pp.pos) {
                             i.pos = Position(-1, -1);
                             break;
                         }
@@ -416,7 +419,7 @@ void legal_gold_moves(Piece p, std::vector<Move>& moves){
                 board[m.next.x][m.next.y] = pp;
                 board[m.piece.pos.x][m.piece.pos.y] = m.piece;
                 for(auto& i : chess[opponent(m.piece.color)]) {
-                    if(i.type == pp.type) {
+                    if(i.type == pp.type && !i.pos.on_board()) {
                         i.pos = pp.pos;
                         break;
                     }
@@ -434,7 +437,7 @@ void legal_gold_moves(Piece p, std::vector<Move>& moves){
                 if(board[m.next.x][m.next.y].color != Empty) {
                     pp = board[m.next.x][m.next.y];
                     for(auto& i : chess[opponent(m.piece.color)]) {
-                        if(i.type == pp.type) {
+                        if(i.pos == pp.pos) {
                             i.pos = Position(-1, -1);
                             break;
                         }
@@ -449,7 +452,7 @@ void legal_gold_moves(Piece p, std::vector<Move>& moves){
                 board[m.next.x][m.next.y] = pp;
                 board[m.piece.pos.x][m.piece.pos.y] = m.piece;
                 for(auto& i : chess[opponent(m.piece.color)]) {
-                    if(i.type == pp.type) {
+                    if(i.type == pp.type && !i.pos.on_board()) {
                         i.pos = pp.pos;
                         break;
                     }
@@ -484,7 +487,7 @@ void legal_silver_moves(Piece p, std::vector<Move>& moves) {
                 if(board[m.next.x][m.next.y].color != Empty) {
                     pp = board[m.next.x][m.next.y];
                     for(auto& i : chess[opponent(m.piece.color)]) {
-                        if(i.type == pp.type) {
+                        if(i.pos == pp.pos) {
                             i.pos = Position(-1, -1);
                             break;
                         }
@@ -505,7 +508,7 @@ void legal_silver_moves(Piece p, std::vector<Move>& moves) {
                 board[m.next.x][m.next.y] = pp;
                 board[m.piece.pos.x][m.piece.pos.y] = m.piece;
                 for(auto& i : chess[opponent(m.piece.color)]) {
-                    if(i.type == pp.type) {
+                    if(i.type == pp.type && !i.pos.on_board()) {
                         i.pos = pp.pos;
                         break;
                     }
@@ -522,7 +525,7 @@ void legal_silver_moves(Piece p, std::vector<Move>& moves) {
                 if(board[m.next.x][m.next.y].color != Empty) {
                     pp = board[m.next.x][m.next.y];
                     for(auto& i : chess[opponent(m.piece.color)]) {
-                        if(i.type == pp.type) {
+                        if(i.pos == pp.pos) {
                             i.pos = Position(-1, -1);
                             break;
                         }
@@ -543,7 +546,7 @@ void legal_silver_moves(Piece p, std::vector<Move>& moves) {
                 board[m.next.x][m.next.y] = pp;
                 board[m.piece.pos.x][m.piece.pos.y] = m.piece;
                 for(auto& i : chess[opponent(m.piece.color)]) {
-                    if(i.type == pp.type) {
+                    if(i.type == pp.type && !i.pos.on_board()) {
                         i.pos = pp.pos;
                         break;
                     }
@@ -580,7 +583,7 @@ void legal_bishop_moves(Piece p, std::vector<Move>& moves) {
             if(board[m.next.x][m.next.y].color != Empty) {
                 pp = board[m.next.x][m.next.y];
                 for(auto& i : chess[opponent(m.piece.color)]) {
-                    if(i.type == pp.type) {
+                    if(i.pos == pp.pos) {
                         i.pos = Position(-1, -1);
                         break;
                     }
@@ -609,7 +612,7 @@ void legal_bishop_moves(Piece p, std::vector<Move>& moves) {
             board[m.next.x][m.next.y] = pp;
             board[m.piece.pos.x][m.piece.pos.y] = m.piece;
             for(auto& i : chess[opponent(m.piece.color)]) {
-                if(i.type == pp.type) {
+                if(i.type == pp.type && !i.pos.on_board()) {
                     i.pos = pp.pos;
                     break;
                 }
@@ -630,7 +633,7 @@ void legal_bishop_moves(Piece p, std::vector<Move>& moves) {
                 if(board[m.next.x][m.next.y].color != Empty) {
                     pp = board[m.next.x][m.next.y];
                     for(auto& i : chess[opponent(m.piece.color)]) {
-                        if(i.type == pp.type) {
+                        if(i.pos == pp.pos) {
                             i.pos = Position(-1, -1);
                             break;
                         }
@@ -646,7 +649,7 @@ void legal_bishop_moves(Piece p, std::vector<Move>& moves) {
                 board[m.next.x][m.next.y] = pp;
                 board[m.piece.pos.x][m.piece.pos.y] = m.piece;
                 for(auto& i : chess[opponent(m.piece.color)]) {
-                    if(i.type == pp.type) {
+                    if(i.type == pp.type && !i.pos.on_board()) {
                         i.pos = pp.pos;
                         break;
                     }
@@ -690,7 +693,7 @@ void legal_rook_moves(Piece p, std::vector<Move>& moves) {
             if(board[m.next.x][m.next.y].color != Empty) {
                 pp = board[m.next.x][m.next.y];
                 for(auto& i : chess[opponent(m.piece.color)]) {
-                    if(i.type == pp.type) {
+                    if(i.pos == pp.pos) {
                         i.pos = Position(-1, -1);
                         break;
                     }
@@ -719,7 +722,7 @@ void legal_rook_moves(Piece p, std::vector<Move>& moves) {
             board[m.next.x][m.next.y] = pp;
             board[m.piece.pos.x][m.piece.pos.y] = m.piece;
             for(auto& i : chess[opponent(m.piece.color)]) {
-                if(i.type == pp.type) {
+                if(i.type == pp.type && !i.pos.on_board()) {
                     i.pos = pp.pos;
                     break;
                 }
@@ -739,7 +742,7 @@ void legal_rook_moves(Piece p, std::vector<Move>& moves) {
             if(board[m.next.x][m.next.y].color != Empty) {
                 pp = board[m.next.x][m.next.y];
                 for(auto& i : chess[opponent(m.piece.color)]) {
-                    if(i.type == pp.type) {
+                    if(i.pos == pp.pos) {
                         i.pos = Position(-1, -1);
                         break;
                     }
@@ -755,7 +758,7 @@ void legal_rook_moves(Piece p, std::vector<Move>& moves) {
             board[m.next.x][m.next.y] = pp;
             board[m.piece.pos.x][m.piece.pos.y] = m.piece;
             for(auto& i : chess[opponent(m.piece.color)]) {
-                if(i.type == pp.type) {
+                if(i.type == pp.type && !i.pos.on_board()) {
                     i.pos = pp.pos;
                     break;
                 }
@@ -795,7 +798,7 @@ void legal_pawn_moves(Piece p, std::vector<Move>& moves) {
             if(board[m.next.x][m.next.y].color != Empty) {
                 pp = board[m.next.x][m.next.y];
                 for(auto& i : chess[opponent(m.piece.color)]) {
-                    if(i.type == pp.type) {
+                    if(i.pos == pp.pos) {
                         i.pos = Position(-1, -1);
                         break;
                     }
@@ -816,7 +819,7 @@ void legal_pawn_moves(Piece p, std::vector<Move>& moves) {
             board[m.next.x][m.next.y] = pp;
             board[m.piece.pos.x][m.piece.pos.y] = m.piece;
             for(auto& i : chess[opponent(m.piece.color)]) {
-                if(i.type == pp.type) {
+                if(i.type == pp.type && !i.pos.on_board()) {
                     i.pos = pp.pos;
                     break;
                 }
@@ -830,7 +833,7 @@ void legal_pawn_moves(Piece p, std::vector<Move>& moves) {
             if(board[m.next.x][m.next.y].color != Empty) {
                 pp = board[m.next.x][m.next.y];
                 for(auto& i : chess[opponent(m.piece.color)]) {
-                    if(i.type == pp.type) {
+                    if(i.pos == pp.pos) {
                         i.pos = Position(-1, -1);
                         break;
                     }
@@ -851,7 +854,7 @@ void legal_pawn_moves(Piece p, std::vector<Move>& moves) {
             board[m.next.x][m.next.y] = pp;
             board[m.piece.pos.x][m.piece.pos.y] = m.piece;
             for(auto& i : chess[opponent(m.piece.color)]) {
-                if(i.type == pp.type) {
+                if(i.type == pp.type && !i.pos.on_board()) {
                     i.pos = pp.pos;
                     break;
                 }
@@ -1202,7 +1205,7 @@ PieceType z_to_type(int z) const {
 }
 
 
-PieceType new_type(PieceType p) {
+PieceType new_type(PieceType p) const {
     PieceType t = p;
     switch (p) {
     case PieceType::Gold:
