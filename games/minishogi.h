@@ -47,7 +47,7 @@ class StateForMinishogi : public State, public Shogi {
 
   int repeat;
   int perpetualCheckPlayer;
-  std::queue<unsigned long long> situation;
+  std::deque<unsigned long long> situation;
 
   StateForMinishogi(int seed)
       : State(seed)
@@ -111,7 +111,8 @@ class StateForMinishogi : public State, public Shogi {
     length = 0;
     repeat = 0;
     perpetualCheckPlayer = -1;
-    situation.push(_hash);
+    situation.clear();
+    situation.push_back(_hash);
   }
 
   static void initHash() {
@@ -361,20 +362,23 @@ class StateForMinishogi : public State, public Shogi {
 
     moves.clear();
 
-    for (auto i : chess[(int)_status]) {
-      // std::cerr << i.print() << std::endl;
-      legalMoves(i, moves);
-      // if(i.type == PieceType::King) {
-      //     if(check(i.pos, opponent(i.color))) {
-      //         fprintf(stderr, "check!!!!!!!\n");
-      //         legal_king_moves(i, moves);
-      //     }
-      //     else {
-      //         for(auto j : chess[(int)_status])
-      //             legalMoves(j, moves);
-      //     }
-      //     break;
-      // }
+    auto& list = chess[(int)_status];
+    for (size_t i = 0; i != list.size(); ++i) {
+      const Piece& p = list[i];
+      if (!p.pos.on_board()) {
+        bool duplicate = false;
+        for (size_t i2 = 0; i2 != i; ++i2) {
+          const Piece& p2 = list[i2];
+          if (p2.type == p.type && !p2.pos.on_board()) {
+            duplicate = true;
+            break;
+          }
+        }
+        if (duplicate) {
+          continue;
+        }
+      }
+      legalMoves(p, moves);
     }
 
     int i = 0;
@@ -682,7 +686,6 @@ class StateForMinishogi : public State, public Shogi {
     }
     // fprintf(stderr, "end play\n");
 
-
     //test("play leave");
   }
 
@@ -740,10 +743,10 @@ class StateForMinishogi : public State, public Shogi {
       fillFullFeatures();
 
       if (situation.size() == 4) {
-        situation.pop();
-        situation.push(_hash);
+        situation.pop_front();
+        situation.push_back(_hash);
       } else
-        situation.push(_hash);
+        situation.push_back(_hash);
     } else {
       _NewlegalActions.clear();
       // if(_status == GameStatus::player0Win)
