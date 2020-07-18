@@ -66,18 +66,15 @@ inline std::pair<torch::Tensor, torch::Tensor> getPolicyInTensor(
 }
 
 inline void normalize(std::unordered_map<mcts::Action, float>& a2pi) {
-  float sumProb = 1e-10;
+  float sumProb = 0.0f;
   for (const auto& p : a2pi) {
     sumProb += p.second;
   }
-  if (sumProb > (float)1 + 1e-3) {
-    std::cout << "superise: " << sumProb << std::endl;
-    std::cerr << "superise: " << sumProb << std::endl;
-  }
-  assert(sumProb <= (float)1 + 1e-3);
 
-  for (auto& p : a2pi) {
-    p.second /= sumProb;
+  if (sumProb != 0.0f) {
+    for (auto& p : a2pi) {
+      p.second /= sumProb;
+    }
   }
 }
 
