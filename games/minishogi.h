@@ -38,9 +38,9 @@
 template <int version = 2>
 class StateForMinishogi : public State, public Shogi {
  public:
-  static inline unsigned long long HashArray[2][10][Dx][Dy];
-  static inline unsigned long long HashArrayJail[20];
-  static inline unsigned long long HashTurn;
+  static inline uint64_t HashArray[2][10][Dx][Dy];
+  static inline uint64_t HashArrayJail[20];
+  static inline uint64_t HashTurn;
   int length;
 
   std::array<int, 2> checkCount;
@@ -71,7 +71,7 @@ class StateForMinishogi : public State, public Shogi {
     _featSize[2] = Dx;
     _actionSize[0] = 19;  // 11 pieces + 8 promoted
     if (version == 2) {
-      _actionSize[0] = 6;
+      _actionSize[0] = 6 + 6;
     }
     _actionSize[1] = Dy;
     _actionSize[2] = Dx;
@@ -119,9 +119,10 @@ class StateForMinishogi : public State, public Shogi {
   }
 
   static void initHash() {
-    std::independent_bits_engine<std::mt19937_64, 64, uint64_t> rng(
+    std::mt19937_64 rng(
+        std::random_device{}() ^
         std::chrono::steady_clock::now().time_since_epoch().count());
-    rng.discard(128);
+    rng.discard(1024);
     for (int a = 0; a < 2; ++a)
       for (int b = 0; b < 10; ++b)
         for (int c = 0; c < 5; ++c)
@@ -129,8 +130,10 @@ class StateForMinishogi : public State, public Shogi {
             HashArray[a][b][c][d] = rng();
           }
     for (int a = 0; a < 20; ++a) {
-      HashArrayJail[a] = rng();
+      for (int k = 0; k < 64; ++k)
+        HashArrayJail[a] = rng();
     }
+
     HashTurn = rng();
   }
 
@@ -380,7 +383,7 @@ class StateForMinishogi : public State, public Shogi {
 
       if (version == 2) {
         _NewlegalActions.emplace_back(
-            _NewlegalActions.size(), (int)m.piece.type - 1, m.next.y, m.next.x);
+            _NewlegalActions.size(), (int)m.piece.type - 1 + (m.piece.pos.on_board() ? 0 : 6), m.next.y, m.next.x);
       } else {
 
         int x = m.next.x;
