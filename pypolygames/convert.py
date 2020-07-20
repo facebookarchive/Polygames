@@ -54,7 +54,7 @@ def convert_checkpoint(
             print("Changing %s from %s to %s" % (k, ov, v))
             setattr(new_game_params, k, v)
 
-    fix_global_pooling = old_model_params.model_name == "ResConvConvLogitPoolModelV2" and new_model_params.model_name == "ResConvConvLogitPoolModelV2" and new_model_params.global_pooling > 0 and new_model_params.nnsize != old_model_params.nnsize
+    fix_global_pooling = old_model_params.model_name == "ResConvConvLogitPoolModelV2" and new_model_params.model_name == "ResConvConvLogitPoolModelV2" and new_model_params.global_pooling > 0
     if fix_global_pooling:
         print("Note: attempting to patch global pooling weights to match the new model")
 
@@ -96,24 +96,33 @@ def convert_checkpoint(
             params_removed -= delta
         if dst.shape != src.shape:
             print("%s shape %s -> %s" % (k, src.shape, dst.shape))
-        if fix_global_pooling and "resnets" in k and "weight" in k:
+        if fix_global_pooling and "resnets" in k and "0.0" in k and "weight" in k:
           if src.dim() == 4 and dst.dim() == 4:
 
             src_c = src.shape[0]
             dst_c = dst.shape[0]
 
-            pool_s = min(int(src_c * old_model_params.global_pooling), int(dst_c * new_model_params.global_pooling)) * 2
+            src_s = int(src_c * old_model_params.global_pooling)
+            dst_s = int(dst_c * new_model_params.global_pooling)
 
-            src_d = src_c + pool_s
-            dst_d = dst_c + pool_s
+            src_d = src_c + src_s
+            dst_d = dst_c + src_s
 
             print("Moving global pooling weights from %d:%d to %d:%d" % (src_c, src_d, dst_c, dst_d))
 
             min_c = min(src_c, dst_c)
-            dst[:min_c, dst_c:pool_s, :, :] = src[:min_c, src_c:pool_s, :, :]
+            dst[:min_c, dst_c:dst_d, :, :] = src[:min_c, src_c:src_d, :, :]
+            #dst.narrow(0, 0, src_c).narrow(1, dst_c, src_s).copy_(src.narrow(1, src_c, src_s))
+
+            print("Moving global pooling weights from %d:%d to %d:%d" % (src_c+src_s, src_d+src_s, dst_c+dst_s, dst_d+dst_s))
+
+            #dst.narrow(0, 0, src_c).narrow(1, dst_c+dst_s, src_s).copy_(src.narrow(1, src_c+src_s, src_s))
+            dst[:min_c, dst_c+dst_s:dst_d+dst_s, :, :] = src[:min_c, src_c+src_s:src_d+src_s, :, :]
 
             src = src[:, :src_c, :, :]
             dst = dst[:, :dst_c, :, :]
+            #src = src.narrow(1, 0, src_c)
+            #dst = dst.narrow(1, 0, dst_c)
 
         while dst.dim() < src.dim():
             dst = dst.unsqueeze(0)

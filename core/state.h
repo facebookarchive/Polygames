@@ -193,7 +193,7 @@ class State : public mcts::State {
     return str;
   }
 
-  virtual std::string history() override {
+  virtual std::string history() const override {
     // return std::to_string(_moves.size()) + " moves";
     std::string str;
     auto sc = clone();

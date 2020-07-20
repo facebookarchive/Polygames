@@ -299,7 +299,7 @@ class Client : public std::enable_shared_from_this<Client> {
     this->peer.setOnMessage([this](std::string_view buf) {
       bytesReceived_ += buf.size();
       Deserializer des(buf);
-      des.decompress();
+      //des.decompress();
       Deserialize x(des);
       uint32_t id;
       uint8_t status;
@@ -345,7 +345,7 @@ class Client : public std::enable_shared_from_this<Client> {
     Serialize x(ser);
     uint32_t id = ++reqcounter;
     x(id, funcname, std::forward<Args>(args)...);
-    ser.compress();
+    //ser.compress();
     peer.sendMessage(ser.data(), ser.size());
     bytesSent_ += ser.size();
     ++numRpcCalls_;
@@ -396,7 +396,7 @@ class Client : public std::enable_shared_from_this<Client> {
     req->timestamp = std::chrono::steady_clock::now();
     requests[id] = std::move(req);
     l.unlock();
-    ser.compress();
+    //ser.compress();
     peer.sendMessage(ser.data(), ser.size());
     bytesSent_ += ser.size();
     ++numRpcCalls_;
@@ -557,7 +557,7 @@ class Server {
   void handle(Peer& peer, std::string_view buf) {
     bytesReceived_ += buf.size();
     Deserializer des(buf.data(), buf.size());
-    des.decompress();
+    //des.decompress();
     Deserialize x(des);
     uint32_t id;
     std::string_view name;
@@ -575,7 +575,7 @@ class Server {
         ser.clear();
         sx(id);
         sx((uint8_t)0xfe);
-        ser.compress();
+        //ser.compress();
         peer.peer.sendMessage(ser.data(), ser.size());
         bytesSent_ += ser.size();
         throw;
@@ -584,7 +584,7 @@ class Server {
       sx(id);
       sx((uint8_t)0xff);
     }
-    ser.compress();
+    //ser.compress();
     peer.peer.sendMessage(ser.data(), ser.size());
     bytesSent_ += ser.size();
   }

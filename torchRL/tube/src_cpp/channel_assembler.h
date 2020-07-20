@@ -282,7 +282,7 @@ class ChannelAssembler {
         if (!dontRequestModelUpdates_) {
           client_->requestModel(isTournamentOpponent_);
         }
-        for (int i = 0; i != 20 && !terminate_ && !trainChannel_->terminated();
+        for (int i = 0; i != 60 && !terminate_ && !trainChannel_->terminated();
              ++i) {
           std::this_thread::sleep_for(std::chrono::seconds(2));
         }

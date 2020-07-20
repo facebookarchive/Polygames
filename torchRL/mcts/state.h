@@ -61,7 +61,7 @@ class State {
     return *_typeId;
   }
 
-  virtual std::string history() {
+  virtual std::string history() const {
     return "<history not available>";
   }
 
