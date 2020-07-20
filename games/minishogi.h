@@ -456,22 +456,9 @@ class StateForMinishogi : public State, public Shogi {
     return str;
   }
 
-  std::string lcase(std::string str) {
-    for (auto& v : str) {
-      v = std::tolower(v);
-    }
-    return str;
-  }
-
   virtual int parseAction(const std::string& str) override {
     for (size_t i = 0; i != _legalActions.size(); ++i) {
       if (str == actionDescription(*_legalActions[i])) {
-        return i;
-      }
-    }
-    auto lstr = lcase(str);
-    for (size_t i = 0; i != _legalActions.size(); ++i) {
-      if (str == lcase(actionDescription(*_legalActions[i]))) {
         return i;
       }
     }
