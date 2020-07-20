@@ -52,6 +52,7 @@ class StateForMinishogi : public State, public Shogi {
   };
 
   std::array<std::vector<Repetition>, 16> repetitions;
+  int repeatCount;
 
   StateForMinishogi(int seed)
       : State(seed)
@@ -66,7 +67,7 @@ class StateForMinishogi : public State, public Shogi {
     _featSize[0] = 217;
     if (version == 2) {
       _featSize[0] =
-          (6 + 4 + 6) * 2;  // 6 pieces + 4 promoted + 6 off board (counts)
+          (6 + 4 + 6) * 2 + 3;  // (6 pieces + 4 promoted + 6 off board (counts)) * 2 + 3 repeat counts
     }
     _featSize[1] = Dy;
     _featSize[2] = Dx;
@@ -117,6 +118,7 @@ class StateForMinishogi : public State, public Shogi {
       v.clear();
     }
     repetitions[_hash % repetitions.size()].push_back({_hash, 1, 0});
+    repeatCount = 0;
   }
 
   static void initHash() {
@@ -131,8 +133,7 @@ class StateForMinishogi : public State, public Shogi {
             HashArray[a][b][c][d] = rng();
           }
     for (int a = 0; a < 20; ++a) {
-      for (int k = 0; k < 64; ++k)
-        HashArrayJail[a] = rng();
+      HashArrayJail[a] = rng();
     }
 
     HashTurn = rng();
@@ -170,6 +171,15 @@ class StateForMinishogi : public State, public Shogi {
               _features[i] += 1.0f;
             }
           }
+        }
+      }
+      if (repeatCount) {
+        size_t index = (6 + 4 + 6) * 2;
+        index += std::max(std::min(repeatCount, 3), 1) - 1;
+        size_t begin = Dx * Dy * index;
+        size_t end = Dx * Dy * (index + 1);
+        for (size_t i = begin; i != end; ++i) {
+          _features[i] += 1.0f;
         }
       }
       return;
@@ -477,7 +487,7 @@ class StateForMinishogi : public State, public Shogi {
     bool disx = false;
     if (p.pos.on_board()) {
       for (const Move& m : moves) {
-        if ((m.piece.type == p.type || new_type(m.piece.type) == p.type) &&
+        if ((m.piece.type == p.type || new_type(m.piece.type) == p.type) && m.piece.promoted == p.promoted &&
             m.piece.pos.on_board() && m.piece.pos != p.pos &&
             m.next == move.next) {
           if (m.piece.pos.x == p.pos.x) {
@@ -492,6 +502,11 @@ class StateForMinishogi : public State, public Shogi {
     std::string s = p.print();
     for (auto& v : s) {
       v = std::toupper(v);
+    }
+    if (s == "P") {
+      if (p.pos.on_board() && board[move.next.x][move.next.y].color == Empty) {
+        s = "";
+      }
     }
     if (disx) {
       s += char('a' + p.pos.x);
@@ -534,17 +549,16 @@ class StateForMinishogi : public State, public Shogi {
   }
 
   void play(Move m) {
-    m.piece.promoted |= m.promote;
 
     if (m.piece.pos.on_board()) {
       _hash ^= HashArray[m.piece.color][getHashNum(m.piece)][m.piece.pos.x]
                         [m.piece.pos.y];
+      m.piece.promoted |= m.promote;
       // eat
       if (board[m.next.x][m.next.y].color != Empty) {
         int opp = opponent(m.piece.color);
         _hash ^= HashArray[opp][getHashNum(board[m.next.x][m.next.y])][m.next.x]
                           [m.next.y];
-        _hash ^= HashArrayJail[getHashNumjail(board[m.next.x][m.next.y])];
 
         auto type = board[m.next.x][m.next.y].type;
         if (version == 1) {
@@ -552,6 +566,8 @@ class StateForMinishogi : public State, public Shogi {
         }
         Piece tmp(m.piece.color, type, false);
         chess[m.piece.color].push_back(tmp);
+
+        _hash ^= HashArrayJail[getHashNumjail(tmp)];
 
         bool found = false;
         std::vector<Piece>::iterator it;
@@ -622,17 +638,18 @@ class StateForMinishogi : public State, public Shogi {
     }
 
     // find repeat
+    repeatCount = 0;
     bool found = false;
     size_t index = _hash % repetitions.size();
     for (auto& v : repetitions[index]) {
       if (v.hash == _hash) {
         ++v.count;
+        repeatCount = v.count;
         int repetitionLength = _moves.size() - v.lastStepIdx;
         v.lastStepIdx = _moves.size();
         if (v.count >= 4) {
           // sennichite
-          if (m.piece.color == Black &&
-              checkCount[m.piece.color] * 2 >= repetitionLength) {
+          if (checkCount[Black] * 2 >= repetitionLength) {
             _status = GameStatus::player0Win;
           } else {
             _status = GameStatus::player1Win;
@@ -643,7 +660,7 @@ class StateForMinishogi : public State, public Shogi {
       }
     }
     if (!found) {
-      repetitions[index].push_back({_hash, 1, _moves.size()});
+      repetitions[index].push_back({_hash, 1, (int)_moves.size()});
     }
   }
 
