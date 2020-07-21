@@ -16,6 +16,7 @@ add_library(_tube
   src_cpp/replay_buffer.cc
   src_cpp/reqrepserver.cpp
   src_cpp/network.cpp
+  src_cpp/ib.cpp
   ${zstd_sources}
 )
 target_include_directories(_tube PUBLIC ${TORCH_INCLUDE_DIRS})
@@ -30,4 +31,4 @@ target_link_libraries(test_data_channel _tube)
 
 # pybind lib
 pybind11_add_module(tube src_cpp/pybind.cc)
-target_link_libraries(tube PUBLIC _tube)
+target_link_libraries(tube PUBLIC _tube ibverbs)

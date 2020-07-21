@@ -7,6 +7,8 @@
 
 #include "rpc.h"
 
+#include "rdma.h"
+
 #define ZSTD_STATIC_LINKING_ONLY
 #include "zstd/lib/zstd.h"
 
@@ -188,6 +190,35 @@ inline rpc::Rpc& getRpc() {
   }();
   return *rpc;
 }
+
+struct RDMAModelInfo {
+  uint32_t checksum;
+  uint32_t key;
+  uintptr_t address;
+  size_t size;
+};
+
+struct Crc32 {
+  std::array<uint32_t, 256> lut;
+  Crc32() {
+    for (uint32_t i = 0; i != 256; ++i) {
+      uint32_t v = i;
+      for (size_t b = 0; b != 8; ++b) {
+        v = (v >> 1) ^ (v & 1 ? 0xedb88320 : 0);
+      }
+      lut[i] = v;
+    }
+  }
+  uint32_t operator()(const void* ptr, size_t size) {
+    uint32_t r = 0xffffffff;
+    unsigned char* c = (unsigned char*)ptr;
+    unsigned char* end = c + size;
+    while (c != end) {
+      r = (r >> 8) ^ lut[(r ^ *c++) & 0xff];
+    }
+    return r;
+  }
+} crc32;
 
 class DistributedServer {
 
@@ -392,8 +423,8 @@ class DistributedServer {
     }
   }
 
-  std::optional<std::vector<char>>
-  requestCompressedStateDict(std::string_view modelId) {
+  std::optional<std::vector<char>> requestCompressedStateDict(
+      std::string_view modelId) {
     std::unique_lock l(mut);
     auto i = models.find(modelId);
     if (i == models.end()) {
@@ -419,21 +450,28 @@ class DistributedServer {
         rpc::Serialize ser(s);
         ser(i->second.stateDict);
         auto now = std::chrono::steady_clock::now();
-        double t1 = std::chrono::duration_cast<
-                       std::chrono::duration<double, std::ratio<1, 1000>>>(now - start)
-                       .count();
+        double t1 =
+            std::chrono::duration_cast<
+                std::chrono::duration<double, std::ratio<1, 1000>>>(now - start)
+                .count();
         start = now;
         size_t oldsize = s.size();
         s.compress(15);
         size_t newsize = s.size();
         s.buf.shrink_to_fit();
         now = std::chrono::steady_clock::now();
-        double t2 = std::chrono::duration_cast<
-                       std::chrono::duration<double, std::ratio<1, 1000>>>(now - start)
-                       .count();
+        double t2 =
+            std::chrono::duration_cast<
+                std::chrono::duration<double, std::ratio<1, 1000>>>(now - start)
+                .count();
         start = now;
 
-        fmt::printf("State dict serialized in %gms, compressed (from %gM to %gM) in %gms\n", t1, oldsize / 1024.0 / 1024.0, newsize / 1024.0 / 1024.0, t2);
+        fmt::printf("State dict serialized in %gms, compressed (from %gM to "
+                    "%gM) in %gms\n",
+                    t1,
+                    oldsize / 1024.0 / 1024.0,
+                    newsize / 1024.0 / 1024.0,
+                    t2);
 
         l.lock();
         i = models.find(modelId);
@@ -462,6 +500,102 @@ class DistributedServer {
     }
   }
 
+  struct rdmaClient {
+    std::chrono::steady_clock::time_point timestamp;
+    std::unique_ptr<rdma::Host> host;
+    rdma::Endpoint localEp;
+    rdma::Endpoint remoteEp;
+  };
+
+  std::unique_ptr<rdma::Context> rdmaContext;
+  std::list<rdmaClient> rdmaClients;
+  std::mutex rdmaMut;
+
+  rdma::Endpoint rdmaConnect(rdma::Endpoint ep) {
+    auto host = rdmaContext->createHost();
+    auto localEp = host->init();
+    host->connect(ep);
+
+    std::lock_guard l(rdmaMut);
+    auto now = std::chrono::steady_clock::now();
+    for (auto i = rdmaClients.begin(); i != rdmaClients.end(); ++i) {
+      if (now - i->timestamp >= std::chrono::minutes(1)) {
+        fmt::printf("RDMA client timed out\n");
+        i = rdmaClients.erase(i);
+      }
+    }
+    rdmaClients.emplace_back();
+    auto& c = rdmaClients.back();
+    c.host = std::move(host);
+    c.localEp = localEp;
+    c.timestamp = now;
+    return localEp;
+  }
+
+  std::optional<RDMAModelInfo> rdmaGetModel(std::string_view modelId) {
+    std::unique_lock l(mut);
+    auto i = models.find(modelId);
+    if (i == models.end()) {
+      return {};
+    }
+    for (int n = 0;; ++n) {
+      if (!i->second.rdmaBuffer ||
+          i->second.rdmaBufferVersion != i->second.version) {
+        if (n < 500 && i->second.rdmaSerializing.exchange(true)) {
+          l.unlock();
+          std::this_thread::sleep_for(std::chrono::milliseconds(50));
+          l.lock();
+          i = models.find(modelId);
+          if (i == models.end()) {
+            return {};
+          }
+        } else {
+          auto copy = i->second.stateDict;
+          int version = i->second.version;
+          l.unlock();
+          auto start = std::chrono::steady_clock::now();
+          rpc::Serializer s;
+          rpc::Serialize ser(s);
+          ser((uint32_t)0);
+          ser(i->second.stateDict);
+          auto now = std::chrono::steady_clock::now();
+          double t1 = std::chrono::duration_cast<
+                          std::chrono::duration<double, std::ratio<1, 1000>>>(
+                          now - start)
+                          .count();
+
+          uint32_t checksum =
+              s.size() > 4 ? crc32(s.data() + 4, s.size() - 4) : 0;
+          std::memcpy((void*)s.data(), &checksum, 4);
+
+          auto buffer = rdmaContext->createBuffer((void*)s.data(), s.size());
+
+          fmt::printf(
+              "State dict serialized and RDMA buffer created in %gms, %gM\n",
+              t1,
+              s.size() / 1024.0 / 1024.0);
+
+          l.lock();
+          i = models.find(modelId);
+          if (i == models.end()) {
+            return {};
+          }
+          i->second.rdmaBuffer = std::move(buffer);
+          i->second.rdmaBufferStorage = std::move(s.buf);
+          i->second.rdmaSerializing = false;
+          i->second.rdmaBufferVersion = version;
+        }
+      } else {
+        RDMAModelInfo r;
+        r.key = i->second.rdmaBuffer->key();
+        r.checksum = i->second.rdmaBufferChecksum;
+        r.address = (uintptr_t)i->second.rdmaBufferStorage.data();
+        r.size = i->second.rdmaBufferStorage.size();
+        return r;
+      }
+    }
+  }
+
   struct ModelInfo {
     std::string id;
     int version = 0;
@@ -480,6 +614,12 @@ class DistributedServer {
     float curreward = 0.0f;
 
     double rollChance = 0.0;
+
+    std::atomic<bool> rdmaSerializing{false};
+    std::vector<char> rdmaBufferStorage;
+    std::unique_ptr<rdma::Buffer> rdmaBuffer;
+    int rdmaBufferVersion = -1;
+    uint32_t rdmaBufferChecksum = 0;
   };
 
   std::mutex mut;
@@ -493,43 +633,45 @@ class DistributedServer {
   std::function<void(const void* data, size_t len)> onTrainData;
   NetStatsCounter netstatsCounter;
 
-  template<typename R, typename... Args>
+  template <typename R, typename... Args>
   auto define(std::string name, R (DistributedServer::*f)(Args...)) {
-    server->define(name, std::function<R(Args...)>([this, f, name](Args&&... args) {
-      auto begin = std::chrono::steady_clock::now();
-      auto finish = [&]() {
-        auto end = std::chrono::steady_clock::now();
-        double t = std::chrono::duration_cast<
-                       std::chrono::duration<double, std::ratio<1, 1000>>>(end - begin)
-                       .count();
-        {
-          std::lock_guard l(timemut);
-          auto i = calltimes.find(name);
-          if (i == calltimes.end()) {
-            i = calltimes.emplace(name, t).first;
-          }
-          float& v = i->second;
-          v = v * 0.99 + t * 0.01;
+    server->define(
+        name, std::function<R(Args...)>([this, f, name](Args&&... args) {
+          auto begin = std::chrono::steady_clock::now();
+          auto finish = [&]() {
+            auto end = std::chrono::steady_clock::now();
+            double t = std::chrono::duration_cast<
+                           std::chrono::duration<double, std::ratio<1, 1000>>>(
+                           end - begin)
+                           .count();
+            {
+              std::lock_guard l(timemut);
+              auto i = calltimes.find(name);
+              if (i == calltimes.end()) {
+                i = calltimes.emplace(name, t).first;
+              }
+              float& v = i->second;
+              v = v * 0.99 + t * 0.01;
 
-          if (end - lasttimereport >= std::chrono::seconds(60)) {
-            lasttimereport = end;
-            std::string s = "RPC call times (running average):\n";
-            for (auto& v : calltimes) {
-              s += fmt::sprintf("  %s  %fms\n", v.first, v.second);
+              if (end - lasttimereport >= std::chrono::seconds(60)) {
+                lasttimereport = end;
+                std::string s = "RPC call times (running average):\n";
+                for (auto& v : calltimes) {
+                  s += fmt::sprintf("  %s  %fms\n", v.first, v.second);
+                }
+                fmt::printf("%s", s);
+              }
             }
-            fmt::printf("%s", s);
+          };
+          if constexpr (std::is_same_v<R, void>) {
+            (this->*f)(std::forward<Args>(args)...);
+            finish();
+          } else {
+            auto rv = (this->*f)(std::forward<Args>(args)...);
+            finish();
+            return rv;
           }
-        }
-      };
-      if constexpr (std::is_same_v<R, void>) {
-        (this->*f)(std::forward<Args>(args)...);
-        finish();
-      } else {
-        auto rv = (this->*f)(std::forward<Args>(args)...);
-        finish();
-        return rv;
-      }
-    }));
+        }));
   }
 
   void start(std::string_view endpoint) {
@@ -541,9 +683,24 @@ class DistributedServer {
 
     define("requestModel", &DistributedServer::requestModel);
     define("requestStateDict", &DistributedServer::requestStateDict);
-    define("requestCompressedStateDict", &DistributedServer::requestCompressedStateDict);
+    define("requestCompressedStateDict",
+           &DistributedServer::requestCompressedStateDict);
     define("trainData", &DistributedServer::trainData);
     define("gameResult", &DistributedServer::gameResult);
+
+    if (rdma::create) {
+      try {
+        rdmaContext = rdma::create();
+        auto testHost = rdmaContext->createHost();
+
+        define("rdmaConnect", &DistributedServer::rdmaConnect);
+        define("rdmaGetModel", &DistributedServer::rdmaGetModel);
+
+        fmt::printf("RDMA over IB supported\n");
+      } catch (const std::exception& e) {
+        fmt::printf("RDMA error: %s\nRDMA/IB will not be used\n", e.what());
+      }
+    }
 
     server->listen(endpoint);
   }
@@ -579,36 +736,136 @@ class DistributedClient {
   bool wantsNewModelId = false;
   bool wantsTournamentResult_ = false;
 
-  std::chrono::steady_clock::time_point lastCheckTournamentResult = std::chrono::steady_clock::now();
-  std::chrono::steady_clock::time_point lastTournamentResult = std::chrono::steady_clock::now();
+  std::chrono::steady_clock::time_point lastCheckTournamentResult =
+      std::chrono::steady_clock::now();
+  std::chrono::steady_clock::time_point lastTournamentResult =
+      std::chrono::steady_clock::now();
 
   std::vector<std::pair<float, std::unordered_map<std::string_view, float>>>
       resultQueue;
 
   NetStatsCounter netstatsCounter;
 
-  void requestModelStateDict() {
+  std::unique_ptr<rdma::Context> rdmaContext;
+  std::unique_ptr<rdma::Host> rdmaHost;
+  std::unique_ptr<rdma::Buffer> rdmaBuffer;
+  size_t rdmaBufferSize = 0;
+  std::vector<char> rdmaBufferStorage;
+  std::optional<rdma::Endpoint> rdmaEndpoint;
+
+  void requestModelStateDict(std::string modelId, int modelVersion) {
     try {
-      std::unique_lock l(mut);
-      auto modelId = currentModelId;
-      auto result = client->async<
-          std::optional<std::vector<char>>>(
-          "requestCompressedStateDict", modelId);
-      l.unlock();
-      auto compressed = result.get();
-      addnetworkstats(*client, netstatsCounter);
-      if (!compressed) {
-        l.lock();
-        currentModelId = "dev";
-        currentModelVersion = -1;
+
+      auto start = std::chrono::steady_clock::now();
+
+      if (rdmaHost) {
+
+        try {
+
+          if (!rdmaEndpoint) {
+
+            rdmaEndpoint = rdmaHost->init();
+
+            fmt::printf("local endpoint is %d:%d\n",
+                        rdmaEndpoint->lid,
+                        rdmaEndpoint->qpnum);
+
+            auto remoteEp =
+                client->sync<rdma::Endpoint>("rdmaConnect", *rdmaEndpoint);
+            addnetworkstats(*client, netstatsCounter);
+
+            fmt::printf(
+                "remote endpoint is %d:%d\n", remoteEp.lid, remoteEp.qpnum);
+
+            rdmaHost->connect(remoteEp);
+          }
+
+          auto result = client->async<std::optional<RDMAModelInfo>>(
+              "rdmaGetModel", modelId);
+          auto mi = result.get();
+
+          if (!mi) {
+            std::lock_guard l(mut);
+            currentModelId = "dev";
+            currentModelVersion = -1;
+          } else {
+
+            if (!rdmaBuffer || rdmaBufferSize < mi->size) {
+              rdmaBufferStorage.resize(mi->size);
+              rdmaBuffer =
+                  rdmaContext->createBuffer(rdmaBufferStorage.data(), mi->size);
+            }
+
+            rdmaHost->read(*rdmaBuffer,
+                           rdmaBufferStorage.data(),
+                           mi->key,
+                           mi->address,
+                           mi->size);
+            rdmaHost->wait();
+
+            std::unordered_map<std::string, torch::Tensor> stateDict;
+            rpc::Deserializer d(rdmaBufferStorage.data(), mi->size);
+            rpc::Deserialize des(d);
+            uint32_t checksum = 0;
+            des(checksum);
+            if (mi->size > 4 &&
+                crc32(rdmaBufferStorage.data() + 4, mi->size - 4) == checksum) {
+              fmt::printf("RDMA model checksum OK\n");
+              des(stateDict);
+              onUpdateModel(modelId, stateDict);
+              std::lock_guard l(mut);
+              if (currentModelId != modelId) {
+                currentModelId = *allModelIds.emplace(modelId).first;
+                gamesDoneWithCurrentModel = 0;
+              }
+              currentModelVersion = modelVersion;
+              fmt::printf("Got model '%s' version %d\n", modelId, modelVersion);
+            } else {
+              fmt::printf("RDMA model checksum error\n");
+            }
+          }
+
+        } catch (const rdma::Error& e) {
+          fmt::printf("RDMA error: %s\n", e.what());
+
+          rdmaEndpoint.reset();
+          return;
+        }
+
       } else {
-        std::unordered_map<std::string, torch::Tensor> stateDict;
-        rpc::Deserializer d(compressed->data(), compressed->size());
-        d.decompress();
-        rpc::Deserialize des(d);
-        des(stateDict);
-        onUpdateModel(modelId, stateDict);
+
+        std::unique_lock l(mut);
+        auto result = client->async<std::optional<std::vector<char>>>(
+            "requestCompressedStateDict", modelId);
+        auto compressed = result.get();
+        addnetworkstats(*client, netstatsCounter);
+        if (!compressed) {
+          l.lock();
+          currentModelId = "dev";
+          currentModelVersion = -1;
+        } else {
+          std::unordered_map<std::string, torch::Tensor> stateDict;
+          rpc::Deserializer d(compressed->data(), compressed->size());
+          d.decompress();
+          rpc::Deserialize des(d);
+          des(stateDict);
+          onUpdateModel(modelId, stateDict);
+          std::lock_guard l(mut);
+          if (currentModelId != modelId) {
+            currentModelId = *allModelIds.emplace(modelId).first;
+            gamesDoneWithCurrentModel = 0;
+          }
+          currentModelVersion = modelVersion;
+          fmt::printf("Got model '%s' version %d\n", modelId, modelVersion);
+        }
       }
+
+      double t = std::chrono::duration_cast<
+                     std::chrono::duration<double, std::ratio<1, 1000>>>(
+                     std::chrono::steady_clock::now() - start)
+                     .count();
+      fmt::printf("State dict received and updated in %gms\n", t);
+
     } catch (const rpc::RPCException& e) {
       fmt::printf("RPC exception: %s\n", e.what());
     }
@@ -619,6 +876,19 @@ class DistributedClient {
       std::string_view, std::unordered_map<std::string, torch::Tensor>)>
       onUpdateModel;
 
+  DistributedClient() {
+    if (rdma::create) {
+      try {
+        rdmaContext = rdma::create();
+        rdmaHost = rdmaContext->createHost();
+
+        fmt::printf("Using RDMA over IB for model transfers\n");
+      } catch (const std::exception& e) {
+        fmt::printf("RDMA error: %s\nRDMA/IB will not be used\n", e.what());
+      }
+    }
+  }
+
   void requestModel(bool isTournamentOpponent) {
     try {
       std::unique_lock l(mut);
@@ -627,7 +897,9 @@ class DistributedClient {
         resultQueue.clear();
       }
 
-      fmt::printf("Request model, isTournamentOpponent %d, wantsNewModelId %d\n", isTournamentOpponent, wantsNewModelId);
+      //      fmt::printf(
+      //          "Request model, isTournamentOpponent %d, wantsNewModelId
+      //          %d\n", isTournamentOpponent, wantsNewModelId);
 
       auto result = client->async<std::pair<std::string, int>>(
           "requestModel",
@@ -638,29 +910,28 @@ class DistributedClient {
       auto [newId, version] = result.get();
       addnetworkstats(*client, netstatsCounter);
 
-      fmt::printf("Got model '%s'\n", newId);
+      // fmt::printf("Got model '%s'\n", newId);
 
       l.lock();
       auto now = std::chrono::steady_clock::now();
-      if (isTournamentOpponent && now - lastCheckTournamentResult >= std::chrono::minutes(2)) {
+      if (isTournamentOpponent &&
+          now - lastCheckTournamentResult >= std::chrono::minutes(2)) {
         lastCheckTournamentResult = now;
-        wantsTournamentResult_ = now - lastTournamentResult >= std::chrono::minutes(5);
+        wantsTournamentResult_ =
+            now - lastTournamentResult >= std::chrono::minutes(5);
         if (!wantsTournamentResult_) {
           wantsNewModelId = true;
         }
-        fmt::printf("wantsTournamentResult_ is %d, wantsNewModelId is %d\n", wantsTournamentResult_, wantsNewModelId);
+        //        fmt::printf("wantsTournamentResult_ is %d, wantsNewModelId is
+        //        %d\n",
+        //                    wantsTournamentResult_,
+        //                    wantsNewModelId);
       } else if (!isTournamentOpponent) {
         wantsTournamentResult_ = false;
       }
-      if (currentModelId != newId) {
-        currentModelId = *allModelIds.emplace(newId).first;
-        currentModelVersion = -1;
-        gamesDoneWithCurrentModel = 0;
-      }
-      if (version != currentModelVersion) {
-        currentModelVersion = version;
+      if (currentModelId != newId || version != currentModelVersion) {
         l.unlock();
-        requestModelStateDict();
+        requestModelStateDict(newId, version);
       } else {
         l.unlock();
       }
@@ -696,7 +967,8 @@ class DistributedClient {
     if (i != models.end()) {
       if (i->second >= 0.9f) {
         ++gamesDoneWithCurrentModel;
-        printf("gamesDoneWithCurrentModel is now %d\n", gamesDoneWithCurrentModel);
+        printf(
+            "gamesDoneWithCurrentModel is now %d\n", gamesDoneWithCurrentModel);
         if (gamesDoneWithCurrentModel >= 20) {
           lastTournamentResult = std::chrono::steady_clock::now();
           wantsNewModelId = true;

@@ -263,8 +263,9 @@ class ChannelAssembler {
     auto firstUpdateFuture = firstUpdate->get_future();
     client_.emplace();
     client_->onUpdateModel =
-        [this, firstUpdate](std::string_view id,
-               std::unordered_map<std::string, torch::Tensor> dict) mutable {
+        [this, firstUpdate](
+            std::string_view id,
+            std::unordered_map<std::string, torch::Tensor> dict) mutable {
           if (firstUpdate) {
             firstUpdate->set_value(true);
             firstUpdate.reset();
@@ -282,7 +283,7 @@ class ChannelAssembler {
         if (!dontRequestModelUpdates_) {
           client_->requestModel(isTournamentOpponent_);
         }
-        for (int i = 0; i != 60 && !terminate_ && !trainChannel_->terminated();
+        for (int i = 0; i != 2 && !terminate_ && !trainChannel_->terminated();
              ++i) {
           std::this_thread::sleep_for(std::chrono::seconds(2));
         }
@@ -296,7 +297,6 @@ class ChannelAssembler {
     } else {
       fmt::printf("Not requesting model updates\n");
     }
-
   }
 
   std::unique_ptr<rpc::Rpc> replayBufferRpc;
@@ -361,7 +361,8 @@ class ChannelAssembler {
       if (hasCuda()) {
         t = at::ScalarType::Half;
       }
-      r[name] = tensor.detach().to(torch::TensorOptions().device(torch::kCPU).dtype(t), false, true);
+      r[name] = tensor.detach().to(
+          torch::TensorOptions().device(torch::kCPU).dtype(t), false, true);
     }
     return r;
   }
