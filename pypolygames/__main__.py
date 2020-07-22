@@ -149,6 +149,7 @@ def parse_args() -> argparse.Namespace:
             arg_field.name, **{**arg_field.opts, **dict(help=argparse.SUPPRESS)}
         )
         human_game_params_group.add_argument(arg_field.name, **arg_field.opts)
+        parser_convert.add_argument(arg_field.name, **arg_field.opts)
 
     # Model params
     train_model_params_group = parser_train.add_argument_group(
@@ -391,9 +392,11 @@ def run_tp_played_game_from_args(args: argparse.Namespace):
     )
 
 def convert_checkpoint_from_args(args: argparse.Namespace):
+    command_history = args.command_history
     game_params = instanciate_params_from_args(GameParams, args)
     model_params = instanciate_params_from_args(ModelParams, args)
     convert_checkpoint(
+        command_history=command_history,
         game_params=game_params,
         model_params=model_params,
         out=args.out,
