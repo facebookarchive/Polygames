@@ -14,7 +14,7 @@ from .. import utils
 
 @pytest.mark.parametrize("model_name", [n for n in model_zoo.MODELS])
 def test_models(model_name) -> None:
-    if model_name in ["Connect4BenchModel"]:
+    if model_name in ["Connect4BenchModel", "ResConvConvLogitPoolModelV2"]:
         raise SkipTest(f"Skipping {model_name}")
     game_params = params.GameParams(
         game_name="Tristannogo"
