@@ -76,18 +76,6 @@ int doSimpleTest(State& s) {
       }
       // s.stateDescription();
       // std::cout << "old:" << u << ":" << s.GetFeatures() << std::endl;
-      auto legalActions = s.GetLegalActions();
-      for (int i = 0; i < (int)legalActions.size(); i++) {
-        for (int j = i + 1; j < (int)legalActions.size(); j++) {
-          if ((legalActions[i]->GetX() == legalActions[j]->GetX()) &&
-              (legalActions[i]->GetY() == legalActions[j]->GetY()) &&
-              (legalActions[i]->GetZ() == legalActions[j]->GetZ())) {
-            cout << legalActions[i]->GetX() << "," << legalActions[i]->GetY()
-                 << "," << legalActions[i]->GetZ() << endl;
-            throw std::runtime_error("two identical actions");
-          }
-        }
-      }
     }
     // std::cerr << s.stateDescription() << std::endl;
     auto oldFeatures = s.GetFeatures();
