@@ -42,7 +42,7 @@ void JNIUtils::InitJVM(std::string jar_location) {
 	if (jar_location.empty()) jar_location = "ludii/Ludii.jar";
 	
 	// Check if we can actually access the JAR file
-	if (FILE* file = fopen(name.c_str(), "rb")) {
+	if (FILE* file = fopen(jar_location.c_str(), "rb")) {
 		// The Ludii.jar file seems to be there, so we're fine!
 		fclose(file);
 	}
