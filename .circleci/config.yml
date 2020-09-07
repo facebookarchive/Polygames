@@ -4,6 +4,9 @@
 #
 version: 2
 jobs:
+  branches:
+    ignore:
+      - dennis-tests
   build:
     docker:
       # specify the version you desire here
