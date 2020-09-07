@@ -24,6 +24,7 @@ SOFTWARE.
 #include <cstring>
 #include <iostream>
 #include <string>
+#include <stdio.h>
 
 namespace Ludii {
 
@@ -39,6 +40,17 @@ void JNIUtils::InitJVM(std::string jar_location) {
 
 	std::cout << "intializing JVM" << std::endl;
 	if (jar_location.empty()) jar_location = "ludii/Ludii.jar";
+	
+	// Check if we can actually access the JAR file
+	if (FILE* file = fopen(name.c_str(), "rb")) {
+		// The Ludii.jar file seems to be there, so we're fine!
+		fclose(file);
+	}
+	else {
+		// Can't find the Ludii.jar file
+		return;
+	}
+	
 #ifdef JNI_VERSION_1_2
 	JavaVMInitArgs vm_args;
 	JavaVMOption options[1];
