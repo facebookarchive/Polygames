@@ -150,14 +150,20 @@ int main() {
     std::cout << "testing: Ludii Tic-Tac-Toe" << std::endl;
     Ludii::JNIUtils::InitJVM("");  // Use default /ludii/Ludii.jar path
     JNIEnv* jni_env = Ludii::JNIUtils::GetEnv();
-    Ludii::LudiiGameWrapper game_wrapper(jni_env, "Tic-Tac-Toe.lud");
-    auto state = std::make_unique<Ludii::LudiiStateWrapper>(seed, jni_env, std::move(game_wrapper));    
-    doTest(*state);
-    Ludii::JNIUtils::CloseJVM();
-    std::cout << "test pass: Ludii Tic-Tac-Toe" << std::endl;
+
+    if (jni_env) {
+      Ludii::LudiiGameWrapper game_wrapper(jni_env, "Tic-Tac-Toe.lud");
+      auto state = std::make_unique<Ludii::LudiiStateWrapper>(
+          seed, jni_env, std::move(game_wrapper));
+      doTest(*state);
+      Ludii::JNIUtils::CloseJVM();
+      std::cout << "test pass: Ludii Tic-Tac-Toe" << std::endl;
+    } else {
+      std::cout << "skipping: Ludii Tic-Tac-Toe" << std::endl;
+    }
 #endif
   }
-  
+
   {
     std::cout << "testing: connect four" << std::endl;
     auto state = StateForConnectFour(seed);
@@ -285,42 +291,42 @@ int main() {
 
   {
     std::cout << "testing: havannah5pieExt" << std::endl;
-    auto state = Havannah::State<5,true, true>(seed);
+    auto state = Havannah::State<5, true, true>(seed);
     doTest(state);
     std::cout << "test pass: havannah5pieExt" << std::endl;
   }
 
   {
     std::cout << "testing: havannah8pieExt" << std::endl;
-    auto state = Havannah::State<8,true, true>(seed);
+    auto state = Havannah::State<8, true, true>(seed);
     doTest(state);
     std::cout << "test pass: havannah8pieExt" << std::endl;
   }
 
   {
     std::cout << "testing: havannah5pie" << std::endl;
-    auto state = Havannah::State<5,true, false>(seed);
+    auto state = Havannah::State<5, true, false>(seed);
     doTest(state);
     std::cout << "test pass: havannah5pie" << std::endl;
   }
 
   {
     std::cout << "testing: havannah8pie" << std::endl;
-    auto state = Havannah::State<8,true, false>(seed);
+    auto state = Havannah::State<8, true, false>(seed);
     doTest(state);
     std::cout << "test pass: havannah8pie" << std::endl;
   }
 
   {
     std::cout << "testing: havannah5" << std::endl;
-    auto state = Havannah::State<5,false, false>(seed);
+    auto state = Havannah::State<5, false, false>(seed);
     doTest(state);
     std::cout << "test pass: havannah5" << std::endl;
   }
 
   {
     std::cout << "testing: havannah8" << std::endl;
-    auto state = Havannah::State<8,false, false>(seed);
+    auto state = Havannah::State<8, false, false>(seed);
     doTest(state);
     std::cout << "test pass: havannah8" << std::endl;
   }

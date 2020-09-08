@@ -233,9 +233,16 @@ to look into this) if the strategy is identical to knuth’s.
       std::string ludii_name = gameName.substr(5);
       Ludii::JNIUtils::InitJVM("");  // Use default /ludii/Ludii.jar path
       JNIEnv* jni_env = Ludii::JNIUtils::GetEnv();
-      Ludii::LudiiGameWrapper game_wrapper(jni_env, ludii_name);
-      state_ = std::make_unique<Ludii::LudiiStateWrapper>(
-          seed, jni_env, std::move(game_wrapper));
+
+      if (jni_env) {
+        Ludii::LudiiGameWrapper game_wrapper(jni_env, ludii_name);
+        state_ = std::make_unique<Ludii::LudiiStateWrapper>(
+            seed, jni_env, std::move(game_wrapper));
+      } else {
+        // Probably means we couldn't find the Ludii.jar file
+        throw std::runtime_error(
+            "Failed to create Ludii game due to missing JNI Env!");
+      }
 #endif
     } else if (isGameNameMatched({"Tristannogo"})) {
       state_ = std::make_unique<StateForTristannogo>(seed);
