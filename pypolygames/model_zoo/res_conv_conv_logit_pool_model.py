@@ -183,20 +183,25 @@ class ResConvConvLogitPoolModel(torch.jit.ScriptModule):
 
     @torch.jit.script_method
     def forward(self, x: torch.Tensor):
-        v, pi = self._forward(x, False)
+        v, pi = self._forward(x, True)
         pi = pi.view(-1, self.c_prime, x.size(2), x.size(3))
-        reply = {"v": v, "pi": pi}
+        reply = {"v": v, "pi_logit": pi}
         return reply
 
     def loss(
         self,
         model,
-        x: torch.Tensor,
-        v: torch.Tensor,
-        pi: torch.Tensor,
-        pi_mask: torch.Tensor,
-        stat: utils.MultiCounter,
+        batch,
     ) -> float:
+
+        x = batch["s"]
+        v = batch["v"]
+        pi = batch["pi"]
+        pi_mask = batch["pi_mask"]
+        predict_pi = batch["predict_pi"] if self.predicts > 0 else None
+        predict_pi_mask = batch["predict_pi_mask"] if self.predicts > 0 else None
+
+
         pi = pi.flatten(1)
         pred_v, pred_logit = model._forward(x, return_logit=True)
         utils.assert_eq(v.size(), pred_v.size())
@@ -216,6 +221,6 @@ class ResConvConvLogitPoolModel(torch.jit.ScriptModule):
         utils.assert_eq(v_err.size(), pi_err.size())
         err = v_err + pi_err
 
-        stat["v_err"].feed(v_err.detach().mean().item())
-        stat["pi_err"].feed(pi_err.detach().mean().item())
-        return err.mean()
+        #stat["v_err"].feed(v_err.detach().mean().item())
+        #stat["pi_err"].feed(pi_err.detach().mean().item())
+        return err.mean(), v_err.detach().mean(), pi_err.detach().mean(), None

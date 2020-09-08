@@ -82,7 +82,7 @@ def convert_checkpoint(
         if k in taken:
             continue
         if skip is not None and k in skip:
-            print("%s shape %s skipped" % (k, src.shape))
+            print("%s shape %s skipped" % (k, dst.shape))
             params_reinitialized += dst.numel()
             continue
         if not k in model_state_dict:

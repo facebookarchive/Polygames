@@ -1,5 +1,5 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.3)
-project(choufleur)
+project(polygames)
 
 # if(NOT CMAKE_BUILD_TYPE)
 #   set(CMAKE_BUILD_TYPE RelWithDebInfo)
@@ -7,10 +7,9 @@ project(choufleur)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS
-    "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-register -march=native -O3 -Wfatal-errors")
+    "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-register -march=native -O3 -Wfatal-errors -Wno-unused-variable -Wno-sign-compare -Wno-unused-parameter -Wno-unused-but-set-parameter")
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
 
 OPTION(PYTORCH12 "Is PyTorch >= 1.2" OFF)
 OPTION(PYTORCH15 "Is PyTorch >= 1.5" OFF)
@@ -49,58 +48,14 @@ endif()
 message(STATUS "Adding PyTorch compilation flags: ${TORCH_CXX_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
-include_directories(torchRL/third_party/fmt/include)
-add_subdirectory(torchRL/third_party/fmt)
-
-# add_subdirectory(torchRL)
-add_subdirectory(torchRL/third_party/pybind11)
-add_subdirectory(torchRL/tube)
-add_subdirectory(torchRL/mcts)
-
-set(SOURCES
-  games/gomoku_swap2.cc
-  games/othello_opt.cc
-  games/mastermind_state.cc
-  games/amazons.cc
-  games/breakthrough.cc
-  games/chess.cc
-  games/chinesecheckers.cc
-  games/tristan_nogo.cc
-  games/yinsh.cc
-  games/minesweeper.cc
-  games/weakschur/SchurMatrix.cpp
-  games/weakschur/SchurVector.cpp
-  games/weakschur/WeakSchur.cpp)
-
-if (JNI_FOUND)
-  list(APPEND SOURCES
-    games/ludii/jni_utils.cc
-    games/ludii/ludii_game_wrapper.cc
-    games/ludii/ludii_state_wrapper.cc)
-endif()
-
-add_library(_games
-  ${SOURCES})
-target_include_directories(_games PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/torchRL)
-target_include_directories(_games SYSTEM PUBLIC ${TORCH_INCLUDE_DIRS})
-target_include_directories(_games PUBLIC ${PYTHON_INCLUDE_DIRS})
-
-pybind11_add_module(polygames core/pybind.cc core/game.cc core/state.cc)
-
-target_include_directories(polygames PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/torchRL)
-target_link_libraries(polygames PUBLIC _tube _mcts _games)
-
-if (JNI_FOUND)
-  target_include_directories(_games PUBLIC ${JNI_INCLUDE_DIRS})
-  target_link_libraries(polygames PUBLIC ${JNI_LIBRARIES})
-endif()
+add_subdirectory(src)
 
 # add Minesweeper benchmarks
 #add_subdirectory(games/minesweeper_csp_vkms)
 
 # tests
-add_executable(test_state core/test_state.cc core/state.cc)
-target_link_libraries(test_state PUBLIC _tube _mcts _games ${JNI_LIBRARIES})
+#add_executable(test_state core/test_state.cc core/state.cc)
+#target_link_libraries(test_state PUBLIC _tube _mcts _games ${JNI_LIBRARIES})
 
 enable_testing()
 

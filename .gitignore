@@ -352,3 +352,7 @@ run.sh
 
 # Ludii's JAR file
 ludii/Ludii.jar
+
+*.mpq
+*.scm
+games/openbw

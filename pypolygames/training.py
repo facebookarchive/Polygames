@@ -16,6 +16,7 @@ import torch
 from torch import nn
 
 import tube
+import polygames
 
 from .params import (
     GameParams,
@@ -42,11 +43,11 @@ def create_optimizer(
     optim = torch.optim.Adam(
         model.parameters(), lr=optim_params.lr, eps=optim_params.eps
     )
-#    if optim_state_dict is not None:
-#        try:
-#            optim.load_state_dict(optim_state_dict)
-#        except ValueError:
-#            print("Optimizer state not compatible... skipping.")
+    if optim_state_dict is not None:
+        try:
+            optim.load_state_dict(optim_state_dict)
+        except ValueError:
+            print("Optimizer state not compatible... skipping.")
     return optim
 
 
@@ -58,15 +59,15 @@ def create_optimizer(
 def create_training_environment(
     seed_generator: Iterator[int],
     model_path: Path,
-    game_generation_devices: List[str],
+    device: str,
     game_params: GameParams,
     simulation_params: SimulationParams,
     execution_params: ExecutionParams,
-    rnn_state_shape: List[int]
-) -> Tuple[tube.Context, tube.ChannelAssembler, Callable[[], List[int]], bool]:
+    model
+) -> Tuple[tube.Context, polygames.ModelManager, Callable[[], List[int]], bool]:
     games = []
     context = tube.Context()
-    print("Game generation devices: {}".format(game_generation_devices))
+    print("Game generation device: {}".format(device))
     server_listen_endpoint = execution_params.server_listen_endpoint
     server_connect_hostname = execution_params.server_connect_hostname
     opponent_model_path = execution_params.opponent_model_path
@@ -74,10 +75,9 @@ def create_training_environment(
     is_client = server_connect_hostname != ""
     print("is_server is ", is_server)
     print("is_client is ", is_client)
-    assembler = tube.ChannelAssembler(
+    model_manager = polygames.ModelManager(
         simulation_params.act_batchsize,
-        len(game_generation_devices) if not is_server else 0,
-        [str(i) for i in game_generation_devices],
+        str(device),
         simulation_params.replay_capacity,
         next(seed_generator),
         str(model_path),
@@ -85,42 +85,47 @@ def create_training_environment(
         simulation_params.train_channel_num_slots,
     )
     if is_server:
-      assembler.start_server(server_listen_endpoint)
+      model_manager.start_server(server_listen_endpoint)
     if is_client:
-      assembler.start_client(server_connect_hostname)
+      model_manager.start_client(server_connect_hostname)
     if is_client and is_server:
       raise RuntimeError("Client and server parameters have both been specified")
+
+    rnn_state_shape = getattr(model, "rnn_state_shape", [])
+    logit_value = getattr(model, "logit_value", False)
+
+    print("rnn_state_shape is ", rnn_state_shape)
+
     opgame = None
     op_rnn_state_shape = None
     op_rnn_seqlen = None
+    op_logit_value = None
     if not is_server:
       if opponent_model_path:
         print("loading opponent model")
         checkpoint = utils.load_checkpoint(checkpoint_path=opponent_model_path)
-        model = create_model(
+        opmodel = create_model(
             game_params=checkpoint["game_params"],
             model_params=checkpoint["model_params"],
             resume_training=True,
             model_state_dict=checkpoint["model_state_dict"],
         )
         opponent_model_path = execution_params.checkpoint_dir / "model_opponent.pt"
-        model.save(str(opponent_model_path))
+        opmodel.save(str(opponent_model_path))
         opgame = create_game(
             checkpoint["game_params"],
             num_episode=-1,
             seed=next(seed_generator),
             eval_mode=False,
         )
-        op_rnn_state_shape = []
-        if hasattr(model, "rnn_cells") and model.rnn_cells > 0:
-          op_rnn_state_shape = [model.rnn_cells, model.rnn_channels]
+        op_rnn_state_shape = getattr(opmodel, "rnn_state_shape", [])
         op_rnn_seqlen = 0
         if hasattr(checkpoint["execution_params"], "rnn_seqlen"):
           op_rnn_seqlen = checkpoint["execution_params"].rnn_seqlen
-      assembler_opponent = tube.ChannelAssembler(
+        op_logit_value = getattr(opmodel, "logit_value", False)
+      model_manager_opponent = polygames.ModelManager(
           simulation_params.act_batchsize,
-          len(game_generation_devices) if not is_server else 0,
-          [str(i) for i in game_generation_devices],
+          str(device),
           simulation_params.replay_capacity,
           next(seed_generator),
           str(opponent_model_path) if opponent_model_path else str(model_path),
@@ -129,19 +134,18 @@ def create_training_environment(
       )
       print("tournament_mode is " + str(execution_params.tournament_mode))
       if execution_params.tournament_mode:
-        assembler_opponent.set_is_tournament_opponent(True)
+        model_manager_opponent.set_is_tournament_opponent(True)
       if opponent_model_path:
-        assembler_opponent.set_dont_request_model_updates(True)
+        model_manager_opponent.set_dont_request_model_updates(True)
       if is_client:
-        assembler_opponent.start_client(server_connect_hostname)
+        model_manager_opponent.start_client(server_connect_hostname)
     if not is_server:
-      train_channel = assembler.get_train_channel()
-      actor_channels = assembler.get_act_channels()
-      actor_channel = actor_channels[0]
+      train_channel = model_manager.get_train_channel()
+      actor_channel = model_manager.get_act_channel()
 
       op_actor_channel = actor_channel
-      if assembler_opponent is not None:
-        op_actor_channel = assembler_opponent.get_act_channels()[0]
+      if model_manager_opponent is not None:
+        op_actor_channel = model_manager_opponent.get_act_channel()
 
       for i in range(simulation_params.num_game):
           game = create_game(
@@ -159,11 +163,12 @@ def create_training_environment(
               player_1 = create_player(
                   seed_generator=seed_generator,
                   game=game,
+                  player=game_params.player,
                   num_actor=simulation_params.num_actor,
                   num_rollouts=simulation_params.num_rollouts,
                   pure_mcts=False,
                   actor_channel=actor_channel,
-                  assembler=assembler,
+                  model_manager=model_manager,
                   human_mode=False,
                   sample_before_step_idx=simulation_params.sample_before_step_idx,
                   randomized_rollouts=simulation_params.randomized_rollouts,
@@ -171,6 +176,7 @@ def create_training_environment(
                   move_select_use_mcts_value=simulation_params.move_select_use_mcts_value,
                   rnn_state_shape=rnn_state_shape,
                   rnn_seqlen=execution_params.rnn_seqlen,
+                  logit_value=logit_value
               )
               player_1.set_name("dev")
               if game.is_one_player_game():
@@ -179,11 +185,12 @@ def create_training_environment(
                 player_2 = create_player(
                     seed_generator=seed_generator,
                     game=opgame if opgame is not None else game,
+                    player=game_params.player,
                     num_actor=simulation_params.num_actor,
                     num_rollouts=simulation_params.num_rollouts,
                     pure_mcts=False,
                     actor_channel=op_actor_channel,
-                    assembler=assembler_opponent,
+                    model_manager=model_manager_opponent,
                     human_mode=False,
                     sample_before_step_idx=simulation_params.sample_before_step_idx,
                     randomized_rollouts=simulation_params.randomized_rollouts,
@@ -191,6 +198,7 @@ def create_training_environment(
                     move_select_use_mcts_value=simulation_params.move_select_use_mcts_value,
                     rnn_state_shape=op_rnn_state_shape if op_rnn_state_shape is not None else rnn_state_shape,
                     rnn_seqlen=op_rnn_seqlen if op_rnn_seqlen is not None else execution_params.rnn_seqlen,
+                    logit_value=op_logit_value if op_logit_value is not None else logit_value
                 )
                 player_2.set_name("opponent")
                 if next(seed_generator) % 2 == 0:
@@ -203,11 +211,12 @@ def create_training_environment(
               player_1 = create_player(
                   seed_generator=seed_generator,
                   game=game,
+                  player=game_params.player,
                   num_actor=simulation_params.num_actor,
                   num_rollouts=simulation_params.num_rollouts,
                   pure_mcts=False,
                   actor_channel=actor_channels[i % len(actor_channels)],
-                  assembler=None,
+                  model_manager=None,
                   human_mode=False,
               )
               game.add_player(player_1, train_channel)
@@ -215,11 +224,12 @@ def create_training_environment(
                   player_2 = create_player(
                       seed_generator=seed_generator,
                       game=game,
+                      player=game_params.player,
                       num_actor=simulation_params.num_actor,
                       num_rollouts=simulation_params.num_rollouts,
                       pure_mcts=False,
                       actor_channel=actor_channels[i % len(actor_channels)],
-                      assembler=None,
+                      model_manager=None,
                       human_mode=False,
                   )
                   game.add_player(player_2, train_channel)
@@ -238,7 +248,7 @@ def create_training_environment(
 
         return reward
 
-    return context, assembler, get_train_reward, is_client
+    return context, model_manager, get_train_reward, is_client
 
 
 #######################################################################################
@@ -247,18 +257,15 @@ def create_training_environment(
 
 
 def warm_up_replay_buffer(
-    assembler: tube.ChannelAssembler, replay_warmup: int, replay_buffer: Optional[bytes]
+    model_manager: polygames.ModelManager, replay_warmup: int
 ) -> None:
-    if replay_buffer is not None:
-        print("loading replay buffer...")
-        assembler.buffer = replay_buffer
-    assembler.start()
+    model_manager.start()
     prev_buffer_size = -1
     t = t_init = time.time()
     t0 = -1
     size0 = 0
-    while assembler.buffer_size() < replay_warmup:
-        buffer_size = assembler.buffer_size()
+    while model_manager.buffer_size() < replay_warmup:
+        buffer_size = model_manager.buffer_size()
         if buffer_size != prev_buffer_size:  # avoid flooding stdout
             if buffer_size > 10000 and t0 == -1:
                 size0 = buffer_size
@@ -277,12 +284,12 @@ def warm_up_replay_buffer(
         time.sleep(2)
     print(
         f"replay buffer warmed up: 100% "
-        f"({assembler.buffer_size()}/{replay_warmup})"
+        f"({model_manager.buffer_size()}/{replay_warmup})"
         "                                                                          "
     )
     print(
         "avg speed: %.2f frames/s"
-        % ((assembler.buffer_size() - size0) / (time.time() - t0))
+        % ((model_manager.buffer_size() - size0) / (time.time() - t0))
     )
 
 
@@ -325,7 +332,7 @@ class DDPWrapperForModel(nn.Module):
         if rnn_state is None:
           return self.module.forward(x)
         else:
-          return self.module.forward(x, state, rnn_state_mask)
+          return self.module.forward(x, rnn_state, rnn_state_mask)
 
 _pre_num_add = None
 _pre_num_sample = None
@@ -334,12 +341,12 @@ _running_sample_rate = 0
 _last_train_time = 0
 _remote_replay_buffer_inited = False
 def _train_epoch(
-    models: List[torch.jit.ScriptModule],
-    devices: List[torch.device],
+    model: torch.jit.ScriptModule,
+    device: torch.device,
     ddpmodel: ModelWrapperForDDP,
     batchsizes,
     optim: torch.optim.Optimizer,
-    assembler: tube.ChannelAssembler,
+    model_manager: polygames.ModelManager,
     stat: utils.MultiCounter,
     epoch: int,
     optim_params: OptimParams,
@@ -352,10 +359,15 @@ def _train_epoch(
     global _last_train_time
     global _remote_replay_buffer_inited
     if _pre_num_add is None:
-      pre_num_add = assembler.buffer_num_add()
-      pre_num_sample = assembler.buffer_num_sample()
+        pre_num_add = model_manager.buffer_num_add()
+        pre_num_sample = model_manager.buffer_num_sample()
+    else:
+        pre_num_add = _pre_num_add
+        pre_num_sample = _pre_num_sample
     sync_s = 0.
     num_sync = 0
+
+    train_start_time = time.time()
 
     if pre_num_sample > 0:
         print("sample/add ratio ", float(pre_num_sample) / pre_num_add)
@@ -369,7 +381,7 @@ def _train_epoch(
     #lossc = [torch.jit.script(LossOnDevice(m)) for m in models]
     #lossf = None
 
-    lossmodel = DDPWrapperForModel(ddpmodel) if ddpmodel is not None else models[0]
+    lossmodel = DDPWrapperForModel(ddpmodel) if ddpmodel is not None else model
 
     lossmodel.train()
 
@@ -395,12 +407,12 @@ def _train_epoch(
         _remote_replay_buffer_inited = True
 
         if rank == 0:
-          assembler.start_replay_buffer_server("0.0.0.0:20806")
+          model_manager.start_replay_buffer_server("0.0.0.0:20806")
         else:
           time.sleep(1)
-          assembler.start_replay_buffer_client("127.0.0.1:20806")
+          model_manager.start_replay_buffer_client("127.0.0.1:20806")
       if rank != 0:
-        next_batch = assembler.remote_sample(batchsize)
+        next_batch = model_manager.remote_sample(batchsize)
 
     start = time.time()
 
@@ -423,15 +435,15 @@ def _train_epoch(
         has_predict = True
 
     for eid in range(optim_params.epoch_len):
-        while _running_add_rate * 1.5 < _running_sample_rate:
+        while _running_add_rate * 1.25 < _running_sample_rate:
           print("add rate insufficient, waiting")
           time.sleep(5)
           t = time.time()
           time_elapsed = t - _last_train_time
           _last_train_time = t
           alpha = pow(0.99, time_elapsed)
-          post_num_add = assembler.buffer_num_add()
-          post_num_sample = assembler.buffer_num_sample()
+          post_num_add = model_manager.buffer_num_add()
+          post_num_sample = model_manager.buffer_num_sample()
           delta_add = post_num_add - pre_num_add
           delta_sample = post_num_sample - pre_num_sample
           _running_add_rate = _running_add_rate * alpha + (delta_add / time_elapsed) * (1 - alpha)
@@ -444,160 +456,66 @@ def _train_epoch(
           print("current sample rate: %.2f / s" % (delta_sample / time_elapsed))
           start = time.time()
 
-        #if ddpmodel is not None:
-        if True:
-          t = time.time()
-          t0 += t - start
-          start = t
-          if world_size > 0:
-            batchlist = None
-            if False:
-              if rank == 0:
-                batch = assembler.sample(batchsize)
-              else:
-                batch = next_batch.get()
-                next_batch = assembler.remote_sample(batchsize)
-              batch = utils.to_device(batch, devices[0])
-            else:
-              if rank == 0:
-                batchlist = {}
-                for k in cpubatch.keys():
-                  batchlist[k] = []
-                for i in range(world_size):
-                  for k,v in assembler.sample(batchsize).items():
-                    batchlist[k].append(v)
-              for k, v in cpubatch.items():
-                torch.distributed.scatter(v, batchlist[k] if rank == 0 else None)
-              batch = utils.to_device(cpubatch, devices[0])
-          else:
-            batch = assembler.sample(batchsize)
-            batch = utils.to_device(batch, devices[0])
-          for k, v in batch.items():
-            batch[k] = v.detach()
-          t = time.time()
-          t1 += t - start
-          start = t
-          if "rnn_initial_state" in batch:
-            if has_predict:
-              loss, v_err, pi_err, predict_err = models[0].loss(lossmodel, batch["s"], batch["rnn_initial_state"], batch["rnn_state_mask"], batch["v"], batch["pi"], batch["pi_mask"], batch["predict_pi"], batch["predict_pi_mask"])
-            else:
-              loss, v_err, pi_err, predict_err = models[0].loss(lossmodel, batch["s"], batch["rnn_initial_state"], batch["rnn_state_mask"], batch["v"], batch["pi"], batch["pi_mask"])
-          else:
-            if has_predict:
-              loss, v_err, pi_err, predict_err = models[0].loss(lossmodel, batch["s"], batch["v"], batch["pi"], batch["pi_mask"], batch["predict_pi"], batch["predict_pi_mask"])
-            else:
-              loss, v_err, pi_err, predict_err = models[0].loss(lossmodel, batch["s"], batch["v"], batch["pi"], batch["pi_mask"])
-          t = time.time()
-          t2 += t - start
-          start = t
-          loss.backward()
-          t = time.time()
-          t3 += t - start
-          start = t
-          grad_norm = nn.utils.clip_grad_norm_(lossmodel.parameters(), optim_params.grad_clip)
-          t = time.time()
-          t4 += t - start
-          start = t
-          optim.step()
-          optim.zero_grad()
-
-          t = time.time()
-          t5 += t - start
-          start = t
-
-          stat["v_err"].feed(v_err.item())
-          stat["pi_err"].feed(pi_err.item())
-          if has_predict:
-            stat["predict_err"].feed(predict_err.item())
-          stat["loss"].feed(loss.item())
-        else:
-
-          losses = []
+        t = time.time()
+        t0 += t - start
+        start = t
+        if world_size > 0:
+          batchlist = None
           if False:
-            losses = assembler.loss(lossc)
-          elif False:
-            losses = assembler.loss(batchsize, devices, models)
-          elif True:
-            futures = []
-            for device, m, lc in zip(devices, models, lossc):
-              t = time.time()
-              t0 += t - start
-              start = t
-              batch = assembler.sample(batchsize)
-              batch = utils.to_device(batch, device)
-              t = time.time()
-              t1 += t - start
-              start = t
-              #if lossf is None:
-              #  lossf = torch.jit.trace(lc, (batch, device))
-              futures.append(torch.jit._fork(lc, batch))
-              #futures.append(
-              #    executor.submit(torch.jit._fork, lc, batch)
-              #)
-            t = time.time()
-            t0 += t - start
-            start = t
-            #tmp = [future.result() for future in futures]
-            #losses = [torch.jit._wait(future) for future in tmp]
-            losses = [torch.jit._wait(future) for future in futures]
-            #losses = [future.result() for future in futures]
-            t = time.time()
-            t2 += t - start
-            start = t
+            if rank == 0:
+              batch = model_manager.sample(batchsize)
+            else:
+              batch = next_batch.get()
+              next_batch = model_manager.remote_sample(batchsize)
+            batch = utils.to_device(batch, device)
           else:
-            futures = []
-            losses = []
-            for device, m in zip(devices, models):
-              batch = assembler.sample(batchsize)
-              batch = utils.to_device(batch, device)
-              loss, v_err, pi_err = _loss_on_device(batch, m, device)
-              losses.append((loss, v_err, pi_err))
-              #futures.append(
-              #    executor.submit(_loss_on_device, assembler, batchsize, m, device)
-              #)
-            #results = [future.result() for future in futures]
+            if rank == 0:
+              batchlist = {}
+              for k in cpubatch.keys():
+                batchlist[k] = []
+              for i in range(world_size):
+                for k,v in model_manager.sample(batchsize).items():
+                  batchlist[k].append(v)
+            for k, v in cpubatch.items():
+              torch.distributed.scatter(v, batchlist[k] if rank == 0 else None)
+            batch = utils.to_device(cpubatch, device)
+        else:
+          batch = model_manager.sample(batchsize)
+          batch = utils.to_device(batch, device)
+        for k, v in batch.items():
+          batch[k] = v.detach()
+        t = time.time()
+        t1 += t - start
+        start = t
+        loss, v_err, pi_err, predict_err, allstates = model.loss(lossmodel, batch)
+        t = time.time()
+        t2 += t - start
+        start = t
+        loss.backward()
 
-          for loss, v_err, pi_err in losses:
-            stat["v_err"].feed(v_err.item())
-            stat["pi_err"].feed(pi_err.item())
-            stat["loss"].feed(loss.item())
+        #for x in allstates:
+        #  print("state ", x)
+        #  print("grad ", x.grad)
 
-          params = [p for p in models[0].parameters()]
-          buffers = [p for p in models[0].buffers()]
+        t = time.time()
+        t3 += t - start
+        start = t
+        grad_norm = nn.utils.clip_grad_norm_(lossmodel.parameters(), optim_params.grad_clip)
+        t = time.time()
+        t4 += t - start
+        start = t
+        optim.step()
+        optim.zero_grad()
 
-          t = time.time()
-          t3 += t - start
-          start = t
+        t = time.time()
+        t5 += t - start
+        start = t
 
-          for m in models:
-            if m is not models[0]:
-              for i, p in enumerate(m.parameters()):
-                if p.grad is not None:
-                  params[i].grad.data.add(p.grad.data.to(devices[0]))
-                  p.grad.detach_()
-                  p.grad.zero_()
-
-          t = time.time()
-          t4 += t - start
-          start = t
-
-          grad_norm = nn.utils.clip_grad_norm_(params, optim_params.grad_clip)
-          t = time.time()
-          t5 += t - start
-          start = t
-          optim.step()
-          optim.zero_grad()
-
-          t = time.time()
-          t6 += t - start
-          start = t
-
-          for m in models:
-            if m is not models[0]:
-              for i, p in enumerate(m.parameters()):
-                p.data.copy_(params[i].data)
-              for i, p in enumerate(m.buffers()):
-                p.data.copy_(buffers[i].data)
+        stat["v_err"].feed(v_err.item())
+        stat["pi_err"].feed(pi_err.item())
+        if has_predict:
+          stat["predict_err"].feed(predict_err.item())
+        stat["loss"].feed(loss.item())
 
         t = time.time()
         t7 += t - start
@@ -605,7 +523,7 @@ def _train_epoch(
 
         if (epoch * optim_params.epoch_len + eid + 1) % sync_period == 0:
             sync_t0 = time.time()
-            assembler.update_model(models[0].state_dict())
+            model_manager.update_model(model.state_dict())
             sync_s += time.time() - sync_t0
             num_sync += 1
 
@@ -615,8 +533,8 @@ def _train_epoch(
         time_elapsed = t - _last_train_time
         _last_train_time = t
         alpha = pow(0.99, time_elapsed)
-        post_num_add = assembler.buffer_num_add()
-        post_num_sample = assembler.buffer_num_sample()
+        post_num_add = model_manager.buffer_num_add()
+        post_num_sample = model_manager.buffer_num_sample()
         delta_add = post_num_add - pre_num_add
         delta_sample = post_num_sample - pre_num_sample
         _running_add_rate = _running_add_rate * alpha + (delta_add / time_elapsed) * (1 - alpha)
@@ -626,11 +544,16 @@ def _train_epoch(
 
     print("times: ", t0, t1, t2, t3, t4, t5, t6, t7)
 
+    total_time_elapsed = time.time() - train_start_time
+
     print("running add rate: %.2f / s" % (_running_add_rate))
     print("running sample rate: %.2f / s" % (_running_sample_rate))
     print("current add rate: %.2f / s" % (delta_add / time_elapsed))
     print("current sample rate: %.2f / s" % (delta_sample / time_elapsed))
-    print(f"syncing duration: {sync_s:2f}s for {num_sync} syncs ({int(100 * sync_s / time_elapsed)}% of train time)")
+    print(f"syncing duration: {sync_s:2f}s for {num_sync} syncs ({int(100 * sync_s / total_time_elapsed)}% of train time)")
+
+    _pre_num_add = pre_num_add
+    _pre_num_sample = pre_num_sample
 
     stat.summary(epoch)
     stat.reset()
@@ -638,12 +561,12 @@ def _train_epoch(
 def train_model(
     command_history: utils.CommandHistory,
     start_time: float,
-    models: List[torch.jit.ScriptModule],
-    devices: List[torch.device],
+    model: torch.jit.ScriptModule,
+    device: torch.device,
     ddpmodel,
     optim: torch.optim.Optimizer,
     context: tube.Context,
-    assembler: tube.ChannelAssembler,
+    model_manager: polygames.ModelManager,
     get_train_reward: Callable[[], List[int]],
     game_params: GameParams,
     model_params: ModelParams,
@@ -664,28 +587,34 @@ def train_model(
 
     batchsizes = {
       "s":  [c, h, w],
-      "v": [1],
+      "v": [3],
       "pi": [c_prime, h_prime, w_prime],
       "pi_mask": [c_prime, h_prime, w_prime]
     }
+
+    if game_params.player == "forward":
+      batchsizes["action_pi"] = [c_prime, h_prime, w_prime]
 
     if predicts > 0:
       batchsizes["predict_pi"] = [rc * predicts, rh, rw]
       batchsizes["predict_pi_mask"] = [rc * predicts, rh, rw]
 
-    if model_params.rnn_interval > 0:
+    if getattr(model, "rnn_state_shape", None) is not None:
       batchsizes["rnn_state_mask"] = [1]
 
     if execution_params.rnn_seqlen > 0:
       for k, v in batchsizes.items():
         batchsizes[k] = [execution_params.rnn_seqlen, *v]
 
-    if model_params.rnn_interval > 0:
-      batchsizes["rnn_initial_state"] = [models[0].rnn_cells * models[0].rnn_channels * rh * rw]
+    if getattr(model, "rnn_state_shape", None) is not None:
+      batchsizes["rnn_initial_state"] = model.rnn_state_shape
 
     rank = 0
     if ddpmodel:
         rank = torch.distributed.get_rank()
+
+    executor = ThreadPoolExecutor(max_workers=1)
+    savefuture = None
 
     stat = utils.MultiCounter(execution_params.checkpoint_dir)
     max_time = execution_params.max_time
@@ -696,31 +625,43 @@ def train_model(
         epoch += 1
         if rank == 0 and epoch % execution_params.saving_period == 0:
         #if epoch % execution_params.saving_period == 0:
-            assembler.add_tournament_model("e%d" % (epoch), models[0].state_dict())
-            utils.save_checkpoint(
+            model_manager.add_tournament_model("e%d" % (epoch), model.state_dict())
+            savestart = time.time()
+            if savefuture is not None:
+               savefuture.result()
+            savefuture = utils.save_checkpoint(
                 command_history=command_history,
                 epoch=epoch,
-                model=models[0],
+                model=model,
                 optim=optim,
-                assembler=assembler,
                 game_params=game_params,
                 model_params=model_params,
                 optim_params=optim_params,
                 simulation_params=simulation_params,
                 execution_params=execution_params,
+                executor=executor
             )
-        _train_epoch(
-            models=models,
-            devices=devices,
-            ddpmodel=ddpmodel,
-            batchsizes=batchsizes,
-            optim=optim,
-            assembler=assembler,
-            stat=stat,
-            epoch=epoch,
-            optim_params=optim_params,
-            sync_period=simulation_params.sync_period,
-        )
+            print("checkpoint saved in %gs" % (time.time() - savestart))
+        try:
+          _train_epoch(
+              model=model,
+              device=device,
+              ddpmodel=ddpmodel,
+              batchsizes=batchsizes,
+              optim=optim,
+              model_manager=model_manager,
+              stat=stat,
+              epoch=epoch,
+              optim_params=optim_params,
+              sync_period=simulation_params.sync_period,
+          )
+        except RuntimeError as e:
+          if "out of memory" in str(e) and optim_params.batchsize > 8:
+            optim_params.batchsize *= 0.75
+            optim_params.batchsize = int(optim_params.batchsize)
+            print("Out of memory detected, reducing batchsize to %d" % optim_params.batchsize)
+          else:
+            raise
         # resource usage stats
         print("Resource usage:")
         print(utils.get_res_usage_str())
@@ -731,13 +672,14 @@ def train_model(
             ">>>train: epoch: %d, %s" % (epoch, utils.Result(get_train_reward()).log()),
             flush=True,
         )
+    if savefuture is not None:
+        savefuture.result()
     # checkpoint last state
     utils.save_checkpoint(
         command_history=command_history,
         epoch=epoch,
-        model=models[0],
+        model=model,
         optim=optim,
-        assembler=assembler,
         game_params=game_params,
         model_params=model_params,
         optim_params=optim_params,
@@ -746,12 +688,12 @@ def train_model(
     )
 
 def client_loop(
-    assembler: tube.ChannelAssembler,
+    model_manager: polygames.ModelManager,
     start_time: float,
     context: tube.Context,
     execution_params: ExecutionParams,
 ) -> None:
-    assembler.start()
+    model_manager.start()
     max_time = execution_params.max_time
     while max_time is None or time.time() < start_time + max_time:
         time.sleep(60)
@@ -780,6 +722,13 @@ def run_training(
     print("#" * 70)
     print("#" + "TRAINING".center(68) + "#")
     print("#" * 70)
+
+    if execution_params.rnn_seqlen > 0:
+      optim_params.batchsize //= execution_params.rnn_seqlen
+      simulation_params.replay_capacity //= execution_params.rnn_seqlen
+      simulation_params.replay_warmup //= execution_params.rnn_seqlen
+      simulation_params.train_channel_num_slots //= execution_params.rnn_seqlen
+
 
     print("setting-up pseudo-random generator...")
     seed_generator = utils.generate_random_seeds(seed=execution_params.seed)
@@ -836,55 +785,49 @@ def run_training(
     else:
         print("creating and saving the model...")
     train_devices = [torch.device(i) for i in execution_params.device_train]
-    game_generation_devices = [torch.device(i) for i in execution_params.device_eval]
+    device = execution_params.device_eval[0]
 
-    models = []
-    for device in train_devices:
-      models.append(create_model(
+    model = create_model(
           game_params=game_params,
           model_params=model_params,
           resume_training=bool(checkpoint),
           model_state_dict=checkpoint["model_state_dict"] if checkpoint else None,
-      ).to(device))
+      ).to(device)
 
     model_path = execution_params.checkpoint_dir / "model.pt"
-    models[0].save(str(model_path))
+    model.save(str(model_path))
 
     ddpmodel = None
     #if execution_params.ddp:
     if os.environ.get("RANK") is not None:
         torch.distributed.init_process_group(backend="gloo", timeout=datetime.timedelta(0, 86400))
-        ddpmodel = nn.parallel.DistributedDataParallel(ModelWrapperForDDP(models[0]), broadcast_buffers=False, find_unused_parameters=False)
+        ddpmodel = nn.parallel.DistributedDataParallel(ModelWrapperForDDP(model), broadcast_buffers=False, find_unused_parameters=False)
 
     print("creating optimizer...")
     optim = create_optimizer(
-        model=ddpmodel if ddpmodel is not None else models[0],
+        model=ddpmodel if ddpmodel is not None else model,
         optim_params=optim_params,
         optim_state_dict=checkpoint.get("optim_state_dict", None),
     )
 
-    rnn_state_shape = []
-    if hasattr(models[0], "rnn_cells") and models[0].rnn_cells > 0:
-      rnn_state_shape = [models[0].rnn_cells, models[0].rnn_channels]
-
     print("creating training environment...")
-    context, assembler, get_train_reward, is_client = create_training_environment(
+    context, model_manager, get_train_reward, is_client = create_training_environment(
         seed_generator=seed_generator,
         model_path=model_path,
-        game_generation_devices=game_generation_devices,
+        device=device,
         game_params=game_params,
         simulation_params=simulation_params,
         execution_params=execution_params,
-        rnn_state_shape=rnn_state_shape
+        model=model
     )
     if not is_client:
-        assembler.update_model(models[0].state_dict())
-    assembler.add_tournament_model("init", models[0].state_dict())
+        model_manager.update_model(model.state_dict())
+    model_manager.add_tournament_model("init", model.state_dict())
     context.start()
 
     if is_client:
       client_loop(
-          assembler=assembler,
+          model_manager=model_manager,
           start_time=start_time,
           context=context,
           execution_params=execution_params
@@ -893,21 +836,20 @@ def run_training(
       if ddpmodel is None or torch.distributed.get_rank() == 0:
         print("warming-up replay buffer...")
         warm_up_replay_buffer(
-            assembler=assembler,
-            replay_warmup=simulation_params.replay_warmup,
-            replay_buffer=checkpoint.get("replay_buffer", None),
+            model_manager=model_manager,
+            replay_warmup=simulation_params.replay_warmup
         )
 
       print("training model...")
       train_model(
           command_history=command_history,
           start_time=start_time,
-          models=models,
-          devices=train_devices,
+          model=model,
+          device=device,
           ddpmodel=ddpmodel,
           optim=optim,
           context=context,
-          assembler=assembler,
+          model_manager=model_manager,
           get_train_reward=get_train_reward,
           game_params=game_params,
           model_params=model_params,

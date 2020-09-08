@@ -1,0 +1,6 @@
+
+namespace common {
+
+int getThreadId();
+
+}

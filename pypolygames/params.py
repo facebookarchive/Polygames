@@ -29,12 +29,14 @@ class GameParams:
     game_name: Optional[str] = None
     out_features: bool = False
     turn_features: bool = False
+    turn_features_mc: bool = False
     geometric_features: bool = False
     random_features: int = 0
     one_feature: bool = False
     history: int = 0
     predict_end_state: bool = False
     predict_n_states: int = 0
+    player: str = "mcts"
 
     def __setattr__(self, attr, value):
         if value is None:
@@ -48,9 +50,14 @@ class GameParams:
                 "game_name",
                 "out_features",
                 "turn_features",
+                "turn_features_mc",
                 "geometric_features",
                 "one_feature",
                 "history",
+                "predict_end_state",
+                "predict_n_states",
+                "mcts_player",
+                "forward_player",
             }
         )
 
@@ -76,6 +83,14 @@ class GameParams:
                     action="store_false" if cls.turn_features else "store_true",
                     help="If set, the input to the NN includes a channel "
                     "with the player index broadcasted",
+                )
+            ),
+            turn_features_mc=ArgFields(
+                opts=dict(
+                    action="store_false" if cls.turn_features_mc else "store_true",
+                    help="If set, the input to the NN includes one channel "
+                    "for each player (color), with the one corresponding to the"
+                    " current player set to 1 and the others set to 0",
                 )
             ),
             geometric_features=ArgFields(
@@ -114,6 +129,12 @@ class GameParams:
                     help="Side learning: predict N next game states",
                 )
             ),
+            player=ArgFields(
+                opts=dict(
+                    type=str,
+                    help="Type of player to use. One of: mcts, forward",
+                )
+            )
         )
         for param, arg_field in params.items():
             if arg_field.name is None:

@@ -34,7 +34,7 @@ def create_human_environment(
     simulation_params: SimulationParams,
     execution_params: ExecutionParams,
     pure_mcts: bool,
-    rnn_state_shape: List[int]
+    model
 ) -> Tuple[tube.Context, Optional[tube.DataChannel], Callable[[], int]]:
     human_first = execution_params.human_first
     time_ratio = execution_params.time_ratio
@@ -43,9 +43,13 @@ def create_human_environment(
     actor_channel = (
         None if pure_mcts else tube.DataChannel("act", simulation_params.num_actor, 1)
     )
+    rnn_state_shape = []
+    if model is not None and hasattr(model, "rnn_cells") and model.rnn_cells > 0:
+      rnn_state_shape = [model.rnn_cells, model.rnn_channels]
     rnn_state_size = 0
     if len(rnn_state_shape) >= 2:
       rnn_state_size = rnn_state_shape[0] * rnn_state_shape[1]
+    logit_value = getattr(model, "logit_value", False)
     game = create_game(
         game_params,
         num_episode=1,
@@ -60,11 +64,12 @@ def create_human_environment(
     player = create_player(
         seed_generator=seed_generator,
         game=game,
+        player="mcts",
         num_actor=simulation_params.num_actor,
         num_rollouts=simulation_params.num_rollouts,
         pure_mcts=pure_mcts,
         actor_channel=actor_channel,
-        assembler=None,
+        model_manager=None,
         human_mode=True,
         total_time=total_time,
         time_ratio=time_ratio,
@@ -73,6 +78,7 @@ def create_human_environment(
         sampling_mcts=False,
         rnn_state_shape=rnn_state_shape,
         rnn_seqlen=execution_params.rnn_seqlen,
+        logit_value=logit_value,
     )
     human_player = polygames.HumanPlayer()
     if game.is_one_player_game():
@@ -122,7 +128,7 @@ def create_tp_environment(
         num_rollouts=simulation_params.num_rollouts,
         pure_mcts=pure_mcts,
         actor_channel=actor_channel,
-        assembler=None,
+        model_manager=None,
         human_mode=True,
         total_time=total_time,
         time_ratio=time_ratio,
@@ -199,24 +205,24 @@ def _play_game_against_neural_mcts(
               batch[actor_channel.name]["rnn_state"], nb_devices, dim=0
           )
         futures = []
-        reply_eval = {"v": None, "pi": None}
+        reply_eval = {"v": None, "pi_logit": None}
         #print(len(batches_s))
         #print(len(batches_s[0]))
-#        if time.time() - lastforward > 1 and len(batches_s) == 1 and len(batches_s[0]) == 1:
-#          #print(batches_s[0][0])
-#          #v, pi, predict = models[0]._forward(utils.to_device(batches_s[0], devices[0]), True)
-#          #pi = models[0].forward(utils.to_device(batches_s[0], devices[0]))["pi"]
-#          print("Pi:")
-#          #p = pi[0].cpu()
-#          #p = predict[0].cpu()
-#          p = batches_s[0][0].cpu()
-#          for i in range(p.size(0)):
-#            for y in range(p.size(1)):
-#              s = ""
-#              for x in range(p.size(2)):
-#                s += "%.02f " % (p[i][y][x])
-#              print(s)
-#            print()
+        if time.time() - lastforward > 1 and len(batches_s) == 1 and len(batches_s[0]) == 1:
+          #print(batches_s[0][0])
+          #v, pi, predict = models[0]._forward(utils.to_device(batches_s[0], devices[0]), True)
+          #pi = models[0].forward(utils.to_device(batches_s[0], devices[0]))["pi"]
+          print("Pi:")
+          #p = pi[0].cpu()
+          #p = predict[0].cpu()
+          p = batches_s[0][0].cpu()
+          for i in range(p.size(0)):
+            for y in range(p.size(1)):
+              s = ""
+              for x in range(p.size(2)):
+                s += "%.02f " % (p[i][y][x])
+              print(s)
+            print()
         lastforward = time.time()
         # multithread
         with ThreadPoolExecutor(max_workers=nb_devices) as executor:
@@ -229,7 +235,7 @@ def _play_game_against_neural_mcts(
                 )
             results = [future.result() for future in futures]
             reply_eval["v"] = torch.cat([result["v"] for result in results], dim=0)
-            reply_eval["pi"] = torch.cat([result["pi"] for result in results], dim=0)
+            reply_eval["pi_logit"] = torch.cat([result["pi_logit"] for result in results], dim=0)
             reply_eval["rnn_state_out"] = torch.cat([result["rnn_state"] for result in results], dim=0)
           else:
             for device, model, batch_s in zip(
@@ -240,7 +246,8 @@ def _play_game_against_neural_mcts(
                 )
             results = [future.result() for future in futures]
             reply_eval["v"] = torch.cat([result["v"] for result in results], dim=0)
-            reply_eval["pi"] = torch.cat([result["pi"] for result in results], dim=0)
+            reply_eval["pi_logit"] = torch.cat([result["pi_logit"] for result in results], dim=0)
+            print("reply v is ", reply_eval["v"])
         dcm.set_reply(actor_channel.name, reply_eval)
     dcm.terminate()
 
@@ -320,10 +327,6 @@ def run_human_played_game(
             model.eval()
             models.append(model)
 
-    rnn_state_shape = []
-    if model is not None and hasattr(model, "rnn_cells") and model.rnn_cells > 0:
-      rnn_state_shape = [model.rnn_cells, model.rnn_channels]
-
     print("creating human-played environment")
     context, actor_channel, get_result_for_human_player = create_human_environment(
         seed_generator=seed_generator,
@@ -331,7 +334,7 @@ def run_human_played_game(
         simulation_params=simulation_params,
         execution_params=execution_params,
         pure_mcts=model_params.pure_mcts,
-        rnn_state_shape=rnn_state_shape,
+        model=model
     )
 
     print("playing against a human player...")

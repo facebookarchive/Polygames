@@ -8,12 +8,12 @@ import time
 import gzip
 import zipfile
 import re
+import copy
 from pathlib import Path
 from typing import Iterator, Dict, Union, Any
+from concurrent.futures import ThreadPoolExecutor
 
 import torch
-
-import tube
 
 from .command_history import CommandHistory
 from ..params import (
@@ -44,45 +44,50 @@ def save_checkpoint(
     epoch: int,
     model: torch.jit.ScriptModule,
     optim: torch.optim.Optimizer,
-    assembler: tube.ChannelAssembler,
     game_params: GameParams,
     model_params: ModelParams,
     optim_params: OptimParams,
     simulation_params: SimulationParams,
     execution_params: ExecutionParams,
+    executor: ThreadPoolExecutor = None,
 ) -> None:
     checkpoint_dir = execution_params.checkpoint_dir
     save_uncompressed = execution_params.save_uncompressed
-    do_not_save_replay_buffer = execution_params.do_not_save_replay_buffer
     checkpoint_name = f"checkpoint_{epoch}"
     checkpoint = {
         "command_history": command_history,
         "epoch": epoch,
-        "model_state_dict": model.state_dict(),
-        "optim_state_dict": optim.state_dict(),
+        "model_state_dict": {k : v.cpu().clone() if isinstance(v, torch.Tensor) else copy.deepcopy(v) for k, v in model.state_dict().items()},
+        "optim_state_dict": {k : v.cpu().clone() if isinstance(v, torch.Tensor) else copy.deepcopy(v) for k, v in optim.state_dict().items()},
         "game_params": game_params,
         "model_params": model_params,
         "optim_params": optim_params,
         "simulation_params": simulation_params,
         "execution_params": execution_params,
     }
-    if not do_not_save_replay_buffer:
-        checkpoint.update({"replay_buffer": assembler.buffer})
 
-    if save_uncompressed:
-        torch.save(checkpoint, checkpoint_dir / f"{checkpoint_name}.pt")
+    def saveit():
+        nonlocal save_uncompressed
+        nonlocal checkpoint
+        nonlocal checkpoint_dir
+        if save_uncompressed:
+            torch.save(checkpoint, checkpoint_dir / f"{checkpoint_name}.pt")
+        else:
+            # with zipfile.ZipFile(Path(checkpoint_dir) / f"{checkpoint_name}.zip", "w", allowZip64=True) as z:
+            #    with z.open(f"{checkpoint_name}.pt", "w", force_zip64=True) as f:
+            #        torch.save(checkpoint, f)
+            with gzip.open(checkpoint_dir / f"{checkpoint_name}.pt.gz", "wb") as f:
+                torch.save(checkpoint, f)
+    if executor is not None:
+        return executor.submit(saveit)
     else:
-        # with zipfile.ZipFile(Path(checkpoint_dir) / f"{checkpoint_name}.zip", "w", allowZip64=True) as z:
-        #    with z.open(f"{checkpoint_name}.pt", "w", force_zip64=True) as f:
-        #        torch.save(checkpoint, f)
-        with gzip.open(checkpoint_dir / f"{checkpoint_name}.pt.gz", "wb") as f:
-            torch.save(checkpoint, f)
+        saveit()
 
 
 def load_checkpoint(checkpoint_path: Path) -> Checkpoint:
     ext = checkpoint_path.suffix
     if ext == ".pt":
-        checkpoint = torch.load(checkpoint_path, map_location=torch.device('cpu'))
+        checkpoint = torch.load(str(checkpoint_path), map_location=torch.device('cpu'))
     elif ext == ".gz":
         with gzip.open(checkpoint_path, "rb") as f:
             checkpoint = torch.load(f, map_location=torch.device('cpu'))

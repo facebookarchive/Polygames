@@ -13,9 +13,12 @@ from .res_conv_fc_logit_model import ResConvFCLogitModel
 from .res_conv_conv_logit_model import ResConvConvLogitModel
 from .res_conv_conv_logit_pool_model import ResConvConvLogitPoolModel
 from .res_conv_conv_logit_pool_model_v2 import ResConvConvLogitPoolModelV2
+from .res_conv_conv_logit_pool_model_v3 import ResConvConvLogitPoolModelV3
+from .res_conv_conv_logit_pool_model_v3_2 import ResConvConvLogitPoolModelV3_2
 from .res_conv_gru_conv_logit_pool_model import ResConvGruConvLogitPoolModel
 from .u_conv_fc_logit_model import UConvFCLogitModel
 from .u_conv_conv_logit_model import UConvConvLogitModel
 from .connect4_benchmark_model import Connect4BenchModel
+from .gru_test import GruTest
 
 from .utils import MODELS  # directory where models are registered

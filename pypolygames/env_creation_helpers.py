@@ -43,6 +43,7 @@ def create_game(
         eval_mode,
         game_params.out_features,
         game_params.turn_features,
+        game_params.turn_features_mc,
         game_params.geometric_features,
         game_params.history,
         game_params.random_features,
@@ -122,9 +123,9 @@ def _create_pure_mcts_player(
     player = mcts.MctsPlayer(mcts_option)
     for _ in range(num_actor):
         actor = polygames.Actor(
-            None, game.get_feat_size(), game.get_action_size(), [], False, False, None
+            None, game.get_feat_size(), game.get_action_size(), [], 0, False, False, False, None
         )
-        player.add_actor(actor)
+        player.set_actor(actor)
     return player
 
 
@@ -133,16 +134,16 @@ def _create_neural_mcts_player(
     mcts_option: mcts.MctsOption,
     num_actor: int,
     actor_channel: tube.DataChannel,
-    assembler: Optional[tube.ChannelAssembler] = None,
+    model_manager: Optional[polygames.ModelManager] = None,
     rnn_state_shape: List[int] = [],
     rnn_seqlen: int = 0,
+    logit_value: bool = False,
 ) -> mcts.MctsPlayer:
-    if len(rnn_state_shape) > 0:
-      rnn_state_shape = [*rnn_state_shape]
-      rnn_state_shape.append(game.get_feat_size()[1])
-      rnn_state_shape.append(game.get_feat_size()[2])
+    #if len(rnn_state_shape) > 0:
+    #  rnn_state_shape = [*rnn_state_shape]
+    #  rnn_state_shape.append(game.get_feat_size()[1])
+    #  rnn_state_shape.append(game.get_feat_size()[2])
 
-    print("final rnn_state_shape is ", rnn_state_shape)
     player = mcts.MctsPlayer(mcts_option)
     for _ in range(num_actor):
         num_actor += 1
@@ -152,22 +153,52 @@ def _create_neural_mcts_player(
             game.get_action_size(),
             rnn_state_shape,
             rnn_seqlen,
+            logit_value,
             True,
             True,
-            assembler,
+            model_manager,
         )
-        player.add_actor(actor)
+        player.set_actor(actor)
+    return player
+
+def _create_forward_player(
+    game: polygames.Game,
+    actor_channel: tube.DataChannel,
+    model_manager: Optional[polygames.ModelManager] = None,
+    rnn_state_shape: List[int] = [],
+    rnn_seqlen: int = 0,
+    logit_value: bool = False,
+) -> mcts.MctsPlayer:
+    #if len(rnn_state_shape) > 0:
+    #  rnn_state_shape = [*rnn_state_shape]
+    #  rnn_state_shape.append(game.get_feat_size()[1])
+    #  rnn_state_shape.append(game.get_feat_size()[2])
+
+    player = polygames.ForwardPlayer()
+    actor = polygames.Actor(
+        actor_channel,
+        game.get_feat_size(),
+        game.get_action_size(),
+        rnn_state_shape,
+        rnn_seqlen,
+        logit_value,
+        True,
+        True,
+        model_manager,
+    )
+    player.set_actor(actor)
     return player
 
 
 def create_player(
     seed_generator: Iterator[int],
     game: polygames.Game,
+    player: str,
     num_actor: int,
     num_rollouts: int,
     pure_mcts: bool,
     actor_channel: Optional[tube.DataChannel],
-    assembler: Optional[tube.ChannelAssembler] = None,
+    model_manager: Optional[polygames.ModelManager] = None,
     human_mode: bool = False,
     time_ratio: float = 0.07,
     total_time: float = 0,
@@ -177,29 +208,43 @@ def create_player(
     move_select_use_mcts_value: bool = False,
     rnn_state_shape: List[int] = [],
     rnn_seqlen: int = 0,
+    logit_value: bool = False,
 ):
-    mcts_option = _set_mcts_option(
-        num_rollouts=num_rollouts,
-        seed=next(seed_generator),
-        human_mode=human_mode,
-        time_ratio=time_ratio,
-        total_time=total_time,
-        sample_before_step_idx=sample_before_step_idx,
-        randomized_rollouts=randomized_rollouts,
-        sampling_mcts=sampling_mcts,
-        move_select_use_mcts_value=move_select_use_mcts_value
-    )
-    if pure_mcts:
-        return _create_pure_mcts_player(
-            game=game, mcts_option=mcts_option, num_actor=num_actor
+    if player == "mcts":
+      mcts_option = _set_mcts_option(
+          num_rollouts=num_rollouts,
+          seed=next(seed_generator),
+          human_mode=human_mode,
+          time_ratio=time_ratio,
+          total_time=total_time,
+          sample_before_step_idx=sample_before_step_idx,
+          randomized_rollouts=randomized_rollouts,
+          sampling_mcts=sampling_mcts,
+          move_select_use_mcts_value=move_select_use_mcts_value
+      )
+      if pure_mcts:
+          return _create_pure_mcts_player(
+              game=game, mcts_option=mcts_option, num_actor=num_actor
+          )
+      else:
+          return _create_neural_mcts_player(
+              game=game,
+              mcts_option=mcts_option,
+              num_actor=num_actor,
+              actor_channel=actor_channel,
+              model_manager=model_manager,
+              rnn_state_shape=rnn_state_shape,
+              rnn_seqlen=rnn_seqlen,
+              logit_value=logit_value
+          )
+    elif player == "forward":
+        return _create_forward_player(
+              game=game,
+              actor_channel=actor_channel,
+              model_manager=model_manager,
+              rnn_state_shape=rnn_state_shape,
+              rnn_seqlen=rnn_seqlen,
+              logit_value=logit_value
         )
     else:
-        return _create_neural_mcts_player(
-            game=game,
-            mcts_option=mcts_option,
-            num_actor=num_actor,
-            actor_channel=actor_channel,
-            assembler=assembler,
-            rnn_state_shape=rnn_state_shape,
-            rnn_seqlen=rnn_seqlen,
-        )
+        raise RuntimeError("Unknown player " + player)
