@@ -6,15 +6,15 @@
  */
 
 // Author: Dennis Soemers
-// - Affiliation: Maastricht University, DKE, Digital Ludeme Project (Ludii developer)
+// - Affiliation: Maastricht University, DKE, Digital Ludeme Project (Ludii
+// developer)
 // - Github: https://github.com/DennisSoemers/
 // - Email: dennis.soemers@maastrichtuniversity.nl (or d.soemers@gmail.com)
-
 
 #pragma once
 
 #include <array>
-#include <jni.h>  // NOLINT
+#include <jni.h>
 #include <memory>
 #include <string>
 #include <vector>
@@ -24,84 +24,100 @@ namespace Ludii {
 /**
  * C++ wrapper around Ludii's "LudiiGameWrapper" class.
  *
- * This class takes care of calling all the required Java methods from Ludii games.
+ * This class takes care of calling all the required Java methods from Ludii
+ * games.
  */
 class LudiiGameWrapper {
 
-public:
+ public:
+  /**
+   * Constructor; calls the LudiiGameWrapper Java constructor
+   *
+   * @param jenv Our JNI environment
+   * @param lud_path String describing the path of the game to load. Should end
+   * in .lud
+   */
+  LudiiGameWrapper(JNIEnv* jenv, const std::string lud_path);
 
-	/**
-	 * Constructor; calls the LudiiGameWrapper Java constructor
-	 *
-	 * @param jenv Our JNI environment
-	 * @param lud_path String describing the path of the game to load. Should end in .lud
-	 */
-	LudiiGameWrapper(JNIEnv* jenv, const std::string lud_path);
+  /**
+   * Constructor; calls the LudiiGameWrapper Java constructor
+   *
+   * @param jenv Our JNI environment
+   * @param lud_path String describing the path of the game to load. Should end
+   * in .lud
+   * @param game_options Vector of additiona options to pass into Ludii,
+   * describing variant of game to load.
+   */
+  LudiiGameWrapper(JNIEnv* jenv,
+                   const std::string lud_path,
+                   const std::vector<std::string> game_options);
 
-	/**
-	 * Constructor; calls the LudiiGameWrapper Java constructor
-	 *
-	 * @param jenv Our JNI environment
-	 * @param lud_path String describing the path of the game to load. Should end in .lud
-	 * @param game_options Vector of additiona options to pass into Ludii, describing variant of game to load.
-	 */
-	LudiiGameWrapper(JNIEnv* jenv, const std::string lud_path, const std::vector<std::string> game_options);
+  /**
+   * Copy constructor; calls the Java copy constructor for LudiiGameWrapper
+   *
+   * @param other The LudiiGameWrapper object of which we wish to create a deep
+   * copy
+   */
+  LudiiGameWrapper(LudiiGameWrapper const&);
 
-	/**
-	 * Copy constructor; calls the Java copy constructor for LudiiGameWrapper
-	 *
-	 * @param other The LudiiGameWrapper object of which we wish to create a deep copy
-	 */
-	LudiiGameWrapper(LudiiGameWrapper const&);
+  /**
+   * Destructor
+   */
+  ~LudiiGameWrapper();
 
-	/**
-	 * @return Array of 3 ints describing the shape of state tensors; [channels, x, y]
-	 */
-	const std::array<int,3> & StateTensorsShape();
+  /**
+   * @return Array of 3 ints describing the shape of state tensors; [channels,
+   * x, y]
+   */
+  const std::array<int, 3>& StateTensorsShape();
 
-	/**
-	 * @return Array of 3 ints describing the shape of move tensors; [channels, x, y]
-	 */
-	const std::array<int,3> & MoveTensorsShape();
+  /**
+   * @return Array of 3 ints describing the shape of move tensors; [channels, x,
+   * y]
+   */
+  const std::array<int, 3>& MoveTensorsShape();
 
-	/**
-	 * @return Vector with, for every channel in state tensors, a name describing what
-	 * data we have in that channel.
-	 */
-	const std::vector<std::string> stateTensorChannelNames();
+  /**
+   * @return Vector with, for every channel in state tensors, a name describing
+   * what data we have in that channel.
+   */
+  const std::vector<std::string> stateTensorChannelNames();
 
-	/** Our object of Java's LudiiGameWrapper type */
-	jobject ludiiGameWrapperJavaObject;
+  /** Our object of Java's LudiiGameWrapper type */
+  jobject ludiiGameWrapperJavaObject;
 
-private:
-	// We don't want to be accidentally coyping objects of this class
-	// (without having implemented our own, correct copy constructor or assignment operator)
-	LudiiGameWrapper& operator=(LudiiGameWrapper const&) = delete;
+ private:
+  // We don't want to be accidentally coyping objects of this class
+  // (without having implemented our own, correct copy constructor or assignment
+  // operator)
+  LudiiGameWrapper& operator=(LudiiGameWrapper const&) = delete;
 
-	/** Pointer to the JNI environment, allows for communication with Ludii's Java code */
-	JNIEnv* jenv;
+  /** Pointer to the JNI environment, allows for communication with Ludii's Java
+   * code */
+  JNIEnv* jenv;
 
-	/** Method ID for the stateTensorsShape() method in Java */
-	jmethodID stateTensorsShapeMethodID;
+  /** Method ID for the stateTensorsShape() method in Java */
+  jmethodID stateTensorsShapeMethodID;
 
-	/** Method ID for the moveTensorsShape() method in Java */
-	jmethodID moveTensorsShapeMethodID;
+  /** Method ID for the moveTensorsShape() method in Java */
+  jmethodID moveTensorsShapeMethodID;
 
-	/** Method ID for the stateTensorChannelNames() method in Java */
-	jmethodID stateTensorChannelNamesMethodID;
+  /** Method ID for the stateTensorChannelNames() method in Java */
+  jmethodID stateTensorChannelNamesMethodID;
 
-	/**
-	 * Shape for state tensors.
-	 * This remains constant throughout episodes, so can just compute it once and store
-	 */
-	std::unique_ptr<std::array<int,3>> stateTensorsShape;
+  /**
+   * Shape for state tensors.
+   * This remains constant throughout episodes, so can just compute it once and
+   * store
+   */
+  std::unique_ptr<std::array<int, 3>> stateTensorsShape;
 
-	/**
-	 * Shape for state tensors.
-	 * This remains constant throughout episodes, so can just compute it once and store
-	 */
-	std::unique_ptr<std::array<int,3>> moveTensorsShape;
-
+  /**
+   * Shape for state tensors.
+   * This remains constant throughout episodes, so can just compute it once and
+   * store
+   */
+  std::unique_ptr<std::array<int, 3>> moveTensorsShape;
 };
 
-}	// namespace Ludii
+}  // namespace Ludii
