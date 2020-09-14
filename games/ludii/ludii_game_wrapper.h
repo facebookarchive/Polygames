@@ -53,10 +53,7 @@ class LudiiGameWrapper {
                    const std::vector<std::string> game_options);
 
   /**
-   * Copy constructor; calls the Java copy constructor for LudiiGameWrapper
-   *
-   * @param other The LudiiGameWrapper object of which we wish to create a deep
-   * copy
+   * Copy constructor. Re-uses the same Java LudiiGameWrapper object.
    */
   LudiiGameWrapper(LudiiGameWrapper const&);
 
