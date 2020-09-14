@@ -95,6 +95,20 @@ class LudiiGameWrapper {
   // operator)
   LudiiGameWrapper& operator=(LudiiGameWrapper const&) = delete;
 
+  /**
+   * Zero-args constructor which initializes everything to invalid data
+   * (only used to initialize the static member for recycling LudiiGameWrapper
+   * objects)
+   */
+  LudiiGameWrapper()
+      : jenv(nullptr)
+      , stateTensorsShapeMethodID(nullptr)
+      , moveTensorsShapeMethodID(nullptr)
+      , stateTensorChannelNamesMethodID(nullptr)
+      , stateTensorsShape(nullptr)
+      , moveTensorsShape(nullptr) {
+  }
+
   /** Pointer to the JNI environment, allows for communication with Ludii's Java
    * code */
   JNIEnv* jenv;
