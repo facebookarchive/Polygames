@@ -88,13 +88,7 @@ class LudiiGameWrapper {
 
   /** The Ludii game name of the last Ludii game we've instantiated */
   static std::string last_ludii_game_name;
-
- private:
-  // We don't want to be accidentally coyping objects of this class
-  // (without having implemented our own, correct copy constructor or assignment
-  // operator)
-  LudiiGameWrapper& operator=(LudiiGameWrapper const&) = delete;
-
+  
   /**
    * Zero-args constructor which initializes everything to invalid data
    * (only used to initialize the static member for recycling LudiiGameWrapper
@@ -108,6 +102,12 @@ class LudiiGameWrapper {
       , stateTensorsShape(nullptr)
       , moveTensorsShape(nullptr) {
   }
+
+ private:
+  // We don't want to be accidentally coyping objects of this class
+  // (without having implemented our own, correct copy constructor or assignment
+  // operator)
+  LudiiGameWrapper& operator=(LudiiGameWrapper const&) = delete;
 
   /** Pointer to the JNI environment, allows for communication with Ludii's Java
    * code */
