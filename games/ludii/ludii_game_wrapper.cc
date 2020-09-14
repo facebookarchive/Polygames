@@ -71,7 +71,7 @@ LudiiGameWrapper::LudiiGameWrapper(JNIEnv* jenv,
   // Convert vector of game options into array of Java strings
   const jobjectArray java_game_options = (jobjectArray)jenv->NewObjectArray(
       game_options.size(), jenv->FindClass("java/lang/String"), nullptr);
-  for (int i = 0; i < game_options.size(); ++i) {
+  for (size_t i = 0; i < game_options.size(); ++i) {
     jenv->SetObjectArrayElement(
         java_game_options, i, jenv->NewStringUTF(game_options[i].c_str()));
   }
@@ -102,8 +102,6 @@ LudiiGameWrapper::LudiiGameWrapper(JNIEnv* jenv,
 LudiiGameWrapper::LudiiGameWrapper(LudiiGameWrapper const& other)
     : jenv(other.jenv) {
 
-  jclass ludiiGameWrapperClass = JNIUtils::LudiiGameWrapperClass();
-
   // We can just copy the pointer to the same Java Game object
   ludiiGameWrapperJavaObject =
       jenv->NewGlobalRef(other.ludiiGameWrapperJavaObject);
@@ -114,7 +112,7 @@ LudiiGameWrapper::LudiiGameWrapper(LudiiGameWrapper const& other)
   stateTensorChannelNamesMethodID = other.stateTensorChannelNamesMethodID;
 }
 
-LudiiGameWrapper : ~LudiiGameWrapper() {
+LudiiGameWrapper::~LudiiGameWrapper() {
   jenv->DeleteGlobalRef(ludiiGameWrapperJavaObject);
 }
 
