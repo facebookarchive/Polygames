@@ -208,7 +208,11 @@ LudiiStateWrapper::LudiiStateWrapper(const LudiiStateWrapper& other)
 }
 
 LudiiStateWrapper::~LudiiStateWrapper() {
-  jenv->DeleteGlobalRef(ludiiStateWrapperJavaObject);
+  // Don't use jenv directly because it may have been deleted
+  JNIEnv* env = Ludii::JNIUtils::GetEnv();
+  if (env) {
+    jenv->DeleteGlobalRef(ludiiStateWrapperJavaObject);
+  }
 }
 
 std::vector<std::array<int, 3>> LudiiStateWrapper::LegalMovesTensors() const {

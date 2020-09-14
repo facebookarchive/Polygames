@@ -113,7 +113,11 @@ LudiiGameWrapper::LudiiGameWrapper(LudiiGameWrapper const& other)
 }
 
 LudiiGameWrapper::~LudiiGameWrapper() {
-  jenv->DeleteGlobalRef(ludiiGameWrapperJavaObject);
+  // Don't use jenv directly because it may have been deleted
+  JNIEnv* env = Ludii::JNIUtils::GetEnv();
+  if (env) {
+    jenv->DeleteGlobalRef(ludiiGameWrapperJavaObject);
+  }
 }
 
 const std::array<int, 3>& LudiiGameWrapper::StateTensorsShape() {
