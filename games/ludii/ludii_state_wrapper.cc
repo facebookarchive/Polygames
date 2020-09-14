@@ -207,7 +207,7 @@ LudiiStateWrapper::LudiiStateWrapper(const LudiiStateWrapper& other)
   resetMethodID = other.resetMethodID;
 }
 
-LudiiStateWrapper : ~LudiiStateWrapper() {
+LudiiStateWrapper::~LudiiStateWrapper() {
   jenv->DeleteGlobalRef(ludiiStateWrapperJavaObject);
 }
 
