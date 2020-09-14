@@ -47,14 +47,10 @@ class LudiiStateWrapper : public ::State {
  public:
   /**
    * Constructor; calls the LudiiStateWrapper Java constructor
-   *
-   * @param jenv Our JNI environment
-   * @param ludiiGameWrapperJavaObject The Java object for the game for which
-   * we're creating a state
    */
   LudiiStateWrapper(int seed,
                     JNIEnv* jenv,
-                    LudiiGameWrapper&& ludiiGameWrapper);
+                    LudiiGameWrapper&& inLudiiGameWrapper);
 
   /**
    * Copy constructor; calls the Java copy constructor for LudiiStateWrapper

@@ -145,11 +145,12 @@ void LudiiStateWrapper::DoGoodAction() {
 
 LudiiStateWrapper::LudiiStateWrapper(int seed,
                                      JNIEnv* jenv,
-                                     LudiiGameWrapper&& ludiiGameWrapper)
+                                     LudiiGameWrapper&& inLudiiGameWrapper)
     : ::State(seed)
     , jenv(jenv) {
 
-  ludiiGameWrapper = std::make_shared(std::move(ludiiGameWrapper));
+  ludiiGameWrapper =
+      std::make_shared<LudiiGameWrapper>(std::move(inLudiiGameWrapper));
   jclass ludiiStateWrapperClass = JNIUtils::LudiiStateWrapperClass();
 
   // Find the LudiiStateWrapper Java constructor
