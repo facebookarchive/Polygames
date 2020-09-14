@@ -83,6 +83,12 @@ class LudiiGameWrapper {
   /** Our object of Java's LudiiGameWrapper type */
   jobject ludiiGameWrapperJavaObject;
 
+  /** The last LudiiGameWrapper object we've instantiated */
+  static LudiiGameWrapper last_ludii_game_wrapper;
+
+  /** The Ludii game name of the last Ludii game we've instantiated */
+  static std::string last_ludii_game_name;
+
  private:
   // We don't want to be accidentally coyping objects of this class
   // (without having implemented our own, correct copy constructor or assignment
