@@ -16,8 +16,8 @@
 
 namespace Ludii {
 
-LudiiGameWrapper last_ludii_game_wrapper;
-std::string last_ludii_game_name = "";
+LudiiGameWrapper LudiiGameWrapper::last_ludii_game_wrapper;
+std::string LudiiGameWrapper::last_ludii_game_name = "";
 
 // NOTE: String descriptions of signatures of Java methods can be found by
 // navigating to directory containing the .class files and using:
@@ -55,7 +55,7 @@ LudiiGameWrapper::LudiiGameWrapper(JNIEnv* jenv, const std::string lud_path)
   jenv->DeleteLocalRef(java_lud_path);
 
   // Cache recycleable LudiiGameWrapper object
-  last_ludii_game_wrapper(*this);
+  last_ludii_game_wrapper = *this;
   last_ludii_game_name = lud_path;
 }
 
@@ -121,8 +121,8 @@ LudiiGameWrapper::LudiiGameWrapper(LudiiGameWrapper const& other)
   stateTensorChannelNamesMethodID = other.stateTensorChannelNamesMethodID;
 }
 
-LudiiGameWrapper& LudiiGameWrapper::operator=(LudiiGameWrapper const& other)
-    : jenv(other.jenv) {
+LudiiGameWrapper& LudiiGameWrapper::operator=(LudiiGameWrapper const& other) {
+  jenv = other.jenv;
 
   // We can just copy the pointer to the same Java Game object
   ludiiGameWrapperJavaObject =
