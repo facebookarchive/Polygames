@@ -55,7 +55,7 @@ LudiiGameWrapper::LudiiGameWrapper(JNIEnv* jenv, const std::string lud_path)
   jenv->DeleteLocalRef(java_lud_path);
 
   // Cache recycleable LudiiGameWrapper object
-  last_ludii_game_wrapper = LudiiGameWrapper(*this);
+  last_ludii_game_wrapper = LudiiGameWrapper(std::move(*this));
   last_ludii_game_name = lud_path;
 }
 
