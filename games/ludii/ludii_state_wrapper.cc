@@ -160,7 +160,7 @@ LudiiStateWrapper::LudiiStateWrapper(int seed,
   // Call our Java constructor to instantiate new object
   ludiiStateWrapperJavaObject = jenv->NewGlobalRef(
       jenv->NewObject(ludiiStateWrapperClass, ludiiStateWrapperConstructor,
-                      ludiiGameWrapper.ludiiGameWrapperJavaObject));
+                      ludiiGameWrapper->ludiiGameWrapperJavaObject));
 
   // Find method IDs for all the Java methods we may want to call
   legalMovesTensorsMethodID =
