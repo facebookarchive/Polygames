@@ -26,7 +26,7 @@ Action::Action(int i, int j, int k) {
 void LudiiStateWrapper::Initialize() {
   // This is sometimes necessary to ensure correct JEnv for thread
   jenv = JNIUtils::GetEnv();
-	
+
   // Now do the normal initialisation
   Reset();
 
@@ -141,10 +141,12 @@ LudiiStateWrapper::LudiiStateWrapper(int seed,
   CHECK_JNI_EXCEPTION(jenv);
 
   // Call our Java constructor to instantiate new object
-  ludiiStateWrapperJavaObject = jenv->NewGlobalRef(
+  jobject local_ref =
       jenv->NewObject(ludiiStateWrapperClass, ludiiStateWrapperConstructor,
-                      ludiiGameWrapper->ludiiGameWrapperJavaObject));
+                      ludiiGameWrapper->ludiiGameWrapperJavaObject);
   CHECK_JNI_EXCEPTION(jenv);
+  ludiiStateWrapperJavaObject = jenv->NewGlobalRef(local_ref);
+  jenv->DeleteLocalRef(local_ref);
 
   // Find method IDs for all the Java methods we may want to call
   legalMovesTensorsMethodID =
@@ -185,10 +187,12 @@ LudiiStateWrapper::LudiiStateWrapper(const LudiiStateWrapper& other)
   CHECK_JNI_EXCEPTION(jenv);
 
   // Call our Java constructor to instantiate new object
-  ludiiStateWrapperJavaObject = jenv->NewGlobalRef(
+  jobject local_ref =
       jenv->NewObject(ludiiStateWrapperClass, ludiiStateWrapperCopyConstructor,
-                      other.ludiiStateWrapperJavaObject));
+                      other.ludiiStateWrapperJavaObject);
   CHECK_JNI_EXCEPTION(jenv);
+  ludiiStateWrapperJavaObject = jenv->NewGlobalRef(local_ref);
+  jenv->DeleteLocalRef(local_ref);
 
   // We can just copy all the pointers to methods
   legalMovesTensorsMethodID = other.legalMovesTensorsMethodID;

@@ -38,9 +38,11 @@ LudiiGameWrapper::LudiiGameWrapper(const std::string lud_path)
   CHECK_JNI_EXCEPTION(jenv);
 
   // Call our Java constructor to instantiate new object
-  ludiiGameWrapperJavaObject = jenv->NewGlobalRef(jenv->NewObject(
-      ludiiGameWrapperClass, ludiiGameWrapperConstructor, java_lud_path));
+  jobject local_ref = jenv->NewObject(
+      ludiiGameWrapperClass, ludiiGameWrapperConstructor, java_lud_path);
   CHECK_JNI_EXCEPTION(jenv);
+  ludiiGameWrapperJavaObject = jenv->NewGlobalRef(local_ref);
+  jenv->DeleteLocalRef(local_ref);
 
   // Find method IDs for the two tensor shape Java methods that we may be
   // calling frequently
@@ -94,10 +96,12 @@ LudiiGameWrapper::LudiiGameWrapper(const std::string lud_path,
   }
 
   // Call our Java constructor to instantiate new object
-  ludiiGameWrapperJavaObject = jenv->NewGlobalRef(
+  jobject local_ref =
       jenv->NewObject(ludiiGameWrapperClass, ludiiGameWrapperConstructor,
-                      java_lud_path, java_game_options));
+                      java_lud_path, java_game_options);
   CHECK_JNI_EXCEPTION(jenv);
+  ludiiGameWrapperJavaObject = jenv->NewGlobalRef(local_ref);
+  jenv->DeleteLocalRef(local_ref);
 
   // Find method IDs for the two tensor shape Java methods that we may be
   // calling frequently
