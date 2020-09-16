@@ -1,8 +1,8 @@
-// strongly inspired from https://gist.github.com/alexminnaar/90cf1ea3de45e79a1b14081d90d214b7
-// might need something like export LD_LIBRARY_PATH=/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/server/
-// maybe also install jvm
-
-
+// strongly inspired from
+// https://gist.github.com/alexminnaar/90cf1ea3de45e79a1b14081d90d214b7 might
+// need something like export
+// LD_LIBRARY_PATH=/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/server/ maybe
+// also install jvm
 
 /*
 Copyright (c) 2020 Alex Minnaar
@@ -30,11 +30,20 @@ SOFTWARE.
 
 #include <jni.h>  // NOLINT
 
+// TODO maybe we should optimise these checks out when
+// we're doing serious training runs/evaluations, since
+// we don't handle them other than printing them anyway?
+#define CHECK_JNI_EXCEPTION(jenv)                                              \
+  if (jenv->ExceptionCheck()) {                                                \
+    jenv->ExceptionDescribe();                                                 \
+    jni->ExceptionClear();                                                     \
+  }
+
 namespace Ludii {
 
 class JNIUtils {
  public:
-  static JNIEnv *GetEnv();
+  static JNIEnv* GetEnv();
 
   static void InitJVM(std::string jar_location);
   static void CloseJVM();
@@ -43,13 +52,14 @@ class JNIUtils {
   static jclass LudiiStateWrapperClass();
 
   /**
-   * @return A string description of the version of Ludii that we're working with.
+   * @return A string description of the version of Ludii that we're working
+   * with.
    */
   static const std::string LudiiVersion();
 
  private:
-  static JavaVM *jvm;
-  static JNIEnv *env;
+  static JavaVM* jvm;
+  static JNIEnv* env;
   static jint res;
 
   /** Our LudiiGameWrapper class in Java */
@@ -63,5 +73,3 @@ class JNIUtils {
 };
 
 }  // namespace Ludii
-
-
