@@ -238,7 +238,7 @@ to look into this) if the strategy is identical to knuth’s.
         if (ludii_name == Ludii::LudiiGameWrapper::last_ludii_game_name) {
           // We can recycle previously-constructed Java object
           state_ = std::make_unique<Ludii::LudiiStateWrapper>(
-              seed, jni_env,
+              seed,
               std::move(Ludii::LudiiGameWrapper::last_ludii_game_wrapper));
         } else {
           // We need to instantiate a new Java object
