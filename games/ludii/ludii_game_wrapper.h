@@ -53,12 +53,14 @@ class LudiiGameWrapper {
                    const std::vector<std::string> game_options);
 
   /**
-   * Copy constructor; calls the Java copy constructor for LudiiGameWrapper
-   *
-   * @param other The LudiiGameWrapper object of which we wish to create a deep
-   * copy
+   * Copy constructor. Re-uses the same Java LudiiGameWrapper object.
    */
   LudiiGameWrapper(LudiiGameWrapper const&);
+
+  /**
+   * Copy-assignment operator. Re-uses the same Java LudiiGameWrapper object.
+   */
+  LudiiGameWrapper& operator=(LudiiGameWrapper const& other);
 
   /**
    * Destructor
@@ -86,12 +88,27 @@ class LudiiGameWrapper {
   /** Our object of Java's LudiiGameWrapper type */
   jobject ludiiGameWrapperJavaObject;
 
- private:
-  // We don't want to be accidentally coyping objects of this class
-  // (without having implemented our own, correct copy constructor or assignment
-  // operator)
-  LudiiGameWrapper& operator=(LudiiGameWrapper const&) = delete;
+  /** The last LudiiGameWrapper object we've instantiated */
+  static LudiiGameWrapper last_ludii_game_wrapper;
 
+  /** The Ludii game name of the last Ludii game we've instantiated */
+  static std::string last_ludii_game_name;
+
+  /**
+   * Zero-args constructor which initializes everything to invalid data
+   * (only used to initialize the static member for recycling LudiiGameWrapper
+   * objects)
+   */
+  LudiiGameWrapper()
+      : jenv(nullptr)
+      , stateTensorsShapeMethodID(nullptr)
+      , moveTensorsShapeMethodID(nullptr)
+      , stateTensorChannelNamesMethodID(nullptr)
+      , stateTensorsShape(nullptr)
+      , moveTensorsShape(nullptr) {
+  }
+
+ private:
   /** Pointer to the JNI environment, allows for communication with Ludii's Java
    * code */
   JNIEnv* jenv;
