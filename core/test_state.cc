@@ -152,7 +152,7 @@ int main() {
     JNIEnv* jni_env = Ludii::JNIUtils::GetEnv();
 
     if (jni_env) {
-      Ludii::LudiiGameWrapper game_wrapper(jni_env, "Tic-Tac-Toe.lud");
+      Ludii::LudiiGameWrapper game_wrapper("Tic-Tac-Toe.lud");
       auto state = std::make_unique<Ludii::LudiiStateWrapper>(
           seed, std::move(game_wrapper));
       doTest(*state);
