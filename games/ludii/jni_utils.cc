@@ -162,6 +162,8 @@ const std::string JNIUtils::LudiiVersion() {
   const std::string str = strReturn;
   env->ReleaseStringUTFChars(jstr, strReturn);
   CHECK_JNI_EXCEPTION(env);
+  env->DeleteLocalRef(jstr);
+  CHECK_JNI_EXCEPTION(env);
   return str;
 }
 
