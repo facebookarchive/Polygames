@@ -24,6 +24,9 @@ Action::Action(int i, int j, int k) {
 }
 
 void LudiiStateWrapper::Initialize() {
+  // This is sometimes necessary to ensure correct JEnv for thread
+  jenv = JNIUtils::GetEnv();
+	
   // Now do the normal initialisation
   Reset();
 
