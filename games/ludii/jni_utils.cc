@@ -71,7 +71,7 @@ void JNIUtils::InitJVM(std::string jar_location) {
   options[0].optionString = c_classpath;
 
 #ifdef CHECK_JNI
-  std::string checK_jni = "-Xcheck:jni";
+  std::string check_jni = "-Xcheck:jni";
   char* c_check_jni = strdup(check_jni.c_str());
   options[1].optionString = c_check_jni;
 #endif
