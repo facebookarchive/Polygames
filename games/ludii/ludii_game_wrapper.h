@@ -33,23 +33,20 @@ class LudiiGameWrapper {
   /**
    * Constructor; calls the LudiiGameWrapper Java constructor
    *
-   * @param jenv Our JNI environment
    * @param lud_path String describing the path of the game to load. Should end
    * in .lud
    */
-  LudiiGameWrapper(JNIEnv* jenv, const std::string lud_path);
+  LudiiGameWrapper(const std::string lud_path);
 
   /**
    * Constructor; calls the LudiiGameWrapper Java constructor
    *
-   * @param jenv Our JNI environment
    * @param lud_path String describing the path of the game to load. Should end
    * in .lud
    * @param game_options Vector of additiona options to pass into Ludii,
    * describing variant of game to load.
    */
-  LudiiGameWrapper(JNIEnv* jenv,
-                   const std::string lud_path,
+  LudiiGameWrapper(const std::string lud_path,
                    const std::vector<std::string> game_options);
 
   /**

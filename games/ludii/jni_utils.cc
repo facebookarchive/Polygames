@@ -30,17 +30,24 @@ SOFTWARE.
 namespace Ludii {
 
 JavaVM* JNIUtils::jvm = nullptr;
-JNIEnv* JNIUtils::env = nullptr;
 jint JNIUtils::res = 0;
 
 JNIEnv* JNIUtils::GetEnv() {
+  if (jvm == nullptr)
+    return nullptr;
+
+  JavaVMAttachArgs args = {JNI_VERSION_1_2, 0, 0};
+  JNIEnv* env;
+  jvm->AttachCurrentThread((void**)&env, &args);
+
   return env;
 }
 
 void JNIUtils::InitJVM(std::string jar_location) {
-  if (env != nullptr)
+  if (jvm != nullptr)
     return;  // We've already initialised the JVM
 
+  JNIEnv* env = nullptr;
   std::cout << "intializing JVM" << std::endl;
   if (jar_location.empty())
     jar_location = "ludii/Ludii.jar";
@@ -120,13 +127,16 @@ void JNIUtils::InitJVM(std::string jar_location) {
 }
 
 void JNIUtils::CloseJVM() {
-  env->DeleteGlobalRef(ludiiStateWrapperClass);
-  env->DeleteGlobalRef(ludiiGameWrapperClass);
-  jvm->DestroyJavaVM();
+  JNIEnv* env = JNIUtils::GetEnv();
 
-  jvm = nullptr;
-  env = nullptr;
-  res = 0;
+  if (env != nullptr) {
+    env->DeleteGlobalRef(ludiiStateWrapperClass);
+    env->DeleteGlobalRef(ludiiGameWrapperClass);
+    jvm->DestroyJavaVM();
+
+    jvm = nullptr;
+    res = 0;
+  }
 }
 
 // These will be assigned proper values by InitJVM() call
@@ -143,6 +153,7 @@ jclass JNIUtils::LudiiStateWrapperClass() {
 }
 
 const std::string JNIUtils::LudiiVersion() {
+  JNIEnv* env = JNIUtils::GetEnv();
   jstring jstr = (jstring)(
       env->CallStaticObjectMethod(ludiiGameWrapperClass, ludiiVersionMethodID));
   CHECK_JNI_EXCEPTION(env);

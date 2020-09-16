@@ -24,26 +24,6 @@ Action::Action(int i, int j, int k) {
 }
 
 void LudiiStateWrapper::Initialize() {
-
-  // In case we're calling this from a new thread, make sure that we're attached
-  // to JVM (following few lines based on:
-  // https://stackoverflow.com/a/12901159/6735980)
-  JavaVM* jvm;
-  jenv->GetJavaVM(&jvm);
-  int jenvStatus = jvm->GetEnv((void**)&jenv, JNI_VERSION_1_6);
-
-  if (jenvStatus == JNI_EDETACHED) {
-    //		std::cout << "Was not yet attached" << std::endl;
-    if (jvm->AttachCurrentThread((void**)&jenv, NULL) != 0) {
-      std::cout << "Failed to attach" << std::endl;
-    } else if (jenvStatus == JNI_EVERSION) {
-      std::cout << "JVM GetEnv: version not supported" << std::endl;
-    }
-    //		else {
-    //			std::cout << "Should be attached fine now" << std::endl;
-    //		}
-  }
-
   // Now do the normal initialisation
   Reset();
 
@@ -144,10 +124,9 @@ void LudiiStateWrapper::DoGoodAction() {
 // javap -s <ClassName.class>
 
 LudiiStateWrapper::LudiiStateWrapper(int seed,
-                                     JNIEnv* jenv,
                                      LudiiGameWrapper&& inLudiiGameWrapper)
     : ::State(seed)
-    , jenv(jenv) {
+    , jenv(JNIUtils::GetEnv()) {
 
   ludiiGameWrapper =
       std::make_shared<LudiiGameWrapper>(std::move(inLudiiGameWrapper));
@@ -192,7 +171,7 @@ LudiiStateWrapper::LudiiStateWrapper(int seed,
 
 LudiiStateWrapper::LudiiStateWrapper(const LudiiStateWrapper& other)
     : ::State(other)
-    , jenv(other.jenv)
+    , jenv(JNIUtils::GetEnv())
     , ludiiGameWrapper(other.ludiiGameWrapper) {
 
   jclass ludiiStateWrapperClass = JNIUtils::LudiiStateWrapperClass();

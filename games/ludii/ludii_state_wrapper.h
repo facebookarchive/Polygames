@@ -48,9 +48,7 @@ class LudiiStateWrapper : public ::State {
   /**
    * Constructor; calls the LudiiStateWrapper Java constructor
    */
-  LudiiStateWrapper(int seed,
-                    JNIEnv* jenv,
-                    LudiiGameWrapper&& inLudiiGameWrapper);
+  LudiiStateWrapper(int seed, LudiiGameWrapper&& inLudiiGameWrapper);
 
   /**
    * Copy constructor; calls the Java copy constructor for LudiiStateWrapper

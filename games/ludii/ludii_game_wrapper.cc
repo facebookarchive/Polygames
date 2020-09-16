@@ -24,8 +24,8 @@ std::string LudiiGameWrapper::last_ludii_game_name = "";
 //
 // javap -s <ClassName.class>
 
-LudiiGameWrapper::LudiiGameWrapper(JNIEnv* jenv, const std::string lud_path)
-    : jenv(jenv) {
+LudiiGameWrapper::LudiiGameWrapper(const std::string lud_path)
+    : jenv(JNIUtils::GetEnv()) {
   jclass ludiiGameWrapperClass = JNIUtils::LudiiGameWrapperClass();
 
   // Find the LudiiGameWrapper Java constructor
@@ -66,10 +66,9 @@ LudiiGameWrapper::LudiiGameWrapper(JNIEnv* jenv, const std::string lud_path)
   last_ludii_game_name = lud_path;
 }
 
-LudiiGameWrapper::LudiiGameWrapper(JNIEnv* jenv,
-                                   const std::string lud_path,
+LudiiGameWrapper::LudiiGameWrapper(const std::string lud_path,
                                    const std::vector<std::string> game_options)
-    : jenv(jenv) {
+    : jenv(JNIUtils::GetEnv()) {
 
   jclass ludiiGameWrapperClass = JNIUtils::LudiiGameWrapperClass();
 
@@ -124,7 +123,7 @@ LudiiGameWrapper::LudiiGameWrapper(JNIEnv* jenv,
 }
 
 LudiiGameWrapper::LudiiGameWrapper(LudiiGameWrapper const& other)
-    : jenv(other.jenv) {
+    : jenv(JNIUtils::GetEnv()) {
 
   // We can just copy the pointer to the same Java Game object
   ludiiGameWrapperJavaObject =
@@ -138,7 +137,7 @@ LudiiGameWrapper::LudiiGameWrapper(LudiiGameWrapper const& other)
 }
 
 LudiiGameWrapper& LudiiGameWrapper::operator=(LudiiGameWrapper const& other) {
-  jenv = other.jenv;
+  jenv = JNIUtils::GetEnv();
 
   // We can just copy the pointer to the same Java Game object
   ludiiGameWrapperJavaObject =
