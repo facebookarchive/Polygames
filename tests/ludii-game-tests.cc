@@ -66,7 +66,7 @@ TEST(LudiiGameGroup, jni_init_1) {
 TEST(LudiiGameGroup, game_init_1) {
     if (JNI_ENV) {
         ASSERT_TRUE(JNI_ENV != 0);
-        Ludii::LudiiGameWrapper game(JNI_ENV, "/lud/board/space/line/Connect6.lud");
+        Ludii::LudiiGameWrapper game("/lud/board/space/line/Connect6.lud");
     }
 }
 
