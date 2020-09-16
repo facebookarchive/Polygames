@@ -53,20 +53,41 @@ void JNIUtils::InitJVM(std::string jar_location) {
     // Can't find the Ludii.jar file
     return;
   }
+  
+//#define CHECK_JNI  // Uncomment this to run extra checks for JNI
 
 #ifdef JNI_VERSION_1_2
   JavaVMInitArgs vm_args;
-  JavaVMOption options[1];
+  
+#ifdef CHECK_JNI
+  const size_t num_jvm_args = 2;
+#else
+  const size_t num_jvm_args = 1;
+#endif
+  
+  JavaVMOption options[num_jvm_args];
   std::string java_classpath = "-Djava.class.path=" + jar_location;
   char* c_classpath = strdup(java_classpath.c_str());
   options[0].optionString = c_classpath;
+  
+#ifdef CHECK_JNI
+  std::string checK_jni = "-Xcheck:jni";
+  char* c_check_jni = strdup(check_jni.c_str());
+  options[1].optionString = c_check_jni;
+#endif
+  
   vm_args.version = 0x00010002;
   vm_args.options = options;
-  vm_args.nOptions = 1;
+  vm_args.nOptions = num_jvm_args;
   vm_args.ignoreUnrecognized = JNI_TRUE;
   /* Create the Java VM */
   res = JNI_CreateJavaVM(&jvm, (void**)&env, &vm_args);
   free(c_classpath);
+  
+#ifdef CHECK_JNI
+  free(c_check_jni);
+#endif
+  
 #else
   JDK1_1InitArgs vm_args;
   std::string classpath = vm_args.classpath + ";" + jar_location;
