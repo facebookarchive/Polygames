@@ -247,6 +247,7 @@ std::vector<std::array<int, 3>> LudiiStateWrapper::LegalMovesTensors() const {
 
     // Allow JVM to clean up memory now that we have our own ints
     jenv->ReleaseIntArrayElements(inner, jints, 0);
+    jenv->DeleteLocalRef(inner);
   }
 
   jenv->DeleteLocalRef(javaArrOuter);
@@ -323,6 +324,7 @@ std::vector<std::vector<std::vector<float>>> LudiiStateWrapper::ToTensor()
 
       // Allow JVM to clean up memory now that we have our own ints
       jenv->ReleaseFloatArrayElements(yArray, jfloats, 0);
+      jenv->DeleteLocalRef(yArray);
     }
 
     jenv->DeleteLocalRef(xArray);

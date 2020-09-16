@@ -176,6 +176,7 @@ const std::array<int, 3>& LudiiGameWrapper::StateTensorsShape() {
 
     // Allow JVM to clean up memory now that we have our own ints
     jenv->ReleaseIntArrayElements(jint_array, jints, 0);
+    jenv->DeleteLocalRef(jint_array);
   }
 
   return *stateTensorsShape;
@@ -196,6 +197,7 @@ const std::array<int, 3>& LudiiGameWrapper::MoveTensorsShape() {
 
     // Allow JVM to clean up memory now that we have our own ints
     jenv->ReleaseIntArrayElements(jint_array, jints, 0);
+    jenv->DeleteLocalRef(jint_array);
   }
 
   return *moveTensorsShape;
