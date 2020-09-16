@@ -242,7 +242,7 @@ to look into this) if the strategy is identical to knuth’s.
               std::move(Ludii::LudiiGameWrapper::last_ludii_game_wrapper));
         } else {
           // We need to instantiate a new Java object
-          Ludii::LudiiGameWrapper game_wrapper(jni_env, ludii_name);
+          Ludii::LudiiGameWrapper game_wrapper(ludii_name);
           state_ = std::make_unique<Ludii::LudiiStateWrapper>(
               seed, std::move(game_wrapper));
         }
