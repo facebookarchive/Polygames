@@ -36,7 +36,7 @@ SOFTWARE.
 #define CHECK_JNI_EXCEPTION(jenv)                                              \
   if (jenv->ExceptionCheck()) {                                                \
     jenv->ExceptionDescribe();                                                 \
-    jni->ExceptionClear();                                                     \
+    jenv->ExceptionClear();                                                    \
   }
 
 namespace Ludii {
