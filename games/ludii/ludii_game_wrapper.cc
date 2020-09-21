@@ -219,8 +219,10 @@ const std::array<int, 3>& LudiiGameWrapper::MoveTensorsShape() {
 }
 
 const int LudiiGameWrapper::NumPlayers() {
-  const int numPlayers =
-      (int)jenv->CallIntMethod(ludiiGameWrapperJavaObject, numPlayersMethodID);
+  // Using JNIUtils::GetEnv() here because this method can get called by wrong
+  // thread
+  const int numPlayers = (int)JNIUtils::GetEnv()->CallIntMethod(
+      ludiiGameWrapperJavaObject, numPlayersMethodID);
   CHECK_JNI_EXCEPTION(jenv);
   return numPlayers;
 }
