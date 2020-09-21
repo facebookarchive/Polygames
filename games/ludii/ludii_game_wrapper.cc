@@ -223,7 +223,7 @@ const int LudiiGameWrapper::NumPlayers() {
   // thread
   const int numPlayers = (int)JNIUtils::GetEnv()->CallIntMethod(
       ludiiGameWrapperJavaObject, numPlayersMethodID);
-  CHECK_JNI_EXCEPTION(jenv);
+  CHECK_JNI_EXCEPTION(JNIUtils::GetEnv());
   return numPlayers;
 }
 
