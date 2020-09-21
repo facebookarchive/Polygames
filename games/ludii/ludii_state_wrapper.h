@@ -113,6 +113,8 @@ class LudiiStateWrapper : public ::State {
    */
   std::vector<std::vector<std::vector<float>>> ToTensor() const;
 
+  virtual bool isOnePlayerGame() const override;
+
  private:
   void findFeatures();
   void findActions();

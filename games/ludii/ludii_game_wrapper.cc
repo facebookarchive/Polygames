@@ -59,6 +59,11 @@ LudiiGameWrapper::LudiiGameWrapper(const std::string lud_path)
                         "()[Ljava/lang/String;");
   CHECK_JNI_EXCEPTION(jenv);
 
+  // Find the method ID for the numPlayers() method in Java
+  numPlayersMethodID =
+      jenv->GetMethodID(ludiiGameWrapperClass, "numPlayers", "()I");
+  CHECK_JNI_EXCEPTION(jenv);
+
   // Clean up memory
   jenv->DeleteLocalRef(java_lud_path);
   CHECK_JNI_EXCEPTION(jenv);
@@ -118,6 +123,11 @@ LudiiGameWrapper::LudiiGameWrapper(const std::string lud_path,
                         "()[Ljava/lang/String;");
   CHECK_JNI_EXCEPTION(jenv);
 
+  // Find the method ID for the numPlayers() method in Java
+  numPlayersMethodID =
+      jenv->GetMethodID(ludiiGameWrapperClass, "numPlayers", "()I");
+  CHECK_JNI_EXCEPTION(jenv);
+
   // Clean up memory
   jenv->DeleteLocalRef(java_lud_path);
   jenv->DeleteLocalRef(java_game_options);  // TODO see if we also need to clean
@@ -138,6 +148,7 @@ LudiiGameWrapper::LudiiGameWrapper(LudiiGameWrapper const& other)
   stateTensorsShapeMethodID = other.stateTensorsShapeMethodID;
   moveTensorsShapeMethodID = other.moveTensorsShapeMethodID;
   stateTensorChannelNamesMethodID = other.stateTensorChannelNamesMethodID;
+  numPlayersMethodID = other.numPlayersMethodID;
 }
 
 LudiiGameWrapper& LudiiGameWrapper::operator=(LudiiGameWrapper const& other) {
@@ -152,6 +163,7 @@ LudiiGameWrapper& LudiiGameWrapper::operator=(LudiiGameWrapper const& other) {
   stateTensorsShapeMethodID = other.stateTensorsShapeMethodID;
   moveTensorsShapeMethodID = other.moveTensorsShapeMethodID;
   stateTensorChannelNamesMethodID = other.stateTensorChannelNamesMethodID;
+  numPlayersMethodID = other.numPlayersMethodID;
 
   return *this;
 }
@@ -204,6 +216,13 @@ const std::array<int, 3>& LudiiGameWrapper::MoveTensorsShape() {
   }
 
   return *moveTensorsShape;
+}
+
+const int LudiiGameWrapper::NumPlayers() {
+  const int numPlayers =
+      (int)jenv->CallIntMethod(ludiiGameWrapperJavaObject, numPlayersMethodID);
+  CHECK_JNI_EXCEPTION(jenv);
+  return numPlayers;
 }
 
 const std::vector<std::string> LudiiGameWrapper::stateTensorChannelNames() {
