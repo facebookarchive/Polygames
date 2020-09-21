@@ -321,7 +321,7 @@ std::vector<std::vector<std::vector<float>>> LudiiStateWrapper::ToTensor()
   return tensor;
 }
 
-bool LudiiStateWrapper::isOnePlayerGame() const override {
+bool LudiiStateWrapper::isOnePlayerGame() const {
   return (ludiiGameWrapper.NumPlayers() == 1);
 }
 
