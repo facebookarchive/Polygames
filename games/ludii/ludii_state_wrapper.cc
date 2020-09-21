@@ -322,7 +322,7 @@ std::vector<std::vector<std::vector<float>>> LudiiStateWrapper::ToTensor()
 }
 
 bool LudiiStateWrapper::isOnePlayerGame() const {
-  return (ludiiGameWrapper.NumPlayers() == 1);
+  return (ludiiGameWrapper->NumPlayers() == 1);
 }
 
 }  // namespace Ludii
