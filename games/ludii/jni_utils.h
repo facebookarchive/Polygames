@@ -35,6 +35,7 @@ SOFTWARE.
 // we don't handle them other than printing them anyway?
 #define CHECK_JNI_EXCEPTION(jenv)                                              \
   if (jenv->ExceptionCheck()) {                                                \
+    printf("Java Exception at line %d of %s\n", __LINE__, __FILE__);           \
     jenv->ExceptionDescribe();                                                 \
     jenv->ExceptionClear();                                                    \
   }
