@@ -98,3 +98,7 @@ bool Board::isTerminated() const {
             return false;
     return true;
 }
+
+int Board::getScore() const {
+	return _score;
+}

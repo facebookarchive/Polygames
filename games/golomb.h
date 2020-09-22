@@ -29,7 +29,7 @@ class Board {
         void print() const;
         void printAll() const;
         bool isTerminated() const;
-
+	int getScore() const;
 };
 
 }

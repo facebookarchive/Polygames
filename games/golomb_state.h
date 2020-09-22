@@ -6,7 +6,7 @@
 namespace Golomb {
     class Action : public ::_Action {
         public:
-            Action(int i, int j, int indexInActions, int nj);
+            Action(int i, int indexInActions, int nj);
     };
 
     class State : public ::State{
