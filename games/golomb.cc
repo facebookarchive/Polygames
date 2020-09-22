@@ -64,6 +64,9 @@ void Board::updateInternalState(int number) {
                         _legalMoves[i-j] = 0;
                     if (j-i >= 0)
                         _legalMoves[j-i] = 0;
+		    if (not ((i+j) % 2)) {
+                        _legalMoves[(i+j)/2] = 0;
+
                 }
             }
         }
