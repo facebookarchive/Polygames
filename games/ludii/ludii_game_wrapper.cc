@@ -32,16 +32,16 @@ LudiiGameWrapper::LudiiGameWrapper(const std::string lud_path) {
   // Find the LudiiGameWrapper Java constructor
   jmethodID ludiiGameWrapperConstructor = jenv->GetMethodID(
       ludiiGameWrapperClass, "<init>", "(Ljava/lang/String;)V");
-  CHECK_JNI_EXCEPTION(jenv);
+  JNIUtils::CheckJniException(jenv);
 
   // Convert our lud path into a Java string
   jstring java_lud_path = jenv->NewStringUTF(lud_path.c_str());
-  CHECK_JNI_EXCEPTION(jenv);
+  JNIUtils::CheckJniException(jenv);
 
   // Call our Java constructor to instantiate new object
   jobject local_ref = jenv->NewObject(
       ludiiGameWrapperClass, ludiiGameWrapperConstructor, java_lud_path);
-  CHECK_JNI_EXCEPTION(jenv);
+  JNIUtils::CheckJniException(jenv);
   ludiiGameWrapperJavaObject = jenv->NewGlobalRef(local_ref);
   jenv->DeleteLocalRef(local_ref);
 
@@ -49,20 +49,20 @@ LudiiGameWrapper::LudiiGameWrapper(const std::string lud_path) {
   // calling frequently
   stateTensorsShapeMethodID =
       jenv->GetMethodID(ludiiGameWrapperClass, "stateTensorsShape", "()[I");
-  CHECK_JNI_EXCEPTION(jenv);
+  JNIUtils::CheckJniException(jenv);
   moveTensorsShapeMethodID =
       jenv->GetMethodID(ludiiGameWrapperClass, "moveTensorsShape", "()[I");
-  CHECK_JNI_EXCEPTION(jenv);
+  JNIUtils::CheckJniException(jenv);
 
   // Find the method ID for the stateTensorChannelNames() method in Java
   stateTensorChannelNamesMethodID =
       jenv->GetMethodID(ludiiGameWrapperClass, "stateTensorChannelNames",
                         "()[Ljava/lang/String;");
-  CHECK_JNI_EXCEPTION(jenv);
+  JNIUtils::CheckJniException(jenv);
 
   // Clean up memory
   jenv->DeleteLocalRef(java_lud_path);
-  CHECK_JNI_EXCEPTION(jenv);
+  JNIUtils::CheckJniException(jenv);
 
   // Cache recycleable LudiiGameWrapper object
   last_ludii_game_wrapper = *this;
@@ -80,27 +80,27 @@ LudiiGameWrapper::LudiiGameWrapper(
   jmethodID ludiiGameWrapperConstructor =
       jenv->GetMethodID(ludiiGameWrapperClass, "<init>",
                         "(Ljava/lang/String;[Ljava/lang/String;)V");
-  CHECK_JNI_EXCEPTION(jenv);
+  JNIUtils::CheckJniException(jenv);
 
   // Convert our lud path into a Java string
   jstring java_lud_path = jenv->NewStringUTF(lud_path.c_str());
-  CHECK_JNI_EXCEPTION(jenv);
+  JNIUtils::CheckJniException(jenv);
 
   // Convert vector of game options into array of Java strings
   const jobjectArray java_game_options = (jobjectArray)jenv->NewObjectArray(
       game_options.size(), jenv->FindClass("java/lang/String"), nullptr);
-  CHECK_JNI_EXCEPTION(jenv);
+  JNIUtils::CheckJniException(jenv);
   for (size_t i = 0; i < game_options.size(); ++i) {
     jenv->SetObjectArrayElement(
         java_game_options, i, jenv->NewStringUTF(game_options[i].c_str()));
-    CHECK_JNI_EXCEPTION(jenv);
+    JNIUtils::CheckJniException(jenv);
   }
 
   // Call our Java constructor to instantiate new object
   jobject local_ref =
       jenv->NewObject(ludiiGameWrapperClass, ludiiGameWrapperConstructor,
                       java_lud_path, java_game_options);
-  CHECK_JNI_EXCEPTION(jenv);
+  JNIUtils::CheckJniException(jenv);
   ludiiGameWrapperJavaObject = jenv->NewGlobalRef(local_ref);
   jenv->DeleteLocalRef(local_ref);
 
@@ -108,16 +108,16 @@ LudiiGameWrapper::LudiiGameWrapper(
   // calling frequently
   stateTensorsShapeMethodID =
       jenv->GetMethodID(ludiiGameWrapperClass, "stateTensorsShape", "()[I");
-  CHECK_JNI_EXCEPTION(jenv);
+  JNIUtils::CheckJniException(jenv);
   moveTensorsShapeMethodID =
       jenv->GetMethodID(ludiiGameWrapperClass, "moveTensorsShape", "()[I");
-  CHECK_JNI_EXCEPTION(jenv);
+  JNIUtils::CheckJniException(jenv);
 
   // Find the method ID for the stateTensorChannelNames() method in Java
   stateTensorChannelNamesMethodID =
       jenv->GetMethodID(ludiiGameWrapperClass, "stateTensorChannelNames",
                         "()[Ljava/lang/String;");
-  CHECK_JNI_EXCEPTION(jenv);
+  JNIUtils::CheckJniException(jenv);
 
   // Clean up memory
   jenv->DeleteLocalRef(java_lud_path);
@@ -134,7 +134,7 @@ LudiiGameWrapper::LudiiGameWrapper(LudiiGameWrapper const& other) {
   // We can just copy the pointer to the same Java Game object
   ludiiGameWrapperJavaObject =
       jenv->NewGlobalRef(other.ludiiGameWrapperJavaObject);
-  CHECK_JNI_EXCEPTION(jenv);
+  JNIUtils::CheckJniException(jenv);
 
   // We can just copy all the pointers to methods
   stateTensorsShapeMethodID = other.stateTensorsShapeMethodID;
@@ -148,7 +148,7 @@ LudiiGameWrapper& LudiiGameWrapper::operator=(LudiiGameWrapper const& other) {
   // We can just copy the pointer to the same Java Game object
   ludiiGameWrapperJavaObject =
       jenv->NewGlobalRef(other.ludiiGameWrapperJavaObject);
-  CHECK_JNI_EXCEPTION(jenv);
+  JNIUtils::CheckJniException(jenv);
 
   // We can just copy all the pointers to methods
   stateTensorsShapeMethodID = other.stateTensorsShapeMethodID;
@@ -172,9 +172,9 @@ const std::array<int, 3>& LudiiGameWrapper::StateTensorsShape() {
     // Get our array of Java ints
     const jintArray jint_array = static_cast<jintArray>(jenv->CallObjectMethod(
         ludiiGameWrapperJavaObject, stateTensorsShapeMethodID));
-    CHECK_JNI_EXCEPTION(jenv);
+    JNIUtils::CheckJniException(jenv);
     jint* jints = jenv->GetIntArrayElements(jint_array, nullptr);
-    CHECK_JNI_EXCEPTION(jenv);
+    JNIUtils::CheckJniException(jenv);
 
     // Create our C++ array of 3 ints
     stateTensorsShape = std::make_unique<std::array<int, 3>>(
@@ -195,9 +195,9 @@ const std::array<int, 3>& LudiiGameWrapper::MoveTensorsShape() {
     // Get our array of Java ints
     const jintArray jint_array = static_cast<jintArray>(jenv->CallObjectMethod(
         ludiiGameWrapperJavaObject, moveTensorsShapeMethodID));
-    CHECK_JNI_EXCEPTION(jenv);
+    JNIUtils::CheckJniException(jenv);
     jint* jints = jenv->GetIntArrayElements(jint_array, nullptr);
-    CHECK_JNI_EXCEPTION(jenv);
+    JNIUtils::CheckJniException(jenv);
 
     // Create our C++ array of 3 ints
     moveTensorsShape = std::make_unique<std::array<int, 3>>(
@@ -218,19 +218,19 @@ const std::vector<std::string> LudiiGameWrapper::stateTensorChannelNames() {
   const jobjectArray java_arr =
       static_cast<jobjectArray>(jenv->CallObjectMethod(
           ludiiGameWrapperJavaObject, stateTensorChannelNamesMethodID));
-  CHECK_JNI_EXCEPTION(jenv);
+  JNIUtils::CheckJniException(jenv);
   const int len = jenv->GetArrayLength(java_arr);
-  CHECK_JNI_EXCEPTION(jenv);
+  JNIUtils::CheckJniException(jenv);
 
   for (int i = 0; i < len; ++i) {
     jstring jstr = (jstring)(jenv->GetObjectArrayElement(java_arr, i));
-    CHECK_JNI_EXCEPTION(jenv);
+    JNIUtils::CheckJniException(jenv);
 
     // Convert Java string to C++ string
     const jsize jstr_len = jenv->GetStringUTFLength(jstr);
-    CHECK_JNI_EXCEPTION(jenv);
+    JNIUtils::CheckJniException(jenv);
     const char* chars = jenv->GetStringUTFChars(jstr, (jboolean*)0);
-    CHECK_JNI_EXCEPTION(jenv);
+    JNIUtils::CheckJniException(jenv);
     std::string str(chars, jstr_len);
 
     channelNames.push_back(str);

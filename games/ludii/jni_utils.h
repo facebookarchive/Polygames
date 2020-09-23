@@ -27,17 +27,8 @@ SOFTWARE.
 
 #include <cstring>
 #include <string>
-
+#include <stdexcept>
 #include <jni.h>  // NOLINT
-
-// TODO maybe we should optimise these checks out when
-// we're doing serious training runs/evaluations, since
-// we don't handle them other than printing them anyway?
-#define CHECK_JNI_EXCEPTION(jenv)                                              \
-  if (jenv->ExceptionCheck()) {                                                \
-    jenv->ExceptionDescribe();                                                 \
-    jenv->ExceptionClear();                                                    \
-  }
 
 namespace Ludii {
 
@@ -47,6 +38,14 @@ class JNIUtils {
 
   static void InitJVM(std::string jar_location);
   static void CloseJVM();
+  
+  static void CheckJniException(JNIEnv* jenv) {
+    if (jenv->ExceptionCheck()) {
+	  jenv->ExceptionDescribe();
+	  jenv->ExceptionClear();
+	  throw std::runtime_error("Java exception thrown!");
+	}
+  }
 
   static jclass LudiiGameWrapperClass();
   static jclass LudiiStateWrapperClass();
