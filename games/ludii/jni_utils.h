@@ -60,7 +60,7 @@ class JNIUtils {
  private:
   static JavaVM* jvm;
   static jint res;
-  
+
   thread_local static JNIEnv* env;
 
   /** Our LudiiGameWrapper class in Java */

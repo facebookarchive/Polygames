@@ -25,7 +25,7 @@ std::string LudiiGameWrapper::last_ludii_game_name = "";
 // javap -s <ClassName.class>
 
 LudiiGameWrapper::LudiiGameWrapper(const std::string lud_path) {
-	
+
   JNIEnv* jenv = JNIUtils::GetEnv();
   jclass ludiiGameWrapperClass = JNIUtils::LudiiGameWrapperClass();
 
@@ -69,8 +69,8 @@ LudiiGameWrapper::LudiiGameWrapper(const std::string lud_path) {
   last_ludii_game_name = lud_path;
 }
 
-LudiiGameWrapper::LudiiGameWrapper(const std::string lud_path,
-                                   const std::vector<std::string> game_options)  {
+LudiiGameWrapper::LudiiGameWrapper(
+    const std::string lud_path, const std::vector<std::string> game_options) {
 
   JNIEnv* jenv = JNIUtils::GetEnv();
   jclass ludiiGameWrapperClass = JNIUtils::LudiiGameWrapperClass();
@@ -167,8 +167,8 @@ LudiiGameWrapper::~LudiiGameWrapper() {
 
 const std::array<int, 3>& LudiiGameWrapper::StateTensorsShape() {
   if (not stateTensorsShape) {
-	JNIEnv* jenv = JNIUtils::GetEnv();
-	  
+    JNIEnv* jenv = JNIUtils::GetEnv();
+
     // Get our array of Java ints
     const jintArray jint_array = static_cast<jintArray>(jenv->CallObjectMethod(
         ludiiGameWrapperJavaObject, stateTensorsShapeMethodID));
@@ -190,8 +190,8 @@ const std::array<int, 3>& LudiiGameWrapper::StateTensorsShape() {
 
 const std::array<int, 3>& LudiiGameWrapper::MoveTensorsShape() {
   if (not moveTensorsShape) {
-	JNIEnv* jenv = JNIUtils::GetEnv();
-	  
+    JNIEnv* jenv = JNIUtils::GetEnv();
+
     // Get our array of Java ints
     const jintArray jint_array = static_cast<jintArray>(jenv->CallObjectMethod(
         ludiiGameWrapperJavaObject, moveTensorsShapeMethodID));
