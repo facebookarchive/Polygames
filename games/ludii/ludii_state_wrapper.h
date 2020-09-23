@@ -122,10 +122,6 @@ class LudiiStateWrapper : public ::State {
   // operator)
   LudiiStateWrapper& operator=(LudiiStateWrapper const&) = delete;
 
-  /** Pointer to the JNI environment, allows for communication with Ludii's Java
-   * code */
-  JNIEnv* jenv;
-
   /** Pointer to our Game wrapper */
   std::shared_ptr<LudiiGameWrapper> ludiiGameWrapper;
 

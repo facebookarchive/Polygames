@@ -24,8 +24,9 @@ std::string LudiiGameWrapper::last_ludii_game_name = "";
 //
 // javap -s <ClassName.class>
 
-LudiiGameWrapper::LudiiGameWrapper(const std::string lud_path)
-    : jenv(JNIUtils::GetEnv()) {
+LudiiGameWrapper::LudiiGameWrapper(const std::string lud_path) {
+	
+  JNIEnv* jenv = JNIUtils::GetEnv();
   jclass ludiiGameWrapperClass = JNIUtils::LudiiGameWrapperClass();
 
   // Find the LudiiGameWrapper Java constructor
@@ -69,9 +70,9 @@ LudiiGameWrapper::LudiiGameWrapper(const std::string lud_path)
 }
 
 LudiiGameWrapper::LudiiGameWrapper(const std::string lud_path,
-                                   const std::vector<std::string> game_options)
-    : jenv(JNIUtils::GetEnv()) {
+                                   const std::vector<std::string> game_options)  {
 
+  JNIEnv* jenv = JNIUtils::GetEnv();
   jclass ludiiGameWrapperClass = JNIUtils::LudiiGameWrapperClass();
 
   // Find the LudiiGameWrapper Java constructor (with extra argument for
@@ -126,8 +127,9 @@ LudiiGameWrapper::LudiiGameWrapper(const std::string lud_path,
   // TODO also handle the Game object caching with options
 }
 
-LudiiGameWrapper::LudiiGameWrapper(LudiiGameWrapper const& other)
-    : jenv(JNIUtils::GetEnv()) {
+LudiiGameWrapper::LudiiGameWrapper(LudiiGameWrapper const& other) {
+
+  JNIEnv* jenv = JNIUtils::GetEnv();
 
   // We can just copy the pointer to the same Java Game object
   ludiiGameWrapperJavaObject =
@@ -141,7 +143,7 @@ LudiiGameWrapper::LudiiGameWrapper(LudiiGameWrapper const& other)
 }
 
 LudiiGameWrapper& LudiiGameWrapper::operator=(LudiiGameWrapper const& other) {
-  jenv = JNIUtils::GetEnv();
+  JNIEnv* jenv = JNIUtils::GetEnv();
 
   // We can just copy the pointer to the same Java Game object
   ludiiGameWrapperJavaObject =
@@ -157,15 +159,16 @@ LudiiGameWrapper& LudiiGameWrapper::operator=(LudiiGameWrapper const& other) {
 }
 
 LudiiGameWrapper::~LudiiGameWrapper() {
-  // Don't use jenv directly because it may have been deleted
-  JNIEnv* env = Ludii::JNIUtils::GetEnv();
-  if (env) {
+  JNIEnv* jenv = JNIUtils::GetEnv();
+  if (jenv) {
     jenv->DeleteGlobalRef(ludiiGameWrapperJavaObject);
   }
 }
 
 const std::array<int, 3>& LudiiGameWrapper::StateTensorsShape() {
   if (not stateTensorsShape) {
+	JNIEnv* jenv = JNIUtils::GetEnv();
+	  
     // Get our array of Java ints
     const jintArray jint_array = static_cast<jintArray>(jenv->CallObjectMethod(
         ludiiGameWrapperJavaObject, stateTensorsShapeMethodID));
@@ -187,6 +190,8 @@ const std::array<int, 3>& LudiiGameWrapper::StateTensorsShape() {
 
 const std::array<int, 3>& LudiiGameWrapper::MoveTensorsShape() {
   if (not moveTensorsShape) {
+	JNIEnv* jenv = JNIUtils::GetEnv();
+	  
     // Get our array of Java ints
     const jintArray jint_array = static_cast<jintArray>(jenv->CallObjectMethod(
         ludiiGameWrapperJavaObject, moveTensorsShapeMethodID));
@@ -207,6 +212,7 @@ const std::array<int, 3>& LudiiGameWrapper::MoveTensorsShape() {
 }
 
 const std::vector<std::string> LudiiGameWrapper::stateTensorChannelNames() {
+  JNIEnv* jenv = JNIUtils::GetEnv();
   std::vector<std::string> channelNames;
 
   const jobjectArray java_arr =

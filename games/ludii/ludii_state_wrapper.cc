@@ -24,10 +24,6 @@ Action::Action(int i, int j, int k) {
 }
 
 void LudiiStateWrapper::Initialize() {
-  // This is sometimes necessary to ensure correct JEnv for thread
-  jenv = JNIUtils::GetEnv();
-
-  // Now do the normal initialisation
   Reset();
 
   _hash = 0;  // TODO implement hash for stochastic games
@@ -128,9 +124,9 @@ void LudiiStateWrapper::DoGoodAction() {
 
 LudiiStateWrapper::LudiiStateWrapper(int seed,
                                      LudiiGameWrapper&& inLudiiGameWrapper)
-    : ::State(seed)
-    , jenv(JNIUtils::GetEnv()) {
+    : ::State(seed) {
 
+  JNIEnv* jenv = JNIUtils::GetEnv();
   ludiiGameWrapper =
       std::make_shared<LudiiGameWrapper>(std::move(inLudiiGameWrapper));
   jclass ludiiStateWrapperClass = JNIUtils::LudiiStateWrapperClass();
@@ -176,9 +172,9 @@ LudiiStateWrapper::LudiiStateWrapper(int seed,
 
 LudiiStateWrapper::LudiiStateWrapper(const LudiiStateWrapper& other)
     : ::State(other)
-    , jenv(JNIUtils::GetEnv())
     , ludiiGameWrapper(other.ludiiGameWrapper) {
 
+  JNIEnv* jenv = JNIUtils::GetEnv();
   jclass ludiiStateWrapperClass = JNIUtils::LudiiStateWrapperClass();
 
   // Find the LudiiStateWrapper Java copy constructor
@@ -206,14 +202,14 @@ LudiiStateWrapper::LudiiStateWrapper(const LudiiStateWrapper& other)
 }
 
 LudiiStateWrapper::~LudiiStateWrapper() {
-  // Don't use jenv directly because it may have been deleted
-  JNIEnv* env = Ludii::JNIUtils::GetEnv();
-  if (env) {
+  JNIEnv* jenv = JNIUtils::GetEnv();
+  if (jenv) {
     jenv->DeleteGlobalRef(ludiiStateWrapperJavaObject);
   }
 }
 
 std::vector<std::array<int, 3>> LudiiStateWrapper::LegalMovesTensors() const {
+  JNIEnv* jenv = JNIUtils::GetEnv();
   const jobjectArray javaArrOuter =
       static_cast<jobjectArray>(jenv->CallObjectMethod(
           ludiiStateWrapperJavaObject, legalMovesTensorsMethodID));
@@ -242,6 +238,7 @@ std::vector<std::array<int, 3>> LudiiStateWrapper::LegalMovesTensors() const {
 }
 
 int LudiiStateWrapper::NumLegalMoves() const {
+  JNIEnv* jenv = JNIUtils::GetEnv();
   const int num_legal_moves = (int)jenv->CallIntMethod(
       ludiiStateWrapperJavaObject, numLegalMovesMethodID);
   CHECK_JNI_EXCEPTION(jenv);
@@ -249,11 +246,13 @@ int LudiiStateWrapper::NumLegalMoves() const {
 }
 
 void LudiiStateWrapper::ApplyNthMove(const int n) const {
+  JNIEnv* jenv = JNIUtils::GetEnv();
   jenv->CallVoidMethod(ludiiStateWrapperJavaObject, applyNthMoveMethodID, n);
   CHECK_JNI_EXCEPTION(jenv);
 }
 
 double LudiiStateWrapper::Returns(const int player) const {
+  JNIEnv* jenv = JNIUtils::GetEnv();
   const double returns = (double)jenv->CallDoubleMethod(
       ludiiStateWrapperJavaObject, returnsMethodID, player);
   CHECK_JNI_EXCEPTION(jenv);
@@ -261,6 +260,7 @@ double LudiiStateWrapper::Returns(const int player) const {
 }
 
 bool LudiiStateWrapper::IsTerminal() const {
+  JNIEnv* jenv = JNIUtils::GetEnv();
   const bool is_terminal = (bool)jenv->CallBooleanMethod(
       ludiiStateWrapperJavaObject, isTerminalMethodID);
   CHECK_JNI_EXCEPTION(jenv);
@@ -268,6 +268,7 @@ bool LudiiStateWrapper::IsTerminal() const {
 }
 
 int LudiiStateWrapper::CurrentPlayer() const {
+  JNIEnv* jenv = JNIUtils::GetEnv();
   const int current_player = (int)jenv->CallIntMethod(
       ludiiStateWrapperJavaObject, currentPlayerMethodID);
   CHECK_JNI_EXCEPTION(jenv);
@@ -275,12 +276,14 @@ int LudiiStateWrapper::CurrentPlayer() const {
 }
 
 void LudiiStateWrapper::Reset() const {
+  JNIEnv* jenv = JNIUtils::GetEnv();
   jenv->CallVoidMethod(ludiiStateWrapperJavaObject, resetMethodID);
   CHECK_JNI_EXCEPTION(jenv);
 }
 
 std::vector<std::vector<std::vector<float>>> LudiiStateWrapper::ToTensor()
     const {
+  JNIEnv* jenv = JNIUtils::GetEnv();
   const jobjectArray channelsArray = static_cast<jobjectArray>(
       jenv->CallObjectMethod(ludiiStateWrapperJavaObject, toTensorMethodID));
   CHECK_JNI_EXCEPTION(jenv);

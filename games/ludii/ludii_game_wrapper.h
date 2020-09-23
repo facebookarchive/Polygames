@@ -97,8 +97,7 @@ class LudiiGameWrapper {
    * objects)
    */
   LudiiGameWrapper()
-      : jenv(nullptr)
-      , stateTensorsShapeMethodID(nullptr)
+      : stateTensorsShapeMethodID(nullptr)
       , moveTensorsShapeMethodID(nullptr)
       , stateTensorChannelNamesMethodID(nullptr)
       , stateTensorsShape(nullptr)
@@ -106,10 +105,6 @@ class LudiiGameWrapper {
   }
 
  private:
-  /** Pointer to the JNI environment, allows for communication with Ludii's Java
-   * code */
-  JNIEnv* jenv;
-
   /** Method ID for the stateTensorsShape() method in Java */
   jmethodID stateTensorsShapeMethodID;
 

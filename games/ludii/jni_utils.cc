@@ -32,13 +32,16 @@ namespace Ludii {
 JavaVM* JNIUtils::jvm = nullptr;
 jint JNIUtils::res = 0;
 
+thread_local JNIEnv* JNIUtils::env = nullptr;
+
 JNIEnv* JNIUtils::GetEnv() {
   if (jvm == nullptr)
     return nullptr;
 
-  JavaVMAttachArgs args = {JNI_VERSION_1_2, 0, 0};
-  JNIEnv* env;
-  jvm->AttachCurrentThread((void**)&env, &args);
+  if (env == nullptr) {
+    JavaVMAttachArgs args = {JNI_VERSION_1_2, 0, 0};
+    jvm->AttachCurrentThread((void**)&env, &args);
+  }
 
   return env;
 }
