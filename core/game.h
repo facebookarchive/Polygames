@@ -235,17 +235,9 @@ to look into this) if the strategy is identical to knuth’s.
       JNIEnv* jni_env = Ludii::JNIUtils::GetEnv();
 
       if (jni_env) {
-        if (ludii_name == Ludii::LudiiGameWrapper::last_ludii_game_name) {
-          // We can recycle previously-constructed Java object
-          state_ = std::make_unique<Ludii::LudiiStateWrapper>(
-              seed,
-              std::move(Ludii::LudiiGameWrapper::last_ludii_game_wrapper));
-        } else {
-          // We need to instantiate a new Java object
-          Ludii::LudiiGameWrapper game_wrapper(ludii_name);
-          state_ = std::make_unique<Ludii::LudiiStateWrapper>(
-              seed, std::move(game_wrapper));
-        }
+        Ludii::LudiiGameWrapper game_wrapper(ludii_name);
+        state_ = std::make_unique<Ludii::LudiiStateWrapper>(
+            seed, std::move(game_wrapper));
       } else {
         // Probably means we couldn't find the Ludii.jar file
         throw std::runtime_error(

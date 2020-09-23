@@ -85,25 +85,6 @@ class LudiiGameWrapper {
   /** Our object of Java's LudiiGameWrapper type */
   jobject ludiiGameWrapperJavaObject;
 
-  /** The last LudiiGameWrapper object we've instantiated */
-  static LudiiGameWrapper last_ludii_game_wrapper;
-
-  /** The Ludii game name of the last Ludii game we've instantiated */
-  static std::string last_ludii_game_name;
-
-  /**
-   * Zero-args constructor which initializes everything to invalid data
-   * (only used to initialize the static member for recycling LudiiGameWrapper
-   * objects)
-   */
-  LudiiGameWrapper()
-      : stateTensorsShapeMethodID(nullptr)
-      , moveTensorsShapeMethodID(nullptr)
-      , stateTensorChannelNamesMethodID(nullptr)
-      , stateTensorsShape(nullptr)
-      , moveTensorsShape(nullptr) {
-  }
-
  private:
   /** Method ID for the stateTensorsShape() method in Java */
   jmethodID stateTensorsShapeMethodID;

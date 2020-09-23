@@ -16,9 +16,6 @@
 
 namespace Ludii {
 
-LudiiGameWrapper LudiiGameWrapper::last_ludii_game_wrapper;
-std::string LudiiGameWrapper::last_ludii_game_name = "";
-
 // NOTE: String descriptions of signatures of Java methods can be found by
 // navigating to directory containing the .class files and using:
 //
@@ -63,10 +60,6 @@ LudiiGameWrapper::LudiiGameWrapper(const std::string lud_path) {
   // Clean up memory
   jenv->DeleteLocalRef(java_lud_path);
   JNIUtils::CheckJniException(jenv);
-
-  // Cache recycleable LudiiGameWrapper object
-  last_ludii_game_wrapper = *this;
-  last_ludii_game_name = lud_path;
 }
 
 LudiiGameWrapper::LudiiGameWrapper(
