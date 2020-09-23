@@ -26,9 +26,9 @@ SOFTWARE.
 #pragma once
 
 #include <cstring>
-#include <string>
-#include <stdexcept>
 #include <jni.h>  // NOLINT
+#include <stdexcept>
+#include <string>
 
 namespace Ludii {
 
@@ -38,13 +38,13 @@ class JNIUtils {
 
   static void InitJVM(std::string jar_location);
   static void CloseJVM();
-  
+
   static void CheckJniException(JNIEnv* jenv) {
     if (jenv->ExceptionCheck()) {
-	  jenv->ExceptionDescribe();
-	  jenv->ExceptionClear();
-	  throw std::runtime_error("Java exception thrown!");
-	}
+      jenv->ExceptionDescribe();
+      jenv->ExceptionClear();
+      throw std::runtime_error("Java exception thrown!");
+    }
   }
 
   static jclass LudiiGameWrapperClass();
