@@ -79,7 +79,7 @@ class LudiiGameWrapper {
   /**
    * @return The number of players in this game.
    */
-  const int NumPlayers();
+  int NumPlayers();
 
   /**
    * @return Vector with, for every channel in state tensors, a name describing

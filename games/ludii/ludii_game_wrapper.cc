@@ -60,7 +60,7 @@ LudiiGameWrapper::LudiiGameWrapper(const std::string lud_path) {
   // Find the method ID for the numPlayers() method in Java
   numPlayersMethodID =
       jenv->GetMethodID(ludiiGameWrapperClass, "numPlayers", "()I");
-  CHECK_JNI_EXCEPTION(jenv);
+  JNIUtils::CheckJniException(jenv);
 
   // Clean up memory
   jenv->DeleteLocalRef(java_lud_path);
@@ -120,7 +120,7 @@ LudiiGameWrapper::LudiiGameWrapper(
   // Find the method ID for the numPlayers() method in Java
   numPlayersMethodID =
       jenv->GetMethodID(ludiiGameWrapperClass, "numPlayers", "()I");
-  CHECK_JNI_EXCEPTION(jenv);
+  JNIUtils::CheckJniException(jenv);
 
   // Clean up memory
   jenv->DeleteLocalRef(java_lud_path);
@@ -216,12 +216,11 @@ const std::array<int, 3>& LudiiGameWrapper::MoveTensorsShape() {
   return *moveTensorsShape;
 }
 
-const int LudiiGameWrapper::NumPlayers() {
-  // Using JNIUtils::GetEnv() here because this method can get called by wrong
-  // thread
-  const int numPlayers = (int)JNIUtils::GetEnv()->CallIntMethod(
+int LudiiGameWrapper::NumPlayers() {
+  JNIEnv* jenv = JNIUtils::GetEnv();
+  const int numPlayers = (int)jenv->CallIntMethod(
       ludiiGameWrapperJavaObject, numPlayersMethodID);
-  CHECK_JNI_EXCEPTION(JNIUtils::GetEnv());
+  JNIUtils::CheckJniException(JNIUtils::GetEnv());
   return numPlayers;
 }
 
