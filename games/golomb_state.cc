@@ -37,7 +37,13 @@ void Golomb::State::findFeatures() {
 }
 
 void Golomb::State::findAction() {
-	// TODO
+	const auto moves = _board.legalMovesToVector();
+	_legalActions.clear();
+	_legalActions.reserve(moves.size());
+	for (unsigned k=0; k<moves.size(); k++) {
+		const Golomb::Board::Move & move = moves[k];
+		_legalActions.push_back(std::make_shared<Golomb::Action>(moves[k], k);
+	}
 }
 
 bool Golomb::State::isOnePlayerGame() const {
@@ -45,11 +51,36 @@ bool Golomb::State::isOnePlayerGame() const {
 }
 
 void Golomb::State::Initialize() {
-	// TODO
+	_board.reset();
+	_moves.clear();
+	_hash = 0;
+	_status = GameStatus::player0Turn;
+
+	// features
+	//TODO
+	_features = std::vector<float>(_featSize[0] * _featSize[1] * _featSize[2]);
+	findFeatures();
+	fillFullFeatures();
+	
+	// Actions
+	_actionSize = {1, 1, _board.legalMovesToVector()};
+	findActions();
 }
 
 void Golomb::State::ApplyAction(const _Action& action) {
-	// TODO
+	assert(not _board._board.isTerminated());
+	assert(not _legalActions.empty());
+	int z = action.getZ();
+	_board.applyAction(z);
+	if (_board.isTerminated()) {
+		_status = GameStatus::player0win;
+	} else {
+		_status = GameStatus::player0turn;
+	}
+	findFeatures();
+	fillFullFeatures();
+	findActions();
+	// TODO update hash
 }
 
 void Golomb::State::DoGoodAction() {
@@ -66,17 +97,40 @@ float Golomb::State::getReward(int player) const {
 }
 
 std::string Golomb::State::stateDescription() const {
-	// TODO
+	std::ostringsteam oss;
+	std::vector<int> solution = _board.getSolution();
+	for (unsigned i=0; i < solution.size(); i++)
+		if (solution[i])
+			oss << i << " ";
+	oss << std::endl;
+	oss << "score: " << _board.getScore() << std::endl;
+	return oss.str();
 }
 
 std::string Golomb::State::actionDescription(const _Action & action) const {
-	// TODO
+	return std::to_string(action.GetZ()) + " ";
 }
 
 std::string Golomb::State::actionDescription() {
-	// TODO
+	std::ostringstream oss;
+	for (const auto &a: _legalActions)
+		oss << actionDescription(*a);
+	oss << std::endl;
+	return oss.str();
 }
 
 int Golomb::State::parseAction(const std::string& str) {
-	// TODO
+	std::istringstream iss(str);
+	try {
+		std::string token;
+		if (not std::getline(iss, token)) throw -1;
+		int i = std::satoi(token);
+		for (unsigned k=0; k<_legalActions.size(); k++)
+			if (_legalActions[k] == i)
+				return k;
+	}
+	catch (...) {
+		std::cout << "failed to parse action" << std::endl;
+	}
+	return -1;
 }

@@ -5,15 +5,19 @@
 
 Board::Board(int max) :
     _max(max) {
-        _order=0;
-        _length = 0;
-        _solution.resize(_max, 0);
-        _distanceList.resize(_max, 0);
-        _legalMoves.resize(_max, 1);
-        _solution[0] = 1;
-        _legalMoves[0] = 0;
-        _score = 0;
+	    reset();
     }
+
+void Board::reset() {
+	_order=0;
+	_length = 0;
+	_solution.resize(_max, 0);
+	_distanceList.resize(_max, 0);
+	_legalMoves.resize(_max, 1);
+	_solution[0] = 1;
+	_legalMoves[0] = 0;
+	_score = 0;
+}
 
 void Board::print() const{
     std::cout << "Solution (" << _order << ", " << _length << ")\n";
@@ -101,4 +105,8 @@ bool Board::isTerminated() const {
 
 int Board::getScore() const {
 	return _score;
+}
+
+std::vector<int> Board::getSolution() const {
+	return _solution;
 }
