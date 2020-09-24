@@ -235,9 +235,9 @@ to look into this) if the strategy is identical to knuth’s.
       JNIEnv* jni_env = Ludii::JNIUtils::GetEnv();
 
       if (jni_env) {
-        Ludii::LudiiGameWrapper game_wrapper(jni_env, ludii_name);
+        Ludii::LudiiGameWrapper game_wrapper(ludii_name);
         state_ = std::make_unique<Ludii::LudiiStateWrapper>(
-            seed, jni_env, std::move(game_wrapper));
+            seed, std::move(game_wrapper));
       } else {
         // Probably means we couldn't find the Ludii.jar file
         throw std::runtime_error(

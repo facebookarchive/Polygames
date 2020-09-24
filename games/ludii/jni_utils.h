@@ -1,8 +1,8 @@
-// strongly inspired from https://gist.github.com/alexminnaar/90cf1ea3de45e79a1b14081d90d214b7
-// might need something like export LD_LIBRARY_PATH=/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/server/
-// maybe also install jvm
-
-
+// strongly inspired from
+// https://gist.github.com/alexminnaar/90cf1ea3de45e79a1b14081d90d214b7 might
+// need something like export
+// LD_LIBRARY_PATH=/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/server/ maybe
+// also install jvm
 
 /*
 Copyright (c) 2020 Alex Minnaar
@@ -26,31 +26,41 @@ SOFTWARE.
 #pragma once
 
 #include <cstring>
-#include <string>
-
 #include <jni.h>  // NOLINT
+#include <stdexcept>
+#include <string>
 
 namespace Ludii {
 
 class JNIUtils {
  public:
-  static JNIEnv *GetEnv();
+  static JNIEnv* GetEnv();
 
   static void InitJVM(std::string jar_location);
   static void CloseJVM();
+
+  static void CheckJniException(JNIEnv* jenv) {
+    if (jenv->ExceptionCheck()) {
+      jenv->ExceptionDescribe();
+      jenv->ExceptionClear();
+      throw std::runtime_error("Java exception thrown!");
+    }
+  }
 
   static jclass LudiiGameWrapperClass();
   static jclass LudiiStateWrapperClass();
 
   /**
-   * @return A string description of the version of Ludii that we're working with.
+   * @return A string description of the version of Ludii that we're working
+   * with.
    */
   static const std::string LudiiVersion();
 
  private:
-  static JavaVM *jvm;
-  static JNIEnv *env;
+  static JavaVM* jvm;
   static jint res;
+
+  thread_local static JNIEnv* env;
 
   /** Our LudiiGameWrapper class in Java */
   static jclass ludiiGameWrapperClass;
@@ -63,5 +73,3 @@ class JNIUtils {
 };
 
 }  // namespace Ludii
-
-

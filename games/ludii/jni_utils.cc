@@ -30,17 +30,27 @@ SOFTWARE.
 namespace Ludii {
 
 JavaVM* JNIUtils::jvm = nullptr;
-JNIEnv* JNIUtils::env = nullptr;
 jint JNIUtils::res = 0;
 
+thread_local JNIEnv* JNIUtils::env = nullptr;
+
 JNIEnv* JNIUtils::GetEnv() {
+  if (jvm == nullptr)
+    return nullptr;
+
+  if (env == nullptr) {
+    JavaVMAttachArgs args = {JNI_VERSION_1_2, 0, 0};
+    jvm->AttachCurrentThread((void**)&env, &args);
+  }
+
   return env;
 }
 
 void JNIUtils::InitJVM(std::string jar_location) {
-  if (env != nullptr)
+  if (jvm != nullptr)
     return;  // We've already initialised the JVM
 
+  JNIEnv* env = nullptr;
   std::cout << "intializing JVM" << std::endl;
   if (jar_location.empty())
     jar_location = "ludii/Ludii.jar";
@@ -54,55 +64,72 @@ void JNIUtils::InitJVM(std::string jar_location) {
     return;
   }
 
+  //#define CHECK_JNI  // Uncomment this to run extra checks for JNI
+
 #ifdef JNI_VERSION_1_2
   JavaVMInitArgs vm_args;
-  JavaVMOption options[1];
+
+#ifdef CHECK_JNI
+  const size_t num_jvm_args = 2;
+#else
+  const size_t num_jvm_args = 1;
+#endif
+
+  JavaVMOption options[num_jvm_args];
   std::string java_classpath = "-Djava.class.path=" + jar_location;
-  char* c_classpath = strdup(java_classpath.c_str());
-  options[0].optionString = c_classpath;
+  options[0].optionString = java_classpath.data();
+
+#ifdef CHECK_JNI
+  std::string check_jni = "-Xcheck:jni";
+  options[1].optionString = check_jni.data();
+#endif
+
   vm_args.version = 0x00010002;
   vm_args.options = options;
-  vm_args.nOptions = 1;
+  vm_args.nOptions = num_jvm_args;
   vm_args.ignoreUnrecognized = JNI_TRUE;
   /* Create the Java VM */
   res = JNI_CreateJavaVM(&jvm, (void**)&env, &vm_args);
-  free(c_classpath);
 #else
   JDK1_1InitArgs vm_args;
   std::string classpath = vm_args.classpath + ";" + jar_location;
-  char* c_classpath = strdup(java_classpath.c_str());
   vm_args.version = 0x00010001;
   JNI_GetDefaultJavaVMInitArgs(&vm_args);
   /* Append jar location to the default system class path */
-  vm_args.classpath = c_classpath;
+  vm_args.classpath = java_classpath.data();
   /* Create the Java VM */
   res = JNI_CreateJavaVM(&jvm, &env, &vm_args);
-  free(c_classpath);
 #endif /* JNI_VERSION_1_2 */
 
   // Find our LudiiGameWrapper Java class
   ludiiGameWrapperClass =
       (jclass)env->NewGlobalRef(env->FindClass("utils/LudiiGameWrapper"));
+  CheckJniException(env);
 
   // Find our LudiiStateWrapper Java class
   ludiiStateWrapperClass =
       (jclass)env->NewGlobalRef(env->FindClass("utils/LudiiStateWrapper"));
+  CheckJniException(env);
 
   // Find the method ID for the static method giving us the Ludii versio
   ludiiVersionMethodID = env->GetStaticMethodID(
       ludiiGameWrapperClass, "ludiiVersion", "()Ljava/lang/String;");
+  CheckJniException(env);
 
   std::cout << "Using Ludii version " << LudiiVersion() << std::endl;
 }
 
 void JNIUtils::CloseJVM() {
-  env->DeleteGlobalRef(ludiiStateWrapperClass);
-  env->DeleteGlobalRef(ludiiGameWrapperClass);
-  jvm->DestroyJavaVM();
+  JNIEnv* env = JNIUtils::GetEnv();
 
-  jvm = nullptr;
-  env = nullptr;
-  res = 0;
+  if (env != nullptr) {
+    env->DeleteGlobalRef(ludiiStateWrapperClass);
+    env->DeleteGlobalRef(ludiiGameWrapperClass);
+    jvm->DestroyJavaVM();
+
+    jvm = nullptr;
+    res = 0;
+  }
 }
 
 // These will be assigned proper values by InitJVM() call
@@ -119,11 +146,17 @@ jclass JNIUtils::LudiiStateWrapperClass() {
 }
 
 const std::string JNIUtils::LudiiVersion() {
+  JNIEnv* env = JNIUtils::GetEnv();
   jstring jstr = (jstring)(
       env->CallStaticObjectMethod(ludiiGameWrapperClass, ludiiVersionMethodID));
+  CheckJniException(env);
   const char* strReturn = env->GetStringUTFChars(jstr, (jboolean*)0);
+  CheckJniException(env);
   const std::string str = strReturn;
   env->ReleaseStringUTFChars(jstr, strReturn);
+  CheckJniException(env);
+  env->DeleteLocalRef(jstr);
+  CheckJniException(env);
   return str;
 }
 

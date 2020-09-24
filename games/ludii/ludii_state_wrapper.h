@@ -48,9 +48,7 @@ class LudiiStateWrapper : public ::State {
   /**
    * Constructor; calls the LudiiStateWrapper Java constructor
    */
-  LudiiStateWrapper(int seed,
-                    JNIEnv* jenv,
-                    LudiiGameWrapper&& inLudiiGameWrapper);
+  LudiiStateWrapper(int seed, LudiiGameWrapper&& inLudiiGameWrapper);
 
   /**
    * Copy constructor; calls the Java copy constructor for LudiiStateWrapper
@@ -123,10 +121,6 @@ class LudiiStateWrapper : public ::State {
   // (without having implemented our own, correct copy constructor or assignment
   // operator)
   LudiiStateWrapper& operator=(LudiiStateWrapper const&) = delete;
-
-  /** Pointer to the JNI environment, allows for communication with Ludii's Java
-   * code */
-  JNIEnv* jenv;
 
   /** Pointer to our Game wrapper */
   std::shared_ptr<LudiiGameWrapper> ludiiGameWrapper;

@@ -33,32 +33,31 @@ class LudiiGameWrapper {
   /**
    * Constructor; calls the LudiiGameWrapper Java constructor
    *
-   * @param jenv Our JNI environment
    * @param lud_path String describing the path of the game to load. Should end
    * in .lud
    */
-  LudiiGameWrapper(JNIEnv* jenv, const std::string lud_path);
+  LudiiGameWrapper(const std::string lud_path);
 
   /**
    * Constructor; calls the LudiiGameWrapper Java constructor
    *
-   * @param jenv Our JNI environment
    * @param lud_path String describing the path of the game to load. Should end
    * in .lud
    * @param game_options Vector of additiona options to pass into Ludii,
    * describing variant of game to load.
    */
-  LudiiGameWrapper(JNIEnv* jenv,
-                   const std::string lud_path,
+  LudiiGameWrapper(const std::string lud_path,
                    const std::vector<std::string> game_options);
 
   /**
-   * Copy constructor; calls the Java copy constructor for LudiiGameWrapper
-   *
-   * @param other The LudiiGameWrapper object of which we wish to create a deep
-   * copy
+   * Copy constructor. Re-uses the same Java LudiiGameWrapper object.
    */
   LudiiGameWrapper(LudiiGameWrapper const&);
+
+  /**
+   * Copy-assignment operator. Re-uses the same Java LudiiGameWrapper object.
+   */
+  LudiiGameWrapper& operator=(LudiiGameWrapper const& other);
 
   /**
    * Destructor
@@ -87,15 +86,6 @@ class LudiiGameWrapper {
   jobject ludiiGameWrapperJavaObject;
 
  private:
-  // We don't want to be accidentally coyping objects of this class
-  // (without having implemented our own, correct copy constructor or assignment
-  // operator)
-  LudiiGameWrapper& operator=(LudiiGameWrapper const&) = delete;
-
-  /** Pointer to the JNI environment, allows for communication with Ludii's Java
-   * code */
-  JNIEnv* jenv;
-
   /** Method ID for the stateTensorsShape() method in Java */
   jmethodID stateTensorsShapeMethodID;
 
