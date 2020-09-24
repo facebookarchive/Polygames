@@ -77,13 +77,11 @@ void JNIUtils::InitJVM(std::string jar_location) {
 
   JavaVMOption options[num_jvm_args];
   std::string java_classpath = "-Djava.class.path=" + jar_location;
-  char* c_classpath = strdup(java_classpath.c_str());
-  options[0].optionString = c_classpath;
+  options[0].optionString = java_classpath.data();
 
 #ifdef CHECK_JNI
   std::string check_jni = "-Xcheck:jni";
-  char* c_check_jni = strdup(check_jni.c_str());
-  options[1].optionString = c_check_jni;
+  options[1].optionString = check_jni.data();
 #endif
 
   vm_args.version = 0x00010002;
@@ -92,23 +90,15 @@ void JNIUtils::InitJVM(std::string jar_location) {
   vm_args.ignoreUnrecognized = JNI_TRUE;
   /* Create the Java VM */
   res = JNI_CreateJavaVM(&jvm, (void**)&env, &vm_args);
-  free(c_classpath);
-
-#ifdef CHECK_JNI
-  free(c_check_jni);
-#endif
-
 #else
   JDK1_1InitArgs vm_args;
   std::string classpath = vm_args.classpath + ";" + jar_location;
-  char* c_classpath = strdup(java_classpath.c_str());
   vm_args.version = 0x00010001;
   JNI_GetDefaultJavaVMInitArgs(&vm_args);
   /* Append jar location to the default system class path */
-  vm_args.classpath = c_classpath;
+  vm_args.classpath = java_classpath.data();
   /* Create the Java VM */
   res = JNI_CreateJavaVM(&jvm, &env, &vm_args);
-  free(c_classpath);
 #endif /* JNI_VERSION_1_2 */
 
   // Find our LudiiGameWrapper Java class
