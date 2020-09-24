@@ -32,13 +32,16 @@ namespace Ludii {
 JavaVM* JNIUtils::jvm = nullptr;
 jint JNIUtils::res = 0;
 
+thread_local JNIEnv* JNIUtils::env = nullptr;
+
 JNIEnv* JNIUtils::GetEnv() {
   if (jvm == nullptr)
     return nullptr;
 
-  JavaVMAttachArgs args = {JNI_VERSION_1_2, 0, 0};
-  JNIEnv* env;
-  jvm->AttachCurrentThread((void**)&env, &args);
+  if (env == nullptr) {
+    JavaVMAttachArgs args = {JNI_VERSION_1_2, 0, 0};
+    jvm->AttachCurrentThread((void**)&env, &args);
+  }
 
   return env;
 }
@@ -74,13 +77,11 @@ void JNIUtils::InitJVM(std::string jar_location) {
 
   JavaVMOption options[num_jvm_args];
   std::string java_classpath = "-Djava.class.path=" + jar_location;
-  char* c_classpath = strdup(java_classpath.c_str());
-  options[0].optionString = c_classpath;
+  options[0].optionString = java_classpath.data();
 
 #ifdef CHECK_JNI
   std::string check_jni = "-Xcheck:jni";
-  char* c_check_jni = strdup(check_jni.c_str());
-  options[1].optionString = c_check_jni;
+  options[1].optionString = check_jni.data();
 #endif
 
   vm_args.version = 0x00010002;
@@ -89,39 +90,31 @@ void JNIUtils::InitJVM(std::string jar_location) {
   vm_args.ignoreUnrecognized = JNI_TRUE;
   /* Create the Java VM */
   res = JNI_CreateJavaVM(&jvm, (void**)&env, &vm_args);
-  free(c_classpath);
-
-#ifdef CHECK_JNI
-  free(c_check_jni);
-#endif
-
 #else
   JDK1_1InitArgs vm_args;
   std::string classpath = vm_args.classpath + ";" + jar_location;
-  char* c_classpath = strdup(java_classpath.c_str());
   vm_args.version = 0x00010001;
   JNI_GetDefaultJavaVMInitArgs(&vm_args);
   /* Append jar location to the default system class path */
-  vm_args.classpath = c_classpath;
+  vm_args.classpath = java_classpath.data();
   /* Create the Java VM */
   res = JNI_CreateJavaVM(&jvm, &env, &vm_args);
-  free(c_classpath);
 #endif /* JNI_VERSION_1_2 */
 
   // Find our LudiiGameWrapper Java class
   ludiiGameWrapperClass =
       (jclass)env->NewGlobalRef(env->FindClass("utils/LudiiGameWrapper"));
-  CHECK_JNI_EXCEPTION(env);
+  CheckJniException(env);
 
   // Find our LudiiStateWrapper Java class
   ludiiStateWrapperClass =
       (jclass)env->NewGlobalRef(env->FindClass("utils/LudiiStateWrapper"));
-  CHECK_JNI_EXCEPTION(env);
+  CheckJniException(env);
 
   // Find the method ID for the static method giving us the Ludii versio
   ludiiVersionMethodID = env->GetStaticMethodID(
       ludiiGameWrapperClass, "ludiiVersion", "()Ljava/lang/String;");
-  CHECK_JNI_EXCEPTION(env);
+  CheckJniException(env);
 
   std::cout << "Using Ludii version " << LudiiVersion() << std::endl;
 }
@@ -156,14 +149,14 @@ const std::string JNIUtils::LudiiVersion() {
   JNIEnv* env = JNIUtils::GetEnv();
   jstring jstr = (jstring)(
       env->CallStaticObjectMethod(ludiiGameWrapperClass, ludiiVersionMethodID));
-  CHECK_JNI_EXCEPTION(env);
+  CheckJniException(env);
   const char* strReturn = env->GetStringUTFChars(jstr, (jboolean*)0);
-  CHECK_JNI_EXCEPTION(env);
+  CheckJniException(env);
   const std::string str = strReturn;
   env->ReleaseStringUTFChars(jstr, strReturn);
-  CHECK_JNI_EXCEPTION(env);
+  CheckJniException(env);
   env->DeleteLocalRef(jstr);
-  CHECK_JNI_EXCEPTION(env);
+  CheckJniException(env);
   return str;
 }
 
