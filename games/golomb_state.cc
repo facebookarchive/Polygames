@@ -33,7 +33,12 @@ Golom::State::State(int seed, int history, bool turnFeatures) :
 
 void Golomb::State::findFeatures() {
 	std::fill(_features.begin(), _features.end(), 0.f);
-	// TODO
+
+	// naive/stupid version
+	std::vector<int> sol = _board.getSolution();
+	for (unsigned i=0; i<legals.size(); i++)
+		if (sol[i])
+			_features[i] = 1.0f;
 }
 
 void Golomb::State::findAction() {
@@ -57,7 +62,7 @@ void Golomb::State::Initialize() {
 	_status = GameStatus::player0Turn;
 
 	// features
-	//TODO
+	_featSize = {1, 1, _max};
 	_features = std::vector<float>(_featSize[0] * _featSize[1] * _featSize[2]);
 	findFeatures();
 	fillFullFeatures();
@@ -88,7 +93,7 @@ void Golomb::State::DoGoodAction() {
 }
 
 std::unique_ptr<mcts::State> Golomb::State::clone_() const {
-	return std::makeunique<Golomb::State>(*this);
+	return std::make_unique<Golomb::State>(*this);
 }
 
 float Golomb::State::getReward(int player) const {

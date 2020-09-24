@@ -23,12 +23,12 @@ namespace Golomb {
             void Initialize() override;
             void ApplyAction(const _Action& action) override;
             void DoGoodAction() override;
-            std::unique_ptr<mcts::State> clone_() const override();
+            std::unique_ptr<mcts::State> clone_() const override;
             float getReward(int player) const override;
 
             std::string stateDescription() const override;
             std::string actionDescription(const _Action & action) const override;
-            std::strinf actionsDescriotion() override;
+            std::string actionsDescription() override;
             int parseAction(const std::string &str) override;
     };
 }
