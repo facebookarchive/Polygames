@@ -65,6 +65,8 @@ set(SOURCES
   games/tristan_nogo.cc
   games/yinsh.cc
   games/minesweeper.cc
+  games/golomb.cc
+  games/golomb_state.cc
   games/weakschur/SchurMatrix.cpp
   games/weakschur/SchurVector.cpp
   games/weakschur/WeakSchur.cpp)
