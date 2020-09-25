@@ -32,6 +32,8 @@ class Board {
         bool isTerminated() const;
 	int getScore() const;
         std::vector<int> getSolution() const;
+        std::vector<int> getDistanceList() const;
+        std::vector<int> getLegalMoves() const;
 };
 
 }

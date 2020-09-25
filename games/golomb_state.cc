@@ -35,10 +35,19 @@ void Golomb::State::findFeatures() {
 	std::fill(_features.begin(), _features.end(), 0.f);
 
 	// naive/stupid version
-	std::vector<int> sol = _board.getSolution();
-	for (unsigned i=0; i<legals.size(); i++)
+	const unsigned channelSize = _max;
+	std::vector<int> sol = _board.getSolution(); // Feature 1
+	std::vector<int> dis = _board.getDistanceList(); // Feature 2
+	std::vector<int> leg = _board.getLegalMoves(); // Feature 3
+
+	for (unsigned i=0; i<channelSize; i++) {
 		if (sol[i])
-			_features[i] = 1.0f;
+			_features[channelSize*1+i] = 1.0f;
+		if (dis[i])
+			_features[channelSize*2+i] = 1.0f;
+		if (leg[i])
+			_features[channelSize*3+i] = 1.0f;
+	}
 }
 
 void Golomb::State::findAction() {
@@ -62,13 +71,13 @@ void Golomb::State::Initialize() {
 	_status = GameStatus::player0Turn;
 
 	// features
-	_featSize = {1, 1, _max};
+	_featSize = {4, 1, _max};
 	_features = std::vector<float>(_featSize[0] * _featSize[1] * _featSize[2]);
 	findFeatures();
 	fillFullFeatures();
 	
 	// Actions
-	_actionSize = {1, 1, _board.legalMovesToVector()};
+	_actionSize = {1, 1, _max};
 	findActions();
 }
 

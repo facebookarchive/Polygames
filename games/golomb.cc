@@ -110,3 +110,11 @@ int Board::getScore() const {
 std::vector<int> Board::getSolution() const {
 	return _solution;
 }
+
+std::vector<int> Board::getDistanceList() const {
+	return _distanceList;
+}
+
+std::vector<int> Board::getLegalMoves() const {
+	return _legalMoves;
+}
