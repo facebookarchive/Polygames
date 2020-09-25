@@ -3,12 +3,17 @@
 #include <cassert>
 #include <cmath>
 
-Board::Board(int max) :
+Golomb::Board::Board(int max) :
     _max(max) {
 	    reset();
     }
 
-void Board::reset() {
+Golomb::Board::Board() :
+    _max(30) {
+	    reset();
+    }
+
+void Golomb::Board::reset() {
 	_order=0;
 	_length = 0;
 	_solution.resize(_max, 0);
@@ -19,7 +24,7 @@ void Board::reset() {
 	_score = 0;
 }
 
-void Board::print() const{
+void Golomb::Board::print() const{
     std::cout << "Solution (" << _order << ", " << _length << ")\n";
     for (unsigned i=0; i<_solution.size(); i++)
         if (_solution[i])
@@ -27,7 +32,7 @@ void Board::print() const{
     std::cout << "\nscore: " << _score << std::endl;
 }
 
-void Board::printAll() const{
+void Golomb::Board::printAll() const{
     std::cout << "Solution (" << _order << ", " << _length << ")\n";
     for (unsigned i=0; i<_solution.size(); i++)
         if (_solution[i])
@@ -45,7 +50,7 @@ void Board::printAll() const{
     std::cout << "\nscore: " << _score << std::endl;
 }
 
-void Board::applyAction(int number) {
+void Golomb::Board::applyAction(int number) {
     assert(number < _max);
     assert(_solution[number] == 0);
     assert(_legalMoves[number]);
@@ -53,7 +58,7 @@ void Board::applyAction(int number) {
     updateInternalState(number);
 }
 
-void Board::updateInternalState(int number) {
+void Golomb::Board::updateInternalState(int number) {
     bool scoreOk = true;
     for (int i=0; i<_max; i++) {
         if (_solution[i]) {
@@ -68,7 +73,7 @@ void Board::updateInternalState(int number) {
                         _legalMoves[i-j] = 0;
                     if (j-i >= 0)
                         _legalMoves[j-i] = 0;
-		    if (not ((i+j) % 2)) {
+                    if (not ((i+j) % 2)) 
                         _legalMoves[(i+j)/2] = 0;
 
                 }
@@ -88,7 +93,7 @@ void Board::updateInternalState(int number) {
             _length = i;    
 }
 
-std::vector<int> Board::legalMovesToVector() const {
+std::vector<int> Golomb::Board::legalMovesToVector() const {
     std::vector<int> legals;
     for (unsigned i=0; i<_legalMoves.size(); i++)
         if (_legalMoves[i])
@@ -96,25 +101,25 @@ std::vector<int> Board::legalMovesToVector() const {
     return legals;
 }
 
-bool Board::isTerminated() const {
+bool Golomb::Board::isTerminated() const {
     for (unsigned i=0; i<_legalMoves.size(); i++)
         if (_legalMoves[i])
             return false;
     return true;
 }
 
-int Board::getScore() const {
+int Golomb::Board::getScore() const {
 	return _score;
 }
 
-std::vector<int> Board::getSolution() const {
+std::vector<int> Golomb::Board::getSolution() const {
 	return _solution;
 }
 
-std::vector<int> Board::getDistanceList() const {
+std::vector<int> Golomb::Board::getDistanceList() const {
 	return _distanceList;
 }
 
-std::vector<int> Board::getLegalMoves() const {
+std::vector<int> Golomb::Board::getLegalMoves() const {
 	return _legalMoves;
 }

@@ -24,13 +24,14 @@ class Board {
         int getMax() { return _max; }
 
         Board(int max);
-	void reset();
+        Board();
+        void reset();
         std::vector<int> legalMovesToVector() const;
         void applyAction(int number);
         void print() const;
         void printAll() const;
         bool isTerminated() const;
-	int getScore() const;
+        int getScore() const;
         std::vector<int> getSolution() const;
         std::vector<int> getDistanceList() const;
         std::vector<int> getLegalMoves() const;

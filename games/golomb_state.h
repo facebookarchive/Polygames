@@ -6,10 +6,10 @@
 namespace Golomb {
     class Action : public ::_Action {
         public:
-            Action(int i, int indexInActions, int nj);
+            Action(int i, int indexInActions);
     };
 
-    class State : public ::State{
+    class State : public ::State {
         private:
             Board _board;
 
