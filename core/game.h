@@ -438,7 +438,7 @@ to look into this) if the strategy is identical to knuth’s.
 
   void step();
 
-  void setReward(const State& state, int resigned = -1);
+  void setReward(const State& state, int resigned = -1, int stepindex = -1);
 
   void sendTrajectory();
 

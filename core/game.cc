@@ -180,7 +180,7 @@ void Game::mainLoop() {
 
             while (epDurs_[p].len() < v_[p].len()) {
               torch::Tensor epDur = torch::zeros({1}, torch::kFloat32);
-              epDur[0] = stepindex;
+              epDur[0] = (float) stepindex;
               epDurs_[p].pushBack(std::move(epDur));
             }
 
@@ -639,10 +639,10 @@ void Game::setReward(const State& state, int resigned, int stepindex) {
       reward[0] = resigned == -1 ? state.getReward(i) : i == resigned ? -1 : 1;
       v_[i].pushBack(std::move(reward));
     }
-    while (epDurs_[p].len() < v_[p].len()) {
+    while (epDurs_[i].len() < v_[i].len()) {
       torch::Tensor epDur = torch::zeros({1}, torch::kFloat32);
-      epDur[0] = stepindex;
-      epDurs_[p].pushBack(std::move(epDur));
+      epDur[0] = (float) stepindex;
+      epDurs_[i].pushBack(std::move(epDur));
     }
   }
 }
@@ -650,7 +650,7 @@ void Game::setReward(const State& state, int resigned, int stepindex) {
 void Game::sendTrajectory() {
   for (int i = 0; i < (int)players_.size(); ++i) {
     assert(v_[i].len() == pi_[i].len() && pi_[i].len() == feature_[i].len() &&
-           feature_[i].len() == epDurs_.len());
+           feature_[i].len() == epDurs_[i].len());
     assert(pi_[i].len() == piMask_[i].len());
     int errcode;
     while (prepareForSend(i)) {

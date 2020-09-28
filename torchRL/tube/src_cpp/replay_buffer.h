@@ -36,7 +36,7 @@ class ReplayBuffer {
 
     void observe(float data) {
       runningDenominator = (1.f - alpha) * runningDenominator + 1.f;
-      runningmean += (1.f / runningDenominator) * (data - runningMean);
+      runningMean += (1.f / runningDenominator) * (data - runningMean);
     }
   };
 

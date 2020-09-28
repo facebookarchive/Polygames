@@ -54,7 +54,7 @@ void ReplayBuffer::add(std::unordered_map<std::string, torch::Tensor> input) {
 
     // track average episode duration
     if (name == "ep_dur") {
-      epDurationTracker_.observe(b.second[0].item);
+      epDurationTracker_.observe(b.second[0].item<float>());
     }
   }
 }
