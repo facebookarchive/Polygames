@@ -25,6 +25,21 @@ class ReplayBuffer {
     std::unordered_map<std::string, torch::Tensor> buffer;
   };
 
+  /**
+   * Helper to track exponential moving average.
+   */
+  struct ExpMovingAverage {
+    float alpha = 0.05f;  // Weight assigned to most recent point, 0 = all
+                          // points weighted equally
+    float runningMean = 0.f;
+    float runningDenominator = 0.f;
+
+    void observe(float data) {
+      runningDenominator = (1.f - alpha) * runningDenominator + 1.f;
+      runningmean += (1.f / runningDenominator) * (data - runningMean);
+    }
+  };
+
   ReplayBuffer(int capacity, int seed)
       : capacity(capacity) {
     rng_.seed(seed);
@@ -58,6 +73,10 @@ class ReplayBuffer {
     return numSample_;
   }
 
+  float averageEpisodeDuration() const {
+    return epDurationTracker_.runningMean;
+  }
+
   /*
    * Convert replay buffer to a serializable state (thread-safe)
    */
@@ -85,6 +104,9 @@ class ReplayBuffer {
   std::mutex mBuf_;
   // the actual circular replay buffer
   std::unordered_map<std::string, torch::Tensor> buffer_;
+  // keeps track of average duration of episodes
+  ExpMovingAverage epDurationTracker_;
+
   // how many items in buffer
   int size_ = 0;
   // the next index to write to

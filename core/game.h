@@ -347,6 +347,7 @@ to look into this) if the strategy is identical to knuth’s.
     auto piMask = tube::EpisodicTrajectory(
         "pi_mask", state_->GetActionSize(), torch::kFloat32);
     auto v = tube::EpisodicTrajectory("v", {1}, torch::kFloat32);
+    auto epDur = tube::EpisodicTrajectory("ep_dur", {1}, torch::kFloat32);
 
     tube::Dispatcher dispatcher(std::move(dc));
     dispatcher.addDataBlocks(
@@ -356,6 +357,7 @@ to look into this) if the strategy is identical to knuth’s.
     pi_.push_back(pi);
     piMask_.push_back(piMask);
     v_.push_back(v);
+    epDurs_.push_back(epDur);
     dispatchers_.push_back(dispatcher);
   }
 
@@ -449,6 +451,7 @@ to look into this) if the strategy is identical to knuth’s.
   std::vector<tube::EpisodicTrajectory> pi_;
   std::vector<tube::EpisodicTrajectory> piMask_;
   std::vector<tube::EpisodicTrajectory> v_;
+  std::vector<tube::EpisodicTrajectory> epDurs_;
 
   std::vector<tube::Dispatcher> dispatchers_;
 
