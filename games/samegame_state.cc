@@ -102,6 +102,11 @@ void Samegame::State::ApplyAction(const _Action& action) {
  // update game status
  if (_board.isTerminated()) {
   _status = GameStatus::player0Win;
+  // TODO test samegame score
+  if (_board.getScore() > 0.25) {
+      std::cerr << "terminated with score = " << _board.getScore() << std::endl;
+      abort();
+  }
  }
  else {
   _status = GameStatus::player0Turn;
