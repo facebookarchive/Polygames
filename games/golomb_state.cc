@@ -42,11 +42,14 @@ void Golomb::State::findFeatures() {
 
 	for (unsigned i=0; i<channelSize; i++) {
 		if (sol[i])
-			_features[channelSize*1+i] = 1.0f;
+			_features[i*4+1] = 1.0f;
+			// _features[channelSize*1+i] = 1.0f;
 		if (dis[i])
-			_features[channelSize*2+i] = 1.0f;
+			_features[i*4+2] = 1.0f;
+			// _features[channelSize*2+i] = 1.0f;
 		if (leg[i])
-			_features[channelSize*3+i] = 1.0f;
+			_features[i*4+3] = 1.0f;
+			// _features[channelSize*3+i] = 1.0f;
 	}
 }
 

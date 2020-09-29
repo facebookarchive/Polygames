@@ -9,7 +9,7 @@ Golomb::Board::Board(int max) :
     }
 
 Golomb::Board::Board() :
-    _max(30) {
+    _max(10000) {
 	    reset();
     }
 
