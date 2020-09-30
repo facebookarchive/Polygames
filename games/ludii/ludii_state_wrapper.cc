@@ -50,30 +50,24 @@ void LudiiStateWrapper::findFeatures() {
       jenv->CallObjectMethod(ludiiStateWrapperJavaObject, toTensorMethodID));
   JNIUtils::CheckJniException(jenv);
   const jsize numChannels = jenv->GetArrayLength(channelsArray);
-  JNIUtils::CheckJniException(jenv);
 
   size_t k = 0;
   for (jsize c = 0; c < numChannels; ++c) {
     const jobjectArray xArray = static_cast<jobjectArray>(
         jenv->GetObjectArrayElement(channelsArray, c));
-    JNIUtils::CheckJniException(jenv);
     const jsize numXCoords = jenv->GetArrayLength(xArray);
-    JNIUtils::CheckJniException(jenv);
 
     for (jsize x = 0; x < numXCoords; ++x) {
       const jfloatArray yArray =
           static_cast<jfloatArray>(jenv->GetObjectArrayElement(xArray, x));
-      JNIUtils::CheckJniException(jenv);
       const jsize numYCoords = jenv->GetArrayLength(yArray);
-      JNIUtils::CheckJniException(jenv);
-      jfloat* jfloats = jenv->GetFloatArrayElements(yArray, nullptr);
-      JNIUtils::CheckJniException(jenv);
+      jfloat* jfloats = (jfloat*) jenv->GetPrimitiveArrayCritical(yArray, nullptr);
 
       std::copy(jfloats, jfloats + numYCoords, _features.begin() + k);
       k += numYCoords;
 
       // Allow JVM to clean up memory now that we have our own floats
-      jenv->ReleaseFloatArrayElements(yArray, jfloats, 0);
+      jenv->ReleasePrimitiveArrayCritical(yArray, jfloats, JNI_ABORT);
       jenv->DeleteLocalRef(yArray);
     }
 
@@ -250,20 +244,17 @@ std::vector<std::array<int, 3>> LudiiStateWrapper::LegalMovesTensors() const {
           ludiiStateWrapperJavaObject, legalMovesTensorsMethodID));
   JNIUtils::CheckJniException(jenv);
   const jsize numLegalMoves = jenv->GetArrayLength(javaArrOuter);
-  JNIUtils::CheckJniException(jenv);
 
   std::vector<std::array<int, 3>> matrix(numLegalMoves);
   for (jsize i = 0; i < numLegalMoves; ++i) {
     const jintArray inner =
         static_cast<jintArray>(jenv->GetObjectArrayElement(javaArrOuter, i));
-    JNIUtils::CheckJniException(jenv);
-    jint* jints = jenv->GetIntArrayElements(inner, nullptr);
-    JNIUtils::CheckJniException(jenv);
+    jint* jints = (jint*) jenv->GetPrimitiveArrayCritical(inner, nullptr);
 
     matrix[i] = {jints[0], jints[1], jints[2]};
 
     // Allow JVM to clean up memory now that we have our own ints
-    jenv->ReleaseIntArrayElements(inner, jints, 0);
+    jenv->ReleasePrimitiveArrayCritical(inner, jints, JNI_ABORT);
     jenv->DeleteLocalRef(inner);
   }
 
