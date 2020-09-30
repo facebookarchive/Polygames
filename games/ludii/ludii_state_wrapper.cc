@@ -61,7 +61,8 @@ void LudiiStateWrapper::findFeatures() {
       const jfloatArray yArray =
           static_cast<jfloatArray>(jenv->GetObjectArrayElement(xArray, x));
       const jsize numYCoords = jenv->GetArrayLength(yArray);
-      jfloat* jfloats = (jfloat*) jenv->GetPrimitiveArrayCritical(yArray, nullptr);
+      jfloat* jfloats =
+          (jfloat*)jenv->GetPrimitiveArrayCritical(yArray, nullptr);
 
       std::copy(jfloats, jfloats + numYCoords, _features.begin() + k);
       k += numYCoords;
@@ -249,7 +250,7 @@ std::vector<std::array<int, 3>> LudiiStateWrapper::LegalMovesTensors() const {
   for (jsize i = 0; i < numLegalMoves; ++i) {
     const jintArray inner =
         static_cast<jintArray>(jenv->GetObjectArrayElement(javaArrOuter, i));
-    jint* jints = (jint*) jenv->GetPrimitiveArrayCritical(inner, nullptr);
+    jint* jints = (jint*)jenv->GetPrimitiveArrayCritical(inner, nullptr);
 
     matrix[i] = {jints[0], jints[1], jints[2]};
 
