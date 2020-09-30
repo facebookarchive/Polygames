@@ -45,16 +45,42 @@ void LudiiStateWrapper::Initialize() {
 }
 
 void LudiiStateWrapper::findFeatures() {
-  const auto tensor = ToTensor();
-  int k = 0;
-  for (int x = 0; x < _featSize[0]; ++x) {
-    for (int y = 0; y < _featSize[1]; ++y) {
-      for (int z = 0; z < _featSize[2]; ++z) {
-        _features[k] = tensor[x][y][z];
-        ++k;
-      }
+  JNIEnv* jenv = JNIUtils::GetEnv();
+  const jobjectArray channelsArray = static_cast<jobjectArray>(
+      jenv->CallObjectMethod(ludiiStateWrapperJavaObject, toTensorMethodID));
+  JNIUtils::CheckJniException(jenv);
+  const jsize numChannels = jenv->GetArrayLength(channelsArray);
+  JNIUtils::CheckJniException(jenv);
+
+  size_t k = 0;
+  for (jsize c = 0; c < numChannels; ++c) {
+    const jobjectArray xArray = static_cast<jobjectArray>(
+        jenv->GetObjectArrayElement(channelsArray, c));
+    JNIUtils::CheckJniException(jenv);
+    const jsize numXCoords = jenv->GetArrayLength(xArray);
+    JNIUtils::CheckJniException(jenv);
+
+    for (jsize x = 0; x < numXCoords; ++x) {
+      const jfloatArray yArray =
+          static_cast<jfloatArray>(jenv->GetObjectArrayElement(xArray, x));
+      JNIUtils::CheckJniException(jenv);
+      const jsize numYCoords = jenv->GetArrayLength(yArray);
+      JNIUtils::CheckJniException(jenv);
+      jfloat* jfloats = jenv->GetFloatArrayElements(yArray, nullptr);
+      JNIUtils::CheckJniException(jenv);
+
+      std::copy(jfloats, jfloats + numYCoords, _features.begin() + k);
+      k += numYCoords;
+
+      // Allow JVM to clean up memory now that we have our own floats
+      jenv->ReleaseFloatArrayElements(yArray, jfloats, 0);
+      jenv->DeleteLocalRef(yArray);
     }
+
+    jenv->DeleteLocalRef(xArray);
   }
+
+  jenv->DeleteLocalRef(channelsArray);
 }
 
 void LudiiStateWrapper::findActions() {
@@ -288,49 +314,6 @@ void LudiiStateWrapper::Reset() const {
   JNIEnv* jenv = JNIUtils::GetEnv();
   jenv->CallVoidMethod(ludiiStateWrapperJavaObject, resetMethodID);
   JNIUtils::CheckJniException(jenv);
-}
-
-std::vector<std::vector<std::vector<float>>> LudiiStateWrapper::ToTensor()
-    const {
-  JNIEnv* jenv = JNIUtils::GetEnv();
-  const jobjectArray channelsArray = static_cast<jobjectArray>(
-      jenv->CallObjectMethod(ludiiStateWrapperJavaObject, toTensorMethodID));
-  JNIUtils::CheckJniException(jenv);
-  const jsize numChannels = jenv->GetArrayLength(channelsArray);
-  JNIUtils::CheckJniException(jenv);
-
-  std::vector<std::vector<std::vector<float>>> tensor(numChannels);
-  for (jsize c = 0; c < numChannels; ++c) {
-    const jobjectArray xArray = static_cast<jobjectArray>(
-        jenv->GetObjectArrayElement(channelsArray, c));
-    JNIUtils::CheckJniException(jenv);
-    const jsize numXCoords = jenv->GetArrayLength(xArray);
-    JNIUtils::CheckJniException(jenv);
-
-    tensor[c].resize(numXCoords);
-    for (jsize x = 0; x < numXCoords; ++x) {
-      const jfloatArray yArray =
-          static_cast<jfloatArray>(jenv->GetObjectArrayElement(xArray, x));
-      JNIUtils::CheckJniException(jenv);
-      const jsize numYCoords = jenv->GetArrayLength(yArray);
-      JNIUtils::CheckJniException(jenv);
-      jfloat* jfloats = jenv->GetFloatArrayElements(yArray, nullptr);
-      JNIUtils::CheckJniException(jenv);
-
-      tensor[c][x].resize(numYCoords);
-      std::copy(jfloats, jfloats + numYCoords, tensor[c][x].begin());
-
-      // Allow JVM to clean up memory now that we have our own ints
-      jenv->ReleaseFloatArrayElements(yArray, jfloats, 0);
-      jenv->DeleteLocalRef(yArray);
-    }
-
-    jenv->DeleteLocalRef(xArray);
-  }
-
-  jenv->DeleteLocalRef(channelsArray);
-
-  return tensor;
 }
 
 bool LudiiStateWrapper::isOnePlayerGame() const {

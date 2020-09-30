@@ -107,12 +107,6 @@ class LudiiStateWrapper : public ::State {
    */
   void Reset() const;
 
-  /**
-   * @return State representated by a game-dependent number of channels, with
-   * each channel having X and Y coordinates.
-   */
-  std::vector<std::vector<std::vector<float>>> ToTensor() const;
-
   virtual bool isOnePlayerGame() const override;
 
  private:
