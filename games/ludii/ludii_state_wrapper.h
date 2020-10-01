@@ -139,8 +139,8 @@ class LudiiStateWrapper : public ::State {
   /** Method ID for the isTerminal() method in Java */
   jmethodID isTerminalMethodID;
 
-  /** Method ID for the toTensor() method in Java */
-  jmethodID toTensorMethodID;
+  /** Method ID for the toTensorFlat() method in Java */
+  jmethodID toTensorFlatMethodID;
 
   /** Method ID for the currentPlayer() method in Java */
   jmethodID currentPlayerMethodID;

@@ -46,36 +46,17 @@ void LudiiStateWrapper::Initialize() {
 
 void LudiiStateWrapper::findFeatures() {
   JNIEnv* jenv = JNIUtils::GetEnv();
-  const jobjectArray channelsArray = static_cast<jobjectArray>(
-      jenv->CallObjectMethod(ludiiStateWrapperJavaObject, toTensorMethodID));
+  const jfloatArray flatTensorArray = static_cast<jfloatArray>(
+      jenv->CallObjectMethod(ludiiStateWrapperJavaObject, toTensorFlatMethodID));
   JNIUtils::CheckJniException(jenv);
-  const jsize numChannels = jenv->GetArrayLength(channelsArray);
-
-  size_t k = 0;
-  for (jsize c = 0; c < numChannels; ++c) {
-    const jobjectArray xArray = static_cast<jobjectArray>(
-        jenv->GetObjectArrayElement(channelsArray, c));
-    const jsize numXCoords = jenv->GetArrayLength(xArray);
-
-    for (jsize x = 0; x < numXCoords; ++x) {
-      const jfloatArray yArray =
-          static_cast<jfloatArray>(jenv->GetObjectArrayElement(xArray, x));
-      const jsize numYCoords = jenv->GetArrayLength(yArray);
-      jfloat* jfloats =
-          (jfloat*)jenv->GetPrimitiveArrayCritical(yArray, nullptr);
-
-      std::copy(jfloats, jfloats + numYCoords, _features.begin() + k);
-      k += numYCoords;
-
-      // Allow JVM to clean up memory now that we have our own floats
-      jenv->ReleasePrimitiveArrayCritical(yArray, jfloats, JNI_ABORT);
-      jenv->DeleteLocalRef(yArray);
-    }
-
-    jenv->DeleteLocalRef(xArray);
-  }
-
-  jenv->DeleteLocalRef(channelsArray);
+  const jsize numEntries = jenv->GetArrayLength(flatTensorArray);
+  jfloat* jfloats = 
+      (jfloat*)jenv->GetPrimitiveArrayCritical(flatTensorArray, nullptr);
+  std::copy(jfloats, jfloats + numEntries, _features.begin());
+  
+  // Allow JVM to clean up memory now that we have our own floats
+  jenv->ReleasePrimitiveArrayCritical(flatTensorArray, jfloats, JNI_ABORT);
+  jenv->DeleteLocalRef(flatTensorArray);
 }
 
 void LudiiStateWrapper::findActions() {
@@ -190,8 +171,8 @@ LudiiStateWrapper::LudiiStateWrapper(int seed,
   isTerminalMethodID =
       jenv->GetMethodID(ludiiStateWrapperClass, "isTerminal", "()Z");
   JNIUtils::CheckJniException(jenv);
-  toTensorMethodID =
-      jenv->GetMethodID(ludiiStateWrapperClass, "toTensor", "()[[[F");
+  toTensorFlatMethodID =
+      jenv->GetMethodID(ludiiStateWrapperClass, "toTensorFlat", "()[F");
   JNIUtils::CheckJniException(jenv);
   currentPlayerMethodID =
       jenv->GetMethodID(ludiiStateWrapperClass, "currentPlayer", "()I");
@@ -226,7 +207,7 @@ LudiiStateWrapper::LudiiStateWrapper(const LudiiStateWrapper& other)
   applyNthMoveMethodID = other.applyNthMoveMethodID;
   returnsMethodID = other.returnsMethodID;
   isTerminalMethodID = other.isTerminalMethodID;
-  toTensorMethodID = other.toTensorMethodID;
+  toTensorFlatMethodID = other.toTensorFlatMethodID;
   currentPlayerMethodID = other.currentPlayerMethodID;
   resetMethodID = other.resetMethodID;
 }
