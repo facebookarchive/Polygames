@@ -81,15 +81,8 @@ void LudiiStateWrapper::ApplyAction(const _Action& action) {
 
   assert(not IsTerminal());
 
-  // find move from action
-  const std::array<int, 3> move{action.GetX(), action.GetY(), action.GetZ()};
-  const auto moves = LegalMovesTensors();
-  const auto it = std::find(moves.begin(), moves.end(), move);
-  assert(it != moves.end());
-
   // play move
-  const int n = std::distance(moves.begin(), it);
-  ApplyNthMove(n);
+  ApplyNthMove(action.GetIndex());
 
   // update game status
   if (IsTerminal()) {
