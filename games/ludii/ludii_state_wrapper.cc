@@ -46,14 +46,15 @@ void LudiiStateWrapper::Initialize() {
 
 void LudiiStateWrapper::findFeatures() {
   JNIEnv* jenv = JNIUtils::GetEnv();
-  const jfloatArray flatTensorArray = static_cast<jfloatArray>(
-      jenv->CallObjectMethod(ludiiStateWrapperJavaObject, toTensorFlatMethodID));
+  const jfloatArray flatTensorArray =
+      static_cast<jfloatArray>(jenv->CallObjectMethod(
+          ludiiStateWrapperJavaObject, toTensorFlatMethodID));
   JNIUtils::CheckJniException(jenv);
   const jsize numEntries = jenv->GetArrayLength(flatTensorArray);
-  jfloat* jfloats = 
+  jfloat* jfloats =
       (jfloat*)jenv->GetPrimitiveArrayCritical(flatTensorArray, nullptr);
   std::copy(jfloats, jfloats + numEntries, _features.begin());
-  
+
   // Allow JVM to clean up memory now that we have our own floats
   jenv->ReleasePrimitiveArrayCritical(flatTensorArray, jfloats, JNI_ABORT);
   jenv->DeleteLocalRef(flatTensorArray);
