@@ -77,6 +77,11 @@ class LudiiGameWrapper {
   const std::array<int, 3>& MoveTensorsShape();
 
   /**
+   * @return The number of players in this game.
+   */
+  int NumPlayers();
+
+  /**
    * @return Vector with, for every channel in state tensors, a name describing
    * what data we have in that channel.
    */
@@ -94,6 +99,9 @@ class LudiiGameWrapper {
 
   /** Method ID for the stateTensorChannelNames() method in Java */
   jmethodID stateTensorChannelNamesMethodID;
+
+  /** Method ID for the numPlayers() method in Java */
+  jmethodID numPlayersMethodID;
 
   /**
    * Shape for state tensors.

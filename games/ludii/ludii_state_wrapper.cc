@@ -89,15 +89,24 @@ void LudiiStateWrapper::ApplyAction(const _Action& action) {
   ApplyNthMove(n);
 
   // update game status
-  // TODO only 2-player games ?
-
-  const double score_0 = Returns(0);
-  const double score_1 = Returns(1);
   if (IsTerminal()) {
-    if (score_0 > score_1)
-      _status = score_0 > 0.0 ? GameStatus::player0Win : GameStatus::tie;
-    else
-      _status = score_1 > 0.0 ? GameStatus::player1Win : GameStatus::tie;
+
+    if (isOnePlayerGame()) {
+      const double score = Returns(0);
+      if (score >= 0.99)  // Probably just 1.0
+        _status = GameStatus::player0Win;
+      else if (score <= -0.99)  // Probably just -1.0
+        _status = GameStatus::player1Win;
+      else
+        _status = GameStatus::tie;
+    } else {
+      const double score_0 = Returns(0);
+      const double score_1 = Returns(1);
+      if (score_0 > score_1)
+        _status = score_0 > 0.0 ? GameStatus::player0Win : GameStatus::tie;
+      else
+        _status = score_1 > 0.0 ? GameStatus::player1Win : GameStatus::tie;
+    }
   } else {
     const int player = CurrentPlayer();
     _status = player == 0 ? GameStatus::player0Turn : GameStatus::player1Turn;
@@ -322,6 +331,10 @@ std::vector<std::vector<std::vector<float>>> LudiiStateWrapper::ToTensor()
   jenv->DeleteLocalRef(channelsArray);
 
   return tensor;
+}
+
+bool LudiiStateWrapper::isOnePlayerGame() const {
+  return (ludiiGameWrapper->NumPlayers() == 1);
 }
 
 }  // namespace Ludii
