@@ -56,6 +56,7 @@
 class Game : public tube::EnvThread {
  public:
   Game(std::string gameName,
+       std::vector<std::string> gameOptions,
        int numEpisode,
        int seed,
        bool evalMode,
@@ -72,6 +73,11 @@ class Game : public tube::EnvThread {
       , result_(2, 0) {
     State::setFeatures(outFeatures, turnFeatures, geometricFeatures, history,
                        randomFeatures, oneFeature);
+					   
+    for (std::string s : gameOptions) {
+	  std::cout << "Game option = " << s << std::endl;
+	}
+					   
     gameName_ = gameName;
     if (isGameNameMatched({"Connect6"})) {
       state_ = std::make_unique<Connect6::StateForConnect6<1>>(seed);

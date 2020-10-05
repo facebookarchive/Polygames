@@ -34,6 +34,7 @@ def create_game(
 ) -> polygames.Game:
     return polygames.Game(
         game_params.game_name,
+        game_params.game_options,
         num_episode,
         seed,
         eval_mode,

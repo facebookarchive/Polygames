@@ -17,7 +17,7 @@ PYBIND11_MODULE(polygames, m) {
 
   py::class_<Game, tube::EnvThread, std::shared_ptr<Game>>(m, "Game")
       //      .def(py::init<std::string, int, int, bool>())
-      .def(py::init<std::string, int, int, bool, bool, bool, bool, int, int,
+      .def(py::init<std::string, std::vector<std::string>, int, int, bool, bool, bool, bool, int, int,
                     bool, int>())
       .def("add_player", &Game::addPlayer, py::keep_alive<1, 2>())
       .def("add_eval_player", &Game::addEvalPlayer)
