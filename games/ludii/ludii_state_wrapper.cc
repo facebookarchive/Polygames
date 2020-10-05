@@ -62,10 +62,10 @@ void LudiiStateWrapper::findFeatures() {
 
 void LudiiStateWrapper::findActions() {
   const std::vector<std::array<int, 3>> moves = LegalMovesTensors();
-  int nbMoves = NumLegalMoves();
+  size_t nbMoves = moves.size();
   _legalActions.clear();
   _legalActions.reserve(nbMoves);
-  for (int i = 0; i < nbMoves; ++i) {
+  for (size_t i = 0; i < nbMoves; ++i) {
     const std::array<int, 3>& move = moves[i];
     _legalActions.push_back(
         std::make_shared<Ludii::Action>(move[0], move[1], move[2]));
