@@ -74,10 +74,6 @@ class Game : public tube::EnvThread {
     State::setFeatures(outFeatures, turnFeatures, geometricFeatures, history,
                        randomFeatures, oneFeature);
 					   
-    for (std::string s : gameOptions) {
-	  std::cout << "Game option = " << s << std::endl;
-	}
-					   
     gameName_ = gameName;
     if (isGameNameMatched({"Connect6"})) {
       state_ = std::make_unique<Connect6::StateForConnect6<1>>(seed);
@@ -241,9 +237,15 @@ to look into this) if the strategy is identical to knuth’s.
       JNIEnv* jni_env = Ludii::JNIUtils::GetEnv();
 
       if (jni_env) {
-        Ludii::LudiiGameWrapper game_wrapper(ludii_name);
-        state_ = std::make_unique<Ludii::LudiiStateWrapper>(
-            seed, std::move(game_wrapper));
+		if (gameOptions.size() > 0) {
+		  Ludii::LudiiGameWrapper game_wrapper(ludii_name, gameOptions);
+          state_ = std::make_unique<Ludii::LudiiStateWrapper>(
+              seed, std::move(game_wrapper));
+	    } else {
+		  Ludii::LudiiGameWrapper game_wrapper(ludii_name);
+          state_ = std::make_unique<Ludii::LudiiStateWrapper>(
+              seed, std::move(game_wrapper));
+		}
       } else {
         // Probably means we couldn't find the Ludii.jar file
         throw std::runtime_error(

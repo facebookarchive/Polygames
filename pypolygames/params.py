@@ -64,6 +64,7 @@ class GameParams:
                 opts=dict(
                     type=str,
                     nargs="*",
+                    default=list(),
                     help="Optional list of extra options to customise the game.",
                 )
             ),

@@ -89,9 +89,9 @@ LudiiGameWrapper::LudiiGameWrapper(
       game_options.size(), jenv->FindClass("java/lang/String"), nullptr);
   JNIUtils::CheckJniException(jenv);
   for (size_t i = 0; i < game_options.size(); ++i) {
-    jenv->SetObjectArrayElement(
-        java_game_options, i, jenv->NewStringUTF(game_options[i].c_str()));
-    JNIUtils::CheckJniException(jenv);
+	jstring jstr = jenv->NewStringUTF(game_options[i].c_str());
+    jenv->SetObjectArrayElement(java_game_options, i, jstr);
+	jenv->DeleteLocalRef(jstr);
   }
 
   // Call our Java constructor to instantiate new object
@@ -124,10 +124,7 @@ LudiiGameWrapper::LudiiGameWrapper(
 
   // Clean up memory
   jenv->DeleteLocalRef(java_lud_path);
-  jenv->DeleteLocalRef(java_game_options);  // TODO see if we also need to clean
-                                            // elements of array first?
-
-  // TODO also handle the Game object caching with options
+  jenv->DeleteLocalRef(java_game_options);
 }
 
 LudiiGameWrapper::LudiiGameWrapper(LudiiGameWrapper const& other) {
