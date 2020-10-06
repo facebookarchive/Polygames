@@ -414,9 +414,31 @@ Saved checkpoints of models also store details about the game for which they wer
 game in which they were trained. This is why `eval` runs do not require the `--game_name` to be specified; this is inferred from
 the model. The `pypolygames convert` command can be used to convert models to different games.
 
+- Fully automated convert:
+
+```
+python -m pypolygames convert \
+    --init_checkpoint "/checkpoints/checkpoint_600.pt.gz"  \
+	--game_name="LudiiGomoku.lud" \
+	--out="/checkpoints/converted/XToGomoku.pt"
+```
+
+This takes the previously-trained model stored in `"/checkpoints/checkpoint_600.pt.gz"`,
+modifies it such that it can be used to play the Ludii implementation of Gomoku, and stores
+this modified version of the model in the new file `"/checkpoints/converted/XToGomoku.pt"`.
+
+This works best when using neural network architectures that are compatible with arbitrary
+board shapes (such as `ResConvConvLogitPoolModel`), and source and target games that have
+identical numbers of channels for state and move tensors, as well as identical semantics for
+those channels. For instance, the Ludii implementation of Yavalath has the same number of
+channels with identical semantics (in the same order) as Gomoku. Therefore, if the source model
+in `"/checkpoints/checkpoint_600.pt.gz"` was trained using `--model_name=ResConvConvLogitPoolModel`
+and `--game_name="LudiiYavalath.lud"`, this conversion can be performed directly without having
+to delete any parameters or add any new parameters.
+
 ## Contributing
 
-We welcome contributions! Please check basic instructutions [here](.github/CONTRIBUTING.md)
+We welcome contributions! Please check basic instructions [here](.github/CONTRIBUTING.md)
 
 ## Initial contributors
 
