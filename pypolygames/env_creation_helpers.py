@@ -32,9 +32,15 @@ def create_game(
     eval_mode: bool,
     per_thread_batchsize: int = 0,
 ) -> polygames.Game:
+    # Many old models don't have the game_options attribute
+    if hasattr(game_params, 'game_options'):
+        game_options = game_params.game_options
+    else:
+        game_options = list()
+
     return polygames.Game(
         game_params.game_name,
-        game_params.game_options,
+        game_options,
         num_episode,
         seed,
         eval_mode,
