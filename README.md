@@ -408,6 +408,12 @@ Notes:
 - the higher `num_actor`, the larger the MCTS, up to a limit where overheads between threads lead to decreasing returns. Empiracally this limit seems to be around 8. This limit may be game/model/platform dependent and should be tuned for a given instance.
 - in a time-limited game `num_rollouts` should not be specified as it is maximized within each `time_ratio` * remaining time period
 
+### Examples for converting models
+
+Saved checkpoints of models also store details about the game for which they were trained, and can only be used directly for the
+game in which they were trained. This is why `eval` runs do not require the `--game_name` to be specified; this is inferred from
+the model. The `pypolygames convert` command can be used to convert models to different games.
+
 ## Contributing
 
 We welcome contributions! Please check basic instructutions [here](.github/CONTRIBUTING.md)
