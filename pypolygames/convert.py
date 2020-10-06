@@ -5,6 +5,7 @@
 
 import time
 from typing import Iterator, Tuple, Callable, Optional, List, Dict
+from pathlib import Path
 import copy
 
 import torch
@@ -96,6 +97,8 @@ def convert_checkpoint(
     checkpoint["model_state_dict"] = s
     checkpoint["model_params"] = new_model_params
     checkpoint["game_params"] = new_game_params
+    
+    Path(out).parent.mkdir(parents=True, exist_ok=True)
     import gzip
     with gzip.open(out, "wb") as f:
         torch.save(checkpoint, f)
