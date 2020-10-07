@@ -420,12 +420,12 @@ the model. The `pypolygames convert` command can be used to convert models to di
 python -m pypolygames convert \
     --init_checkpoint "/checkpoints/checkpoint_600.pt.gz"  \
 	--game_name="LudiiGomoku.lud" \
-	--out="/checkpoints/converted/XToGomoku.pt"
+	--out="/checkpoints/converted/XToGomoku.pt.gz"
 ```
 
 This takes the previously-trained model stored in `"/checkpoints/checkpoint_600.pt.gz"`,
 modifies it such that it can be used to play the Ludii implementation of Gomoku, and stores
-this modified version of the model in the new file `"/checkpoints/converted/XToGomoku.pt"`.
+this modified version of the model in the new file `"/checkpoints/converted/XToGomoku.pt.gz"`.
 
 This works best when using neural network architectures that are compatible with arbitrary
 board shapes (such as `ResConvConvLogitPoolModel`), and source and target games that have
