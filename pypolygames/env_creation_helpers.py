@@ -23,6 +23,10 @@ def sanitize_game_params(game_params: GameParams) -> None:
     # EDIT: now it a simulation parameter, but for retro-compatibility
     #  we keep that function
     game_params.per_thread_batchsize = 0
+    
+    # Many old models don't have the game_options attribute
+    if not hasattr(game_params, 'game_options'):
+        game_params.game_options = list()
 
 
 def create_game(
