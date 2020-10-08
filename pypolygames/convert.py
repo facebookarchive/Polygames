@@ -33,6 +33,7 @@ def convert_checkpoint(
         checkpoint_path=model_params.init_checkpoint)
     old_model_params = checkpoint["model_params"]
     old_game_params = checkpoint["game_params"]
+    sanitize_game_params(old_game_params)   # backwards compatibility
     model_state_dict = checkpoint["model_state_dict"]
 
     print(old_model_params.model_name)
