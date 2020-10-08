@@ -414,11 +414,11 @@ Saved checkpoints of models also store details about the game for which they wer
 game in which they were trained. This is why `eval` runs do not require the `--game_name` to be specified; this is inferred from
 the model. The `pypolygames convert` command can be used to convert models to different games.
 
-- Fully automated convert:
+- Fully automated convert between games:
 
 ```
 python -m pypolygames convert \
-    --init_checkpoint "/checkpoints/checkpoint_600.pt.gz"  \
+    --init_checkpoint "/checkpoints/checkpoint_600.pt.gz" \
 	--game_name="LudiiGomoku.lud" \
 	--out="/checkpoints/converted/XToGomoku.pt.gz"
 ```
@@ -435,6 +435,30 @@ channels with identical semantics (in the same order) as Gomoku. Therefore, if t
 in `"/checkpoints/checkpoint_600.pt.gz"` was trained using `--model_name=ResConvConvLogitPoolModel`
 and `--game_name="LudiiYavalath.lud"`, this conversion can be performed directly without having
 to delete any parameters or add any new parameters.
+
+- Fully automated convert between game options:
+
+```
+python -m pypolygames convert \
+    --init_checkpoint "/checkpoints/checkpoint_600.pt.gz" \
+	--game_options="Board Size/19x19" \
+	--out="/checkpoints/converted/Gomoku/15x15_to_19x19.pt.gz"
+```
+
+This example will convert the source checkpoint `"/checkpoints/checkpoint_600.pt.gz"`
+into a model that can be used in a game loaded with the additional 
+`--game_options="Board Size/19x19"` argument. For example, `--game_name=LudiiGomoku.lud`
+is by default played on a 15x15 board, but can be played on a larger 19x19 board with
+the `--game_options="Board Size/19x19"` argument.
+
+Note that the convert command only takes game options into account if some form of
+`--game_options` is explicitly provided among the command line arguments, even if the
+goal is to convert a model into one compatible with the default options. For example, if
+a model was first trained for `--game_options=Board Size/19x19`, and the goal is to convert
+it into one for the default board size of 15x15, it is still necessary to provide either 
+`--game_options` (without any values after it) or `--game_options=Board Size/15x15`
+to the convert script. This tells it that the goal is indeed to revert to default options,
+rather than just leaving whichever options were baked into the source model.
 
 ## Contributing
 
