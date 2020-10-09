@@ -452,8 +452,7 @@ is by default played on a 15x15 board, but can be played on a larger 19x19 board
 the `--game_options="Board Size/19x19"` argument.
 
 Note that the convert command only takes game options into account if some form of
-`--game_options` is explicitly provided among the command line arguments, even if the
-goal is to convert a model into one compatible with the default options. For example, if
+`--game_options` is explicitly provided among the command line arguments. This means that, if
 a model was first trained for `--game_options=Board Size/19x19`, and the goal is to convert
 it into one for the default board size of 15x15, it is still necessary to provide either 
 `--game_options` (without any values after it) or `--game_options=Board Size/15x15`
