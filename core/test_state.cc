@@ -131,6 +131,13 @@ int main() {
   int seed = 999;
 
   {
+    std::cout << "testing: golomb" << std::endl;
+    auto state = Golomb::State(seed);
+    doTest(state);
+    std::cout << "test pass: golomb" << std::endl;
+  }
+
+  {
     std::cout << "testing: tristannogo" << std::endl;
     auto state = StateForTristannogo(seed);
     doTest(state);
