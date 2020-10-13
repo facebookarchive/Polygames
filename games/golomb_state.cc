@@ -41,24 +41,36 @@ void Golomb::State::findFeatures() {
 	std::vector<int> leg = _board.getLegalMoves(); // Feature 3
 
 	for (unsigned i=0; i<channelSize; i++) {
-		if (sol[i])
+        assert(i < sol.size());
+        assert(i < dis.size());
+        assert(i < leg.size());
+		if (sol[i]) {
+            assert(i*4+1 < _features.size());
 			_features[i*4+1] = 1.0f;
 			// _features[channelSize*1+i] = 1.0f;
-		if (dis[i])
+        }
+		if (dis[i]) {
+            assert(i*4+2 < _features.size());
 			_features[i*4+2] = 1.0f;
 			// _features[channelSize*2+i] = 1.0f;
-		if (leg[i])
+        }
+		if (leg[i]) {
+            assert(i*4+3 < _features.size());
 			_features[i*4+3] = 1.0f;
 			// _features[channelSize*3+i] = 1.0f;
+        }
 	}
 }
 
 void Golomb::State::findActions() {
-	const auto moves = _board.legalMovesToVector();
+	const std::vector<int> moves = _board.legalMovesToVector();
 	_legalActions.clear();
 	_legalActions.reserve(moves.size());
+    assert((int)moves.size() < _board.getMax());
 	for (unsigned k=0; k<moves.size(); k++) {
 		_legalActions.push_back(std::make_shared<Golomb::Action>(moves[k], k));
+        assert(moves[k] >= 0);
+        assert(moves[k] < _board.getMax());
 	}
 }
 
@@ -87,6 +99,8 @@ void Golomb::State::ApplyAction(const _Action& action) {
 	assert(not _board.isTerminated());
 	assert(not _legalActions.empty());
 	int z = action.GetZ();
+    assert(z>0);
+    assert(z < _board.getMax());
 	_board.applyAction(z);
 	if (_board.isTerminated()) {
 		_status = GameStatus::player0Win;
@@ -109,6 +123,8 @@ std::unique_ptr<mcts::State> Golomb::State::clone_() const {
 
 float Golomb::State::getReward(int player) const {
 	assert(player == 0);
+    assert(_board.getScore() >= 0);
+    assert(_board.getScore() < _board.getMax());
 	return float(_board.getScore());
 }
 
@@ -124,6 +140,7 @@ std::string Golomb::State::stateDescription() const {
 }
 
 std::string Golomb::State::actionDescription(const _Action & action) const {
+    assert(action.GetZ());
 	return std::to_string(action.GetZ()) + " ";
 }
 
@@ -148,5 +165,6 @@ int Golomb::State::parseAction(const std::string& str) {
 	catch (...) {
 		std::cout << "failed to parse action" << std::endl;
 	}
+    assert(0);
 	return -1;
 }

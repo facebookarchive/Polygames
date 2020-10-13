@@ -21,7 +21,7 @@ class Board {
                                                 // update of legalMoves
 
     public:
-        int getMax() { return _max; }
+        int getMax() const { return _max; }
 
         Board(int max);
         Board();

@@ -9,7 +9,7 @@ Golomb::Board::Board(int max) :
     }
 
 Golomb::Board::Board() :
-    _max(10000) {
+    _max(10) {
 	    reset();
     }
 
@@ -52,6 +52,7 @@ void Golomb::Board::printAll() const{
 
 void Golomb::Board::applyAction(int number) {
     assert(number < _max);
+    assert(number >= 0);
     assert(_solution[number] == 0);
     assert(_legalMoves[number]);
     _solution[number] = 1;
@@ -63,6 +64,7 @@ void Golomb::Board::updateInternalState(int number) {
     for (int i=0; i<_max; i++) {
         if (_solution[i]) {
             // update of all distances
+            assert(std::abs(number-i) < _max);
             _distanceList[std::abs(number-i)] = 1;
             // update of legalMoves
             for (int j=0; j<_max; j++) {
@@ -73,7 +75,8 @@ void Golomb::Board::updateInternalState(int number) {
                         _legalMoves[i-j] = 0;
                     if (j-i >= 0)
                         _legalMoves[j-i] = 0;
-                    if (not ((i+j) % 2)) 
+                    //if ((not ((i+j) % 2)) and ((i+j)/2 < _max) )
+                    if (not ((i+j) % 2))
                         _legalMoves[(i+j)/2] = 0;
 
                 }
@@ -98,6 +101,7 @@ std::vector<int> Golomb::Board::legalMovesToVector() const {
     for (unsigned i=0; i<_legalMoves.size(); i++)
         if (_legalMoves[i])
             legals.push_back(i);    
+    assert(legals.size() < _max);
     return legals;
 }
 
