@@ -39,6 +39,9 @@ def create_game(
     # Many old models don't have the game_options attribute
     if hasattr(game_params, 'game_options'):
         game_options = game_params.game_options
+        
+        if game_options is None:
+            game_options = list()
     else:
         game_options = list()
 
