@@ -21,7 +21,7 @@ class ArgFields:
 @dataclass
 class GameParams:
     game_name: Optional[str] = None
-    game_options: List[str] = field(default_factory=list)
+    game_options: List[str] = None
     out_features: bool = False
     turn_features: bool = False
     geometric_features: bool = False
@@ -64,7 +64,7 @@ class GameParams:
                 opts=dict(
                     type=str,
                     nargs="*",
-                    default=list(),
+                    default=None,
                     help="Optional list of extra options to customise the game.",
                 )
             ),
