@@ -31,7 +31,7 @@ void LudiiStateWrapper::Initialize() {
   State::_geometricFeatures = false;
   State::_randomFeatures = 0;
   State::_oneFeature = false;
-	
+
   Reset();
 
   _hash = 0;  // TODO implement hash for stochastic games
