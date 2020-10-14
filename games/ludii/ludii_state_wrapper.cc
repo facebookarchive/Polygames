@@ -24,6 +24,14 @@ Action::Action(int i, int j, int k) {
 }
 
 void LudiiStateWrapper::Initialize() {
+  // TODO this temporarily needed only for unit tests!
+  State::_outFeatures = false;
+  State::_turnFeatures = false;
+  State::_history = 0;
+  State::_geometricFeatures = false;
+  State::_randomFeatures = 0;
+  State::_oneFeature = false;
+	
   Reset();
 
   _hash = 0;  // TODO implement hash for stochastic games
