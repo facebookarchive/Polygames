@@ -45,24 +45,27 @@ void LudiiStateWrapper::Initialize() {
 }
 
 void LudiiStateWrapper::findFeatures() {
-  const auto tensor = ToTensor();
-  int k = 0;
-  for (int x = 0; x < _featSize[0]; ++x) {
-    for (int y = 0; y < _featSize[1]; ++y) {
-      for (int z = 0; z < _featSize[2]; ++z) {
-        _features[k] = tensor[x][y][z];
-        ++k;
-      }
-    }
-  }
+  JNIEnv* jenv = JNIUtils::GetEnv();
+  const jfloatArray flatTensorArray =
+      static_cast<jfloatArray>(jenv->CallObjectMethod(
+          ludiiStateWrapperJavaObject, toTensorFlatMethodID));
+  JNIUtils::CheckJniException(jenv);
+  const jsize numEntries = jenv->GetArrayLength(flatTensorArray);
+  jfloat* jfloats =
+      (jfloat*)jenv->GetPrimitiveArrayCritical(flatTensorArray, nullptr);
+  std::copy(jfloats, jfloats + numEntries, _features.begin());
+
+  // Allow JVM to clean up memory now that we have our own floats
+  jenv->ReleasePrimitiveArrayCritical(flatTensorArray, jfloats, JNI_ABORT);
+  jenv->DeleteLocalRef(flatTensorArray);
 }
 
 void LudiiStateWrapper::findActions() {
   const std::vector<std::array<int, 3>> moves = LegalMovesTensors();
-  int nbMoves = NumLegalMoves();
+  size_t nbMoves = moves.size();
   _legalActions.clear();
   _legalActions.reserve(nbMoves);
-  for (int i = 0; i < nbMoves; ++i) {
+  for (size_t i = 0; i < nbMoves; ++i) {
     const std::array<int, 3>& move = moves[i];
     _legalActions.push_back(
         std::make_shared<Ludii::Action>(move[0], move[1], move[2]));
@@ -78,15 +81,8 @@ void LudiiStateWrapper::ApplyAction(const _Action& action) {
 
   assert(not IsTerminal());
 
-  // find move from action
-  const std::array<int, 3> move{action.GetX(), action.GetY(), action.GetZ()};
-  const auto moves = LegalMovesTensors();
-  const auto it = std::find(moves.begin(), moves.end(), move);
-  assert(it != moves.end());
-
   // play move
-  const int n = std::distance(moves.begin(), it);
-  ApplyNthMove(n);
+  ApplyNthMove(action.GetIndex());
 
   // update game status
   if (IsTerminal()) {
@@ -169,8 +165,8 @@ LudiiStateWrapper::LudiiStateWrapper(int seed,
   isTerminalMethodID =
       jenv->GetMethodID(ludiiStateWrapperClass, "isTerminal", "()Z");
   JNIUtils::CheckJniException(jenv);
-  toTensorMethodID =
-      jenv->GetMethodID(ludiiStateWrapperClass, "toTensor", "()[[[F");
+  toTensorFlatMethodID =
+      jenv->GetMethodID(ludiiStateWrapperClass, "toTensorFlat", "()[F");
   JNIUtils::CheckJniException(jenv);
   currentPlayerMethodID =
       jenv->GetMethodID(ludiiStateWrapperClass, "currentPlayer", "()I");
@@ -205,7 +201,7 @@ LudiiStateWrapper::LudiiStateWrapper(const LudiiStateWrapper& other)
   applyNthMoveMethodID = other.applyNthMoveMethodID;
   returnsMethodID = other.returnsMethodID;
   isTerminalMethodID = other.isTerminalMethodID;
-  toTensorMethodID = other.toTensorMethodID;
+  toTensorFlatMethodID = other.toTensorFlatMethodID;
   currentPlayerMethodID = other.currentPlayerMethodID;
   resetMethodID = other.resetMethodID;
 }
@@ -224,20 +220,17 @@ std::vector<std::array<int, 3>> LudiiStateWrapper::LegalMovesTensors() const {
           ludiiStateWrapperJavaObject, legalMovesTensorsMethodID));
   JNIUtils::CheckJniException(jenv);
   const jsize numLegalMoves = jenv->GetArrayLength(javaArrOuter);
-  JNIUtils::CheckJniException(jenv);
 
   std::vector<std::array<int, 3>> matrix(numLegalMoves);
   for (jsize i = 0; i < numLegalMoves; ++i) {
     const jintArray inner =
         static_cast<jintArray>(jenv->GetObjectArrayElement(javaArrOuter, i));
-    JNIUtils::CheckJniException(jenv);
-    jint* jints = jenv->GetIntArrayElements(inner, nullptr);
-    JNIUtils::CheckJniException(jenv);
+    jint* jints = (jint*)jenv->GetPrimitiveArrayCritical(inner, nullptr);
 
     matrix[i] = {jints[0], jints[1], jints[2]};
 
     // Allow JVM to clean up memory now that we have our own ints
-    jenv->ReleaseIntArrayElements(inner, jints, 0);
+    jenv->ReleasePrimitiveArrayCritical(inner, jints, JNI_ABORT);
     jenv->DeleteLocalRef(inner);
   }
 
@@ -288,49 +281,6 @@ void LudiiStateWrapper::Reset() const {
   JNIEnv* jenv = JNIUtils::GetEnv();
   jenv->CallVoidMethod(ludiiStateWrapperJavaObject, resetMethodID);
   JNIUtils::CheckJniException(jenv);
-}
-
-std::vector<std::vector<std::vector<float>>> LudiiStateWrapper::ToTensor()
-    const {
-  JNIEnv* jenv = JNIUtils::GetEnv();
-  const jobjectArray channelsArray = static_cast<jobjectArray>(
-      jenv->CallObjectMethod(ludiiStateWrapperJavaObject, toTensorMethodID));
-  JNIUtils::CheckJniException(jenv);
-  const jsize numChannels = jenv->GetArrayLength(channelsArray);
-  JNIUtils::CheckJniException(jenv);
-
-  std::vector<std::vector<std::vector<float>>> tensor(numChannels);
-  for (jsize c = 0; c < numChannels; ++c) {
-    const jobjectArray xArray = static_cast<jobjectArray>(
-        jenv->GetObjectArrayElement(channelsArray, c));
-    JNIUtils::CheckJniException(jenv);
-    const jsize numXCoords = jenv->GetArrayLength(xArray);
-    JNIUtils::CheckJniException(jenv);
-
-    tensor[c].resize(numXCoords);
-    for (jsize x = 0; x < numXCoords; ++x) {
-      const jfloatArray yArray =
-          static_cast<jfloatArray>(jenv->GetObjectArrayElement(xArray, x));
-      JNIUtils::CheckJniException(jenv);
-      const jsize numYCoords = jenv->GetArrayLength(yArray);
-      JNIUtils::CheckJniException(jenv);
-      jfloat* jfloats = jenv->GetFloatArrayElements(yArray, nullptr);
-      JNIUtils::CheckJniException(jenv);
-
-      tensor[c][x].resize(numYCoords);
-      std::copy(jfloats, jfloats + numYCoords, tensor[c][x].begin());
-
-      // Allow JVM to clean up memory now that we have our own ints
-      jenv->ReleaseFloatArrayElements(yArray, jfloats, 0);
-      jenv->DeleteLocalRef(yArray);
-    }
-
-    jenv->DeleteLocalRef(xArray);
-  }
-
-  jenv->DeleteLocalRef(channelsArray);
-
-  return tensor;
 }
 
 bool LudiiStateWrapper::isOnePlayerGame() const {

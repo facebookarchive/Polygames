@@ -107,12 +107,6 @@ class LudiiStateWrapper : public ::State {
    */
   void Reset() const;
 
-  /**
-   * @return State representated by a game-dependent number of channels, with
-   * each channel having X and Y coordinates.
-   */
-  std::vector<std::vector<std::vector<float>>> ToTensor() const;
-
   virtual bool isOnePlayerGame() const override;
 
  private:
@@ -145,8 +139,8 @@ class LudiiStateWrapper : public ::State {
   /** Method ID for the isTerminal() method in Java */
   jmethodID isTerminalMethodID;
 
-  /** Method ID for the toTensor() method in Java */
-  jmethodID toTensorMethodID;
+  /** Method ID for the toTensorFlat() method in Java */
+  jmethodID toTensorFlatMethodID;
 
   /** Method ID for the currentPlayer() method in Java */
   jmethodID currentPlayerMethodID;
