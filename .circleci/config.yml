@@ -147,7 +147,7 @@ jobs:
               . /opt/conda/etc/profile.d/conda.sh
               conda activate pypg
               mkdir ludii
-              wget -P ludii https://ludii.games/downloads/polygames/Ludii.jar
+              wget -P ludii https://ludii.games/downloads/Ludii.jar
               mkdir tests/build
               cd tests/build
               cmake ..
