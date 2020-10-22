@@ -13,6 +13,7 @@ import torch
 import polygames
 
 from . import utils
+from .model_zoo import utils as zutils
 from .params import GameParams, ModelParams, SimulationParams, ExecutionParams
 from .env_creation_helpers import (
     sanitize_game_params,
@@ -27,7 +28,8 @@ def convert_checkpoint(
     game_params: GameParams,
     model_params: ModelParams,
     out: str,
-    skip: List[str]
+    skip: List[str],
+    auto_tune_nnsize: bool,
 ):
     checkpoint = utils.load_checkpoint(
         checkpoint_path=model_params.init_checkpoint)
@@ -55,6 +57,18 @@ def convert_checkpoint(
         if v != ov:
             print("Changing %s from %s to %s" % (k, ov, v))
             setattr(new_game_params, k, v)
+            
+    if auto_tune_nnsize:
+        # We want to automatically tune nnsize, such that the number
+        # of filters in hidden layers does not change from source to
+        # target model
+        old_game_info = zutils.get_game_info(old_game_params)
+        new_game_info = zutils.get_game_info(new_game_params)
+        c_old, _, _ = old_game_info["feature_size"][:3]
+        c_new, _, _ = new_game_info["feature_size"][:3]
+        new_nnsize = float((getattr(old_model_params, 'nnsize') * c_old) / c_new)
+        print("Auto-tuning nnsize to:", new_nnsize)
+        setattr(new_model_params, 'nnsize', v)
 
     m = create_model(game_params=new_game_params,
                      model_params=new_model_params)
