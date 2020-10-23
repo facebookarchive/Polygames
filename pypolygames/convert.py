@@ -68,7 +68,7 @@ def convert_checkpoint(
         c_new, _, _ = new_game_info["feature_size"][:3]
         new_nnsize = float((getattr(old_model_params, 'nnsize') * c_old) / c_new)
         print("Auto-tuning nnsize to:", new_nnsize)
-        setattr(new_model_params, 'nnsize', v)
+        setattr(new_model_params, 'nnsize', new_nnsize)
 
     m = create_model(game_params=new_game_params,
                      model_params=new_model_params)
