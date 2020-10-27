@@ -6,10 +6,12 @@
  */
 
 #pragma once
-#include "mcts/player.h"
+#include "player.h"
 #include "state.h"
 
-class HumanPlayer : public mcts::Player {
+namespace core {
+
+class HumanPlayer : public Player {
  public:
   HumanPlayer()
       : Player(true){
@@ -22,12 +24,12 @@ class HumanPlayer : public mcts::Player {
     auto& legalActions = state.GetLegalActions();
     assert(index < (int)legalActions.size());
     std::cout << " applying action... " << std::endl;
-    return *(legalActions[index].get());
+    return legalActions[index];
     // std::cerr << " applied action... " << std::endl;
   }
 };
 
-class TPPlayer : public mcts::Player {
+class TPPlayer : public Player {
  public:
   TPPlayer()
       : Player(true) {
@@ -42,7 +44,9 @@ class TPPlayer : public mcts::Player {
     auto& legalActions = state.GetLegalActions();
     assert(index < (int)legalActions.size());
     std::cerr << " applying action... " << std::endl;
-    return *(legalActions[index].get());
+    return legalActions[index];
     // std::cerr << " applied action... " << std::endl;
   }
 };
+
+}  // namespace core

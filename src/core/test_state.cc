@@ -9,7 +9,7 @@
 #include "state.h"
 #include <iostream>
 
-float goodEval(State& s) {
+float goodEval(core::State& s) {
   float numWins = 0;
   int gameCount = 0;
   while (gameCount < 100) {
@@ -29,7 +29,7 @@ float goodEval(State& s) {
   return true;
 }
 
-float randEval(State& s) {
+float randEval(core::State& s) {
   float numWins = 0;
   int gameCount = 0;
   while (gameCount < 100) {
@@ -49,7 +49,7 @@ float randEval(State& s) {
   return true;
 }
 
-int doSimpleTest(State& s) {
+int doSimpleTest(core::State& s) {
   // goodEval(s);
   // Test that everything is fine.
   // win_frequency = 0 or 1 in purely random play is weird.
@@ -115,12 +115,14 @@ int doSimpleTest(State& s) {
   return s.GetFeatureSize()[0];
 }
 
-void doTest(State& s) {
+void doTest(core::State& s) {
   doSimpleTest(s);
   std::cout << "testing: fillFullFeatures at the end of ApplyAction and of "
                "Initialize."
             << std::endl;
-  s.setFeatures(false, false, false, 0, 3, false);
+  core::FeatureOptions opt;
+  opt.randomFeatures = 3;
+  s.setFeatures(&opt);
   doSimpleTest(s);
 }
 
@@ -415,5 +417,12 @@ int main() {
     auto state = StateForKyotoshogi(seed);
     doTest(state);
     std::cout << "test pass: Kyotoshogi" << std::endl;
+  }
+
+  {
+    std::cout << "testing: chess" << std::endl;
+    auto state = chess::State(seed);
+    doTest(state);
+    std::cout << "test pass: chess" << std::endl;
   }
 }
