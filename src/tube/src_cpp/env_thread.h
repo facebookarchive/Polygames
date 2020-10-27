@@ -8,14 +8,13 @@
 #pragma once
 
 #include <atomic>
-#include <unordered_map>
 #include <tuple>
+#include <unordered_map>
 
 namespace tube {
 
 class EnvThread {
  public:
-
   using StatsValue = std::tuple<double, double, double>;
   using Stats = std::unordered_map<std::string, StatsValue>;
 

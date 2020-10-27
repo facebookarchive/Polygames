@@ -17,14 +17,14 @@
 namespace tube {
 
 class ProducerThread : public EnvThread {
-public:
+ public:
   ProducerThread(int threadIdx, std::shared_ptr<DataChannel> dc)
-      : threadIdx(threadIdx),
-        dispatcher_(std::make_unique<Dispatcher>(std::move(dc))) {
-    s_ = std::make_shared<DataBlock>("s", std::initializer_list<int64_t>{1},
-                                     torch::kInt32);
-    a_ = std::make_shared<DataBlock>("a", std::initializer_list<int64_t>{1},
-                                     torch::kInt32);
+      : threadIdx(threadIdx)
+      , dispatcher_(std::make_unique<Dispatcher>(std::move(dc))) {
+    s_ = std::make_shared<DataBlock>(
+        "s", std::initializer_list<int64_t>{1}, torch::kInt32);
+    a_ = std::make_shared<DataBlock>(
+        "a", std::initializer_list<int64_t>{1}, torch::kInt32);
 
     dispatcher_->addDataBlocks({s_}, {a_});
     std::cout << "create thread: " << threadIdx << std::endl;
@@ -43,7 +43,7 @@ public:
 
   const int threadIdx;
 
-private:
+ private:
   std::unique_ptr<Dispatcher> dispatcher_;
   std::shared_ptr<DataBlock> s_;
   std::shared_ptr<DataBlock> a_;
@@ -51,13 +51,15 @@ private:
 };
 
 class DualDispatchThread : public EnvThread {
-public:
-  DualDispatchThread(int threadIdx, int maxStep,
+ public:
+  DualDispatchThread(int threadIdx,
+                     int maxStep,
                      std::shared_ptr<DataChannel> dcFast,
                      std::shared_ptr<DataChannel> dcSlow)
-      : threadIdx(threadIdx), maxStep(maxStep),
-        dispatcherFast_(std::make_unique<Dispatcher>(std::move(dcFast))),
-        dispatcherSlow_(std::make_unique<Dispatcher>(std::move(dcSlow))) {
+      : threadIdx(threadIdx)
+      , maxStep(maxStep)
+      , dispatcherFast_(std::make_unique<Dispatcher>(std::move(dcFast)))
+      , dispatcherSlow_(std::make_unique<Dispatcher>(std::move(dcSlow))) {
     auto sf = std::make_shared<DataBlock>(
         "s", std::initializer_list<int64_t>{1}, torch::kInt32);
     auto af = std::make_shared<DataBlock>(
@@ -105,7 +107,7 @@ public:
   const int threadIdx;
   const int maxStep;
 
-private:
+ private:
   int stepIdx_ = 0;
   std::unique_ptr<Dispatcher> dispatcherFast_;
   std::unique_ptr<Dispatcher> dispatcherSlow_;
@@ -113,4 +115,4 @@ private:
   std::vector<std::shared_ptr<DataBlock>> blocksSlowSend_, blocksSlowReply_;
 };
 
-}
+}  // namespace tube

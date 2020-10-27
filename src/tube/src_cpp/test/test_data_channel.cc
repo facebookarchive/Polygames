@@ -15,20 +15,22 @@ using tube::DataChannel;
 using tube::ProducerThread;
 
 class ConsumerThread {
-public:
-  ConsumerThread(std::shared_ptr<DataChannel> &dc) : dc_(dc) {}
+ public:
+  ConsumerThread(std::shared_ptr<DataChannel>& dc)
+      : dc_(dc) {
+  }
 
   void mainLoop() {
     int numBatch = 0;
     while (true) {
-      const auto &input = dc_->getInput();
+      const auto& input = dc_->getInput();
 
       std::cout << ">>>In Consumer mainLoop, batch: " << numBatch << std::endl;
       std::cout << input.at("s") << std::endl;
       std::cout << "========================" << std::endl;
 
       std::unordered_map<std::string, torch::Tensor> reply;
-      for (const auto &name2tensor : input) {
+      for (const auto& name2tensor : input) {
         reply["a"] = name2tensor.second.clone();
       }
       dc_->setReply(reply);
@@ -36,7 +38,7 @@ public:
     }
   }
 
-private:
+ private:
   std::shared_ptr<DataChannel> dc_;
 };
 

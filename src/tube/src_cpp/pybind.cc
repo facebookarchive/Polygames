@@ -8,7 +8,6 @@
 #include <pybind11/pybind11.h>
 #include <torch/extension.h>
 
-#include "channel_assembler.h"
 #include "context.h"
 #include "data_channel.h"
 
@@ -23,95 +22,10 @@ PYBIND11_MODULE(tube, m) {
       .def(py::init<std::string, int, int>())
       .def_readonly("name", &DataChannel::name)
       .def("terminate", &DataChannel::terminate)
-      .def("get_input",
-           &DataChannel::getInput,
+      .def("get_input", &DataChannel::getInput,
            py::call_guard<py::gil_scoped_release>())
-      .def("set_reply",
-           &DataChannel::setReply,
+      .def("set_reply", &DataChannel::setReply,
            py::call_guard<py::gil_scoped_release>());
-
-  using BufferState = ReplayBuffer::SerializableState;
-
-  py::class_<ChannelAssembler, std::shared_ptr<ChannelAssembler>>(
-      m, "ChannelAssembler")
-      .def(py::init<int,
-                    int,
-                    const std::vector<std::string>&,
-                    int,
-                    int,
-                    const std::string&,
-                    int,
-                    int>())
-      .def("get_train_channel", &ChannelAssembler::getTrainChannel)
-      .def("get_act_channels", &ChannelAssembler::getActChannels)
-      .def("update_model", &ChannelAssembler::updateModel)
-      .def("buffer_size", &ChannelAssembler::bufferSize)
-      .def("buffer_full", &ChannelAssembler::bufferFull)
-      .def("buffer_num_sample", &ChannelAssembler::bufferNumSample)
-      .def("buffer_num_add", &ChannelAssembler::bufferNumAdd)
-      .def_property("buffer",
-                    &ChannelAssembler::getBufferState,
-                    &ChannelAssembler::setBufferState,
-                    py::return_value_policy::move
-                    // getter
-                    // py::cpp_function(
-                    //[](ChannelAssembler& casm) {
-                    //    return casm.getBufferState();
-                    //},//,
-                    // py::return_value_policy::move
-                    //),
-                    // setter
-                    // py::cpp_function(
-                    //[](ChannelAssember& casm,
-                    //   const BufferState& bufferState) {
-                    //    casm.setBufferState(bufferState);
-                    //}
-                    //)
-                    )
-      .def("sample", &ChannelAssembler::sample)
-      .def("start", &ChannelAssembler::start)
-      .def("test_act", &ChannelAssembler::testAct)
-      .def("set_is_tournament_opponent",
-           &ChannelAssembler::setIsTournamentOpponent)
-      .def("add_tournament_model", &ChannelAssembler::addTournamentModel)
-      .def("set_dont_request_model_updates",
-           &ChannelAssembler::setDontRequestModelUpdates)
-      .def("start_server", &ChannelAssembler::startServer)
-      .def("start_client", &ChannelAssembler::startClient);
-
-  py::class_<BufferState>(m, "ReplayBuffer")
-      .def(py::pickle(
-          // __getstate__
-          [](const BufferState& bufferState) {
-            return py::make_tuple(bufferState.capacity,
-                                  bufferState.size,
-                                  bufferState.nextIdx,
-                                  bufferState.rngState,
-                                  bufferState.buffer);
-          },
-          // __setstate__
-          [](const py::tuple& t) {
-            constexpr size_t kExpectedTupleSize = 5;
-            if (t.size() != kExpectedTupleSize) {
-              std::ostringstream oss;
-              oss << "Error unpickling ReplayBuffer: expected "
-                  << kExpectedTupleSize << " elements, got " << t.size();
-              throw std::runtime_error(oss.str());
-            }
-            using RawBuffer = std::unordered_map<std::string, torch::Tensor>;
-            BufferState bufferState;
-            bufferState.capacity = t[0].cast<int>();
-            bufferState.size = t[1].cast<int>();
-            bufferState.nextIdx = t[2].cast<int>();
-            bufferState.rngState = t[3].cast<std::string>();
-            bufferState.buffer = t[4].cast<RawBuffer>();
-            return bufferState;
-          }))
-      .def_readonly("size", &BufferState::size)
-      .def_readonly("capacity", &BufferState::capacity)
-      .def_property_readonly("is_full", [](const BufferState& bufferState) {
-        return bufferState.size == bufferState.capacity;
-      });
 
   py::class_<EnvThread, std::shared_ptr<EnvThread>>(m, "EnvThread");
 
@@ -127,11 +41,8 @@ PYBIND11_MODULE(tube, m) {
       m, "ProducerThread")
       .def(py::init<int, std::shared_ptr<DataChannel>>());
 
-  py::class_<DualDispatchThread,
-             EnvThread,
+  py::class_<DualDispatchThread, EnvThread,
              std::shared_ptr<DualDispatchThread>>(m, "DualDispatchThread")
-      .def(py::init<int,
-                    int,
-                    std::shared_ptr<DataChannel>,
+      .def(py::init<int, int, std::shared_ptr<DataChannel>,
                     std::shared_ptr<DataChannel>>());
 }

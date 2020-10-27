@@ -38,7 +38,7 @@ class DataBlock {
   const std::string name;
   torch::Tensor data;
 };
-}
+}  // namespace tube
 
 #include "episodic_trajectory.h"
 #include "fixed_len_trajectory.h"
