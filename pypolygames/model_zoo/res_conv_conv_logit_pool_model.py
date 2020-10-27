@@ -91,6 +91,8 @@ class ResConvConvLogitPoolModel(torch.jit.ScriptModule):
         bn_affine = bn
         self.model_params = model_params
 
+        batchnorm_momentum = model_params.batchnorm_momentum
+
         mono = [
             nn.Conv2d(
                 c,
@@ -122,7 +124,7 @@ class ResConvConvLogitPoolModel(torch.jit.ScriptModule):
                     nets[j] = nn.Sequential(
                         nets[j],
                         nn.BatchNorm2d(
-                            int(nnsize * c), track_running_stats=True, affine=bn_affine
+                            int(nnsize * c), track_running_stats=True, affine=bn_affine, momentum=batchnorm_momentum
                         ),
                     )
             if pooling:
@@ -139,7 +141,7 @@ class ResConvConvLogitPoolModel(torch.jit.ScriptModule):
             resnet_list.append(nets)
         if bn or bn_affine:
             mono.append(
-                nn.BatchNorm2d(int(nnsize * c), track_running_stats=True, affine=bn_affine),
+                nn.BatchNorm2d(int(nnsize * c), track_running_stats=True, affine=bn_affine, momentum=batchnorm_momentum),
             )
             for i in range(nb_nets):
                 for j in range(nb_layers_per_net):
@@ -183,39 +185,7 @@ class ResConvConvLogitPoolModel(torch.jit.ScriptModule):
 
     @torch.jit.script_method
     def forward(self, x: torch.Tensor):
-        v, pi = self._forward(x, False)
-        pi = pi.view(-1, self.c_prime, x.size(2), x.size(3))
-        reply = {"v": v, "pi": pi}
+        v, pi_logit = self._forward(x, True)
+        pi_logit = pi_logit.view(-1, self.c_prime, x.size(2), x.size(3))
+        reply = {"v": v, "pi_logit": pi_logit}
         return reply
-
-    def loss(
-        self,
-        model,
-        x: torch.Tensor,
-        v: torch.Tensor,
-        pi: torch.Tensor,
-        pi_mask: torch.Tensor,
-        stat: utils.MultiCounter,
-    ) -> float:
-        pi = pi.flatten(1)
-        pred_v, pred_logit = model._forward(x, return_logit=True)
-        utils.assert_eq(v.size(), pred_v.size())
-        utils.assert_eq(pred_logit.size(), pi.size())
-        utils.assert_eq(pred_logit.dim(), 2)
-
-        pi_mask = pi_mask.view(pred_logit.shape);
-        pred_logit = pred_logit * pi_mask - 40 * (1 - pi_mask)
-        #pi = pi * pi_mask
-
-        v_err = F.mse_loss(pred_v, v, reduction="none").squeeze(1)
-        pred_log_pi = nn.functional.log_softmax(pred_logit.flatten(1), dim=1).view_as(
-            pred_logit
-        ) * pi_mask
-        pi_err = -(pred_log_pi * pi).sum(1)
-
-        utils.assert_eq(v_err.size(), pi_err.size())
-        err = v_err + pi_err
-
-        stat["v_err"].feed(v_err.detach().mean().item())
-        stat["pi_err"].feed(pi_err.detach().mean().item())
-        return err.mean()

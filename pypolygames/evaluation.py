@@ -14,7 +14,7 @@ import torch
 import tube
 from pytube.data_channel_manager import DataChannelManager
 
-from .params import GameParams, EvalParams
+from .params import GameParams, EvalParams, ExecutionParams
 from . import utils
 from .env_creation_helpers import (
     sanitize_game_params,
@@ -81,6 +81,12 @@ def create_models_and_devices_opponent(
             model_params=model_params_opponent,
             resume_training=False,
         ).to(device_opponent)
+        remove = []
+        for k, v in model_state_dict_opponent.items():
+          if "training" in k:
+            remove.append(k)
+        for k in remove:
+          model_state_dict_opponent.pop(k)
         model_opponent.load_state_dict(model_state_dict_opponent)
         model_opponent.eval()
         models_opponent.append(model_opponent)
@@ -133,12 +139,16 @@ def create_evaluation_environment(
         player = create_player(
             seed_generator=seed_generator,
             game=game,
+            player="mcts",
             num_actor=num_actor_eval,
             num_rollouts=num_rollouts_eval,
             pure_mcts=pure_mcts_eval,
             actor_channel=actor_channel_eval,
-            assembler=None,
+            model_manager=None,
             human_mode=False,
+            sample_before_step_idx=8,
+            randomized_rollouts=False,
+            sampling_mcts=False,
         )
         if game.is_one_player_game():
             game.add_eval_player(player)
@@ -147,12 +157,16 @@ def create_evaluation_environment(
             opponent = create_player(
                 seed_generator=seed_generator,
                 game=game,
+                player="mcts",
                 num_actor=num_actor_opponent,
                 num_rollouts=num_rollouts_opponent,
                 pure_mcts=pure_mcts_opponent,
                 actor_channel=actor_channel_opponent,
-                assembler=None,
+                model_manager=None,
                 human_mode=False,
+                sample_before_step_idx=8,
+                randomized_rollouts=False,
+                sampling_mcts=False,
             )
             game_id = num_evaluated_games + game_no
             if player_moves_first(game_id, num_game):
@@ -217,7 +231,7 @@ def _play_game_neural_mcts_against_pure_mcts_opponent(
             batch[actor_channel_eval.name]["s"], nb_devices_eval, dim=0
         )
         futures = []
-        reply_eval = {"v": None, "pi": None}
+        reply_eval = {"v": None, "pi_logit": None}
         # multithread
         with ThreadPoolExecutor(max_workers=nb_devices_eval) as executor:
             for device, model, batch_s in zip(
@@ -228,7 +242,7 @@ def _play_game_neural_mcts_against_pure_mcts_opponent(
                 )
             results = [future.result() for future in futures]
             reply_eval["v"] = torch.cat([result["v"] for result in results], dim=0)
-            reply_eval["pi"] = torch.cat([result["pi"] for result in results], dim=0)
+            reply_eval["pi_logit"] = torch.cat([result["pi_logit"] for result in results], dim=0)
         dcm.set_reply(actor_channel_eval.name, reply_eval)
     dcm.terminate()
 
@@ -259,7 +273,7 @@ def _play_game_neural_mcts_against_neural_mcts_opponent(
                 batch[actor_channel_eval.name]["s"], nb_devices_eval, dim=0
             )
             futures = []
-            reply_eval = {"v": None, "pi": None}
+            reply_eval = {"v": None, "pi_logit": None}
             # multithread
             with ThreadPoolExecutor(max_workers=nb_devices_eval) as executor:
                 for device, model, batch_s in zip(
@@ -270,8 +284,8 @@ def _play_game_neural_mcts_against_neural_mcts_opponent(
                     )
                 results = [future.result() for future in futures]
                 reply_eval["v"] = torch.cat([result["v"] for result in results], dim=0)
-                reply_eval["pi"] = torch.cat(
-                    [result["pi"] for result in results], dim=0
+                reply_eval["pi_logit"] = torch.cat(
+                    [result["pi_logit"] for result in results], dim=0
                 )
             dcm.set_reply(actor_channel_eval.name, reply_eval)
 
@@ -281,7 +295,7 @@ def _play_game_neural_mcts_against_neural_mcts_opponent(
                 batch[actor_channel_opponent.name]["s"], nb_devices_opponent, dim=0
             )
             futures = []
-            reply_opponent = {"v": None, "pi": None}
+            reply_opponent = {"v": None, "pi_logit": None}
             # multithread
             with ThreadPoolExecutor(max_workers=nb_devices_opponent) as executor:
                 for device, model, batch_s in zip(
@@ -294,8 +308,8 @@ def _play_game_neural_mcts_against_neural_mcts_opponent(
                 reply_opponent["v"] = torch.cat(
                     [result["v"] for result in results], dim=0
                 )
-                reply_opponent["pi"] = torch.cat(
-                    [result["pi"] for result in results], dim=0
+                reply_opponent["pi_logit"] = torch.cat(
+                    [result["pi_logit"] for result in results], dim=0
                 )
             dcm.set_reply(actor_channel_opponent.name, reply_opponent)
     dcm.terminate()
@@ -362,7 +376,7 @@ def evaluate_on_checkpoint(
 #######################################################################################
 
 
-def run_evaluation(eval_params: EvalParams, only_last: bool = False) -> None:
+def run_evaluation(eval_params: EvalParams, execution_params: ExecutionParams, only_last: bool = False) -> None:
     start_time = time.time()
     logger_dir = eval_params.checkpoint_dir
     if eval_params.checkpoint_dir is None:
