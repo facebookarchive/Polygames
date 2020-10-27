@@ -42,7 +42,7 @@ struct Move {
   int x, y;
 };
 
-template <int M, int N, int K> class State : public ::State {
+template <int M, int N, int K> class State : public core::State {
   static_assert(M > 0 && N > 0 && K > 0, "m, n, and k must be greater then 0");
   static_assert(K <= M || K <= N, "k must be less than or equal to m or n");
 
@@ -51,14 +51,14 @@ template <int M, int N, int K> class State : public ::State {
 
   State(int seed);
   void Initialize() override;
-  std::unique_ptr<mcts::State> clone_() const override;
+  std::unique_ptr<core::State> clone_() const override;
   void ApplyAction(const ::_Action& action) override;
   void DoGoodAction() override;
   void printCurrentBoard() const override;
   std::string stateDescription() const override;
   std::string actionDescription(const ::_Action& action) const override;
-  std::string actionsDescription() override;
-  int parseAction(const std::string& str) override;
+  std::string actionsDescription() const override;
+  int parseAction(const std::string& str) const override;
   int humanInputAction(
       std::function<std::optional<int>(std::string)> specialAction) override;
 
@@ -87,14 +87,9 @@ template <int M, int N, int K> class State : public ::State {
   std::bitset<Board::squares> areEmpty;
 };
 
-template <int M, int N, int K> class Action : public ::_Action {
- public:
-  Action(int i, int x, int y);
-};
-
 template <int M, int N, int K>
 State<M, N, K>::State(int seed)
-    : ::State(seed) {
+    : core::State(seed) {
   std::call_once(setupCalled, [&] { setupBoard(_rng); });
 }
 
@@ -114,7 +109,7 @@ template <int M, int N, int K> void State<M, N, K>::Initialize() {
 }
 
 template <int M, int N, int K>
-std::unique_ptr<mcts::State> State<M, N, K>::clone_() const {
+std::unique_ptr<core::State> State<M, N, K>::clone_() const {
   return std::make_unique<State>(*this);
 }
 
@@ -157,22 +152,22 @@ std::string State<M, N, K>::actionDescription(const ::_Action& action) const {
 }
 
 template <int M, int N, int K>
-std::string State<M, N, K>::actionsDescription() {
+std::string State<M, N, K>::actionsDescription() const {
   std::set<std::tuple<int, int>> markedPos;
   for (auto& legalAction : _legalActions)
-    markedPos.insert({legalAction->GetY(), legalAction->GetZ()});
+    markedPos.insert({legalAction.GetY(), legalAction.GetZ()});
   return board.sprintBoard("  ", markedPos);
 }
 
 template <int M, int N, int K>
-int State<M, N, K>::parseAction(const std::string& str) {
+int State<M, N, K>::parseAction(const std::string& str) const {
   auto result = board.parsePosStr(str);
   if (!result)
     return -1;
   auto [x, y] = result.value();
   int i = 0;
   for (auto& legalAction : _legalActions) {
-    if (legalAction->GetY() == x && legalAction->GetZ() == y)
+    if (legalAction.GetY() == x && legalAction.GetZ() == y)
       return i;
     i++;
   }
@@ -269,13 +264,12 @@ bool State<M, N, K>::isConnected(const Move& move) {
 }
 
 template <int M, int N, int K> void State<M, N, K>::findLegalActions() {
-  _legalActions.clear();
-  int i = 0;
+  clearActions();
   for (int xy = 0; xy < Board::squares; xy++) {
     if (areEmpty[xy]) {
       auto [x, y] = Board::posTo2D(xy);
-      _legalActions.push_back(std::make_shared<Action<N, M, K>>(i++, x, y));
-      assert(i <= maxLegalActionsCnt);
+      addAction(0, x, y);
+      assert(_legalActions.size() <= maxLegalActionsCnt);
     }
   }
 }
@@ -319,14 +313,6 @@ template <int M, int N, int K> void State<M, N, K>::fillFeatures() {
         *f = 1.0;
   }
   fillFullFeatures();
-}
-
-template <int M, int N, int K>
-Action<M, N, K>::Action(int i, int x, int y)
-    : ::_Action() {
-  _i = i;
-  _loc = {0, x, y};
-  _hash = State<M, N, K>::Board::rows * y + x;
 }
 
 }  // namespace MNKGame

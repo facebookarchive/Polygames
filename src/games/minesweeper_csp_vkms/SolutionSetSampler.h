@@ -12,8 +12,7 @@
 namespace csp {
 namespace vkms {
 
-template<size_t WIDTH, size_t HEIGHT, size_t MINES>
-class SolutionSetSampler {
+template <size_t WIDTH, size_t HEIGHT, size_t MINES> class SolutionSetSampler {
 
   using _GameDefs = Minesweeper::GameDefs<WIDTH, HEIGHT, MINES>;
   using Mines = typename _GameDefs::Mines;
@@ -22,30 +21,29 @@ class SolutionSetSampler {
   using CountSample = std::vector<size_t>;
   using CountSampleList = std::list<CountSample>;
 
-public:
-
+ public:
   SolutionSetSampler(const std::vector<_SolutionSet>& solutionSets,
-      const _Mask& unconstrainedVariables,
-      const _Mask& mines) :
-    _solutionSets(solutionSets),
-    _unconstrainedVariables(unconstrainedVariables),
-    _mines(mines),
-    _numMinesRemaining(MINES - mines.sparse().size()),
-    _unconstrVarSetIdx(solutionSets.size()),
-    _numUnconstrVars(unconstrainedVariables.sparse().size()),
-    _minMines(solutionSets.size() + 1, 0),
-    _maxMines(solutionSets.size() + 1, 0),
-    _firstBranchingSet(0),
-    _solutionSetsOrder(solutionSets.size() + 1, 0),
-    _numMinesToSample(solutionSets.size() + 1, 0) {
+                     const _Mask& unconstrainedVariables,
+                     const _Mask& mines)
+      : _solutionSets(solutionSets)
+      , _unconstrainedVariables(unconstrainedVariables)
+      , _mines(mines)
+      , _numMinesRemaining(MINES - mines.sparse().size())
+      , _unconstrVarSetIdx(solutionSets.size())
+      , _numUnconstrVars(unconstrainedVariables.sparse().size())
+      , _minMines(solutionSets.size() + 1, 0)
+      , _maxMines(solutionSets.size() + 1, 0)
+      , _firstBranchingSet(0)
+      , _solutionSetsOrder(solutionSets.size() + 1, 0)
+      , _numMinesToSample(solutionSets.size() + 1, 0) {
     assert(mines.sparse().size() <= MINES);
     assert(_numMinesRemaining <= MINES);
     initializeMinMaxMinesStats();
     prepareSampling();
-  } // SolutionSetSampler::SolutionSetSampler
+  }  // SolutionSetSampler::SolutionSetSampler
 
-  std::vector<std::pair<CountSample, float> > countsWithProbabilities() const {
-    std::vector<std::pair<CountSample, float> > countSamplesWithProbas;
+  std::vector<std::pair<CountSample, float>> countsWithProbabilities() const {
+    std::vector<std::pair<CountSample, float>> countSamplesWithProbas;
     countSamplesWithProbas.reserve(_countSamples.size());
     auto countSamplesIt = _countSamples.begin();
     for (size_t k = 0; k < _countSamples.size(); ++k) {
@@ -57,31 +55,32 @@ public:
       countSamplesWithProbas.emplace_back(countSample, _countSampleProbas[k]);
     }
     return countSamplesWithProbas;
-  } // countsWithProbabilities
+  }  // countsWithProbabilities
 
-  template<typename RngEngine>
-  void sampleMines(Mines& mines, RngEngine& rng) {
+  template <typename RngEngine> void sampleMines(Mines& mines, RngEngine& rng) {
     auto mineSampleIt = mines.begin();
     // add all marked mines
     for (const auto& v : _mines.sparse()) {
       *mineSampleIt++ = rowColToIdx<WIDTH>(v.row(), v.col());
     }
-    // sample counts for each solution set 
+    // sample counts for each solution set
     CountSample countSample;
     if (_countSamples.size() > 1) {
-      MINESWEEPER_DEBUG(debug(std::cout) << "Unnormalized probas: "; \
-          dumpCollection(std::cout, _countSampleProbas) << std::endl);
+      MINESWEEPER_DEBUG(debug(std::cout) << "Unnormalized probas: ";
+                        dumpCollection(std::cout, _countSampleProbas)
+                        << std::endl);
       std::discrete_distribution<size_t> sampleDistribution(
           _countSampleProbas.begin(), _countSampleProbas.end());
       size_t countSampleIdx = sampleDistribution(rng);
       auto countSampleIt = _countSamples.begin();
-      for (size_t i = 0; i < countSampleIdx; ++i, ++countSampleIt);
+      for (size_t i = 0; i < countSampleIdx; ++i, ++countSampleIt)
+        ;
       countSample = *countSampleIt;
     } else {
       countSample = _countSamples.front();
     }
-    MINESWEEPER_DEBUG(debug(std::cout) << "Count sample: "; \
-        dumpCollection(std::cout, countSample) << std::endl);
+    MINESWEEPER_DEBUG(debug(std::cout) << "Count sample: ";
+                      dumpCollection(std::cout, countSample) << std::endl);
     // sample according to counts
     size_t nMinesInSetJ, j;
     for (size_t i = 0; i < countSample.size(); ++i) {
@@ -92,19 +91,20 @@ public:
       }
       if (j != _unconstrVarSetIdx) {
         auto mineSample = _solutionSets[j].sample(nMinesInSetJ, rng);
-        mineSampleIt = std::copy(mineSample.begin(), mineSample.end(), mineSampleIt);
+        mineSampleIt =
+            std::copy(mineSample.begin(), mineSample.end(), mineSampleIt);
       } else {
         auto mineSample = sampleUnconstrained(nMinesInSetJ, rng);
         assert(mineSample.size() == nMinesInSetJ);
-        mineSampleIt = std::copy(mineSample.begin(), mineSample.end(), mineSampleIt);
+        mineSampleIt =
+            std::copy(mineSample.begin(), mineSample.end(), mineSampleIt);
       }
     }
     assert(mineSampleIt == mines.end());
     std::sort(mines.begin(), mines.end());
-  } // olutionSetSampler::sampleMines
+  }  // olutionSetSampler::sampleMines
 
-private:
-
+ private:
   static constexpr size_t INVALID_COUNT = static_cast<size_t>(-1);
 
   void prepareSampling() {
@@ -114,38 +114,41 @@ private:
     assert(!_countSamples.empty());
     MINESWEEPER_DEBUG(dumpCountSamples(std::cout, _countSamples));
     _countSampleProbas = computeSampleProbabilities(_countSamples);
-  } // prepareSampling
+  }  // prepareSampling
 
-  template<typename RngEngine>
+  template <typename RngEngine>
   std::vector<int> sampleUnconstrained(size_t n, RngEngine& rng) {
     std::vector<int> sample;
     if (!n) {
       return sample;
     }
     sample.reserve(n);
-    std::vector<Minesweeper::BoardPosition> unconstrained(_unconstrainedVariables.sparse());
+    std::vector<Minesweeper::BoardPosition> unconstrained(
+        _unconstrainedVariables.sparse());
     std::shuffle(unconstrained.begin(), unconstrained.end(), rng);
     for (size_t i = 0; i < n; ++i) {
       std::uniform_int_distribution<size_t> distribution(
-        i, unconstrained.size() - 1);
+          i, unconstrained.size() - 1);
       size_t varIdx = distribution(rng);
       const auto& boardPosition = unconstrained[varIdx];
-      sample.push_back(rowColToIdx<WIDTH>(
-          boardPosition.row(), boardPosition.col()));
+      sample.push_back(
+          rowColToIdx<WIDTH>(boardPosition.row(), boardPosition.col()));
       std::swap(unconstrained[i], unconstrained[varIdx]);
     }
     return sample;
   }
 
-  std::vector<float> computeSampleProbabilities(const CountSampleList& samples) {
+  std::vector<float> computeSampleProbabilities(
+      const CountSampleList& samples) {
     std::vector<float> probas;
     probas.reserve(samples.size());
     float unnormalizedLogProba;
     float maxLogProba = 0;
     size_t nSamples, nMinesInSetJ, j;
     for (const auto& sample : samples) {
-      MINESWEEPER_DEBUG(debug(std::cout) \
-        << "Computing probabilities for sample counts:"<< std::endl);
+      MINESWEEPER_DEBUG(debug(std::cout)
+                        << "Computing probabilities for sample counts:"
+                        << std::endl);
       MINESWEEPER_DEBUG(dumpCollection(debug(std::cout), sample) << std::endl);
       assert(sample.size() == _solutionSetsOrder.size());
       unnormalizedLogProba = 0;
@@ -156,16 +159,19 @@ private:
           if (j != _unconstrVarSetIdx) {
             assert(_solutionSets[j].hasSamples(nMinesInSetJ));
             nSamples = _solutionSets[j].numSamples(nMinesInSetJ);
-            unnormalizedLogProba += log(nSamples); 
-            MINESWEEPER_DEBUG(debug(std::cout) << "Set " << j << " (constrained)" \
-                << ", #mines " << nMinesInSetJ << ", log proba " \
-                << log(nSamples) << std::endl);
+            unnormalizedLogProba += log(nSamples);
+            MINESWEEPER_DEBUG(debug(std::cout)
+                              << "Set " << j << " (constrained)"
+                              << ", #mines " << nMinesInSetJ << ", log proba "
+                              << log(nSamples) << std::endl);
           } else {
             assert(nMinesInSetJ <= _numUnconstrVars);
-            MINESWEEPER_DEBUG(debug(std::cout) << "Set " << j << " (unconstrained)" \
-                << ", #mines " << nMinesInSetJ << ", log proba " \
-                << logCnk(_numUnconstrVars, nMinesInSetJ) << std::endl);
-            unnormalizedLogProba += logCnk(_numUnconstrVars, nMinesInSetJ); 
+            MINESWEEPER_DEBUG(debug(std::cout)
+                              << "Set " << j << " (unconstrained)"
+                              << ", #mines " << nMinesInSetJ << ", log proba "
+                              << logCnk(_numUnconstrVars, nMinesInSetJ)
+                              << std::endl);
+            unnormalizedLogProba += logCnk(_numUnconstrVars, nMinesInSetJ);
           }
         }
       }
@@ -187,14 +193,14 @@ private:
     }
     MINESWEEPER_DEBUG(std::cout << std::endl);
     return probas;
-  } // computeSampleProbabilities
+  }  // computeSampleProbabilities
 
   float logCnk(size_t n, size_t k) {
     // n! / (k! (n-k)!)
     float result = 0;
     assert(n >= k);
-    result += sumLog(max(k, n-k) + 1, n);
-    result -= sumLog(2, min(k, n-k));
+    result += sumLog(max(k, n - k) + 1, n);
+    result -= sumLog(2, min(k, n - k));
     return result;
   }
 
@@ -206,15 +212,15 @@ private:
     return result;
   }
 
-  template<typename T>
+  template <typename T>
   std::ostream& dumpCollection(std::ostream& os, const T& collection) {
     for (const auto& v : collection) {
       os << v << ' ';
     }
     return os;
-  } // dumpSample
+  }  // dumpSample
 
-  template<typename T>
+  template <typename T>
   std::ostream& dumpCountSamples(std::ostream& os, const T& samples) {
     debug(os) << "Count samples:" << std::endl;
     for (const auto& sample : samples) {
@@ -222,10 +228,10 @@ private:
       dumpCollection(os, sample) << std::endl;
     }
     return os;
-  } // dumpCountSamples
+  }  // dumpCountSamples
 
-  std::list<std::vector<size_t> > enumeratePlausibleCountSamples() {
-    std::list<std::vector<size_t> > samples;
+  std::list<std::vector<size_t>> enumeratePlausibleCountSamples() {
+    std::list<std::vector<size_t>> samples;
     // set mine counts for sets with deterministic counts
     size_t initNumMines = 0;
     for (size_t i = 0; i < _firstBranchingSet; ++i) {
@@ -234,7 +240,7 @@ private:
       _numMinesToSample[i] = _minMines[j];
       initNumMines += _minMines[j];
     }
-    // finish if there are only deterministic counts 
+    // finish if there are only deterministic counts
     if (_firstBranchingSet == _solutionSetsOrder.size()) {
       samples.push_back(_numMinesToSample);
       return samples;
@@ -267,8 +273,9 @@ private:
       }
       assert(currentCounts.size() == currentCountsCapacity - 1);
       assert(cursor == _solutionSetsOrder.size() - 2);
-      assert(sumNumMines == initNumMines +
-          std::accumulate(currentCounts.begin(), currentCounts.end(), 0u));
+      assert(sumNumMines ==
+             initNumMines + std::accumulate(currentCounts.begin(),
+                                            currentCounts.end(), 0u));
       // check if can sample the missing mines from the last set
       if (sumNumMines <= _numMinesRemaining) {
         ++cursor;
@@ -277,19 +284,19 @@ private:
         if (canSampleNumMinesFromSet(numMines, setIdx)) {
           currentCounts.push_back(numMines);
           std::copy(currentCounts.begin(), currentCounts.end(),
-              &_numMinesToSample[_firstBranchingSet]);
+                    &_numMinesToSample[_firstBranchingSet]);
           samples.push_back(_numMinesToSample);
           currentCounts.pop_back();
         }
-        // next counts configuration 
+        // next counts configuration
         --cursor;
         setIdx = _solutionSetsOrder[cursor];
         numMines = nextMinesCount(currentCounts.back() + 1, setIdx);
       } else {
-        // next counts configuration 
+        // next counts configuration
         numMines = INVALID_COUNT;
       }
-      while((numMines == INVALID_COUNT) && !currentCounts.empty()) {
+      while ((numMines == INVALID_COUNT) && !currentCounts.empty()) {
         sumNumMines -= currentCounts.back();
         currentCounts.pop_back();
         if (cursor > _firstBranchingSet) {
@@ -307,7 +314,7 @@ private:
       }
     }
     return samples;
-  } // determineNumberOfSamples
+  }  // determineNumberOfSamples
 
   bool canSampleNumMinesFromSet(size_t numMines, size_t setIdx) {
     if (setIdx == _unconstrVarSetIdx) {
@@ -316,7 +323,7 @@ private:
     } else {
       return _solutionSets[setIdx].hasSamples(numMines);
     }
-  } // canSampleNumMinesFromSet
+  }  // canSampleNumMinesFromSet
 
   size_t nextMinesCount(size_t countHint, size_t setIdx) {
     assert(setIdx < _maxMines.size());
@@ -326,7 +333,7 @@ private:
     if (setIdx == _unconstrVarSetIdx) {
       return countHint;
     }
-    while(!_solutionSets[setIdx].hasSamples(countHint)) {
+    while (!_solutionSets[setIdx].hasSamples(countHint)) {
       ++countHint;
       if (countHint > _maxMines[setIdx]) {
         return INVALID_COUNT;
@@ -334,7 +341,7 @@ private:
     }
     assert(_solutionSets[setIdx].hasSamples(countHint));
     return countHint;
-  } // nextMinesCount
+  }  // nextMinesCount
 
   void computeSolutionSetsOrder() {
     assert(_solutionSetsOrder.size() > 0);
@@ -359,8 +366,8 @@ private:
       _solutionSetsOrder[head] = tmp;
     }
     _firstBranchingSet = head;
-  } // computeSolutionSetsOrder
-  
+  }  // computeSolutionSetsOrder
+
   void initializeMinMaxMinesStats() {
     for (size_t i = 0; i < _solutionSets.size(); ++i) {
       _minMines[i] = _solutionSets[i].minNumMines();
@@ -368,17 +375,17 @@ private:
     }
     _minMines[_solutionSets.size()] = 0;
     _maxMines[_solutionSets.size()] = _unconstrainedVariables.sparse().size();
-    MINESWEEPER_DEBUG( \
-      debug(std::cout) << "Min mines init: "; \
-      for (size_t n : _minMines) { std::cout << n << " "; } \
-      std::cout << std::endl; \
-    );
-    MINESWEEPER_DEBUG( \
-      debug(std::cout) << "Max mines init: "; \
-      for (size_t n : _maxMines) { std::cout << n << " "; } \
-      std::cout << std::endl; \
-    );
-  } // SolutionSetSampler::initializeMinMaxMinesStats
+    MINESWEEPER_DEBUG(
+        debug(std::cout) << "Min mines init: "; for (size_t n
+                                                     : _minMines) {
+          std::cout << n << " ";
+        } std::cout << std::endl;);
+    MINESWEEPER_DEBUG(
+        debug(std::cout) << "Max mines init: "; for (size_t n
+                                                     : _maxMines) {
+          std::cout << n << " ";
+        } std::cout << std::endl;);
+  }  // SolutionSetSampler::initializeMinMaxMinesStats
 
   void adjustMinMaxMinesStats() {
     size_t sumMax = std::accumulate(_maxMines.begin(), _maxMines.end(), 0u);
@@ -390,30 +397,28 @@ private:
       changed = false;
       for (size_t i = 0; i < nsets; ++i) {
         if (_maxMines[i] + sumMin > _numMinesRemaining + _minMines[i]) {
-           delta = _maxMines[i] + sumMin - (_numMinesRemaining + _minMines[i]);
+          delta = _maxMines[i] + sumMin - (_numMinesRemaining + _minMines[i]);
           _maxMines[i] -= delta;
           sumMax -= delta;
           changed = true;
         }
         if (_minMines[i] + sumMax < _numMinesRemaining + _maxMines[i]) {
-           delta = _numMinesRemaining + _maxMines[i] - (_minMines[i] + sumMax);
+          delta = _numMinesRemaining + _maxMines[i] - (_minMines[i] + sumMax);
           _minMines[i] += delta;
           sumMin += delta;
           changed = true;
         }
       }
     } while (changed);
-    MINESWEEPER_DEBUG( \
-      debug(std::cout) << "Min mines adj: "; \
-      for (size_t n : _minMines) { std::cout << n << " "; } \
-      std::cout << std::endl; \
-    );
-    MINESWEEPER_DEBUG( \
-      debug(std::cout) << "Max mines adj: "; \
-      for (size_t n : _maxMines) { std::cout << n << " "; } \
-      std::cout << std::endl; \
-    );
-  } // SolutionSetSampler::adjustMinMaxMinesStats
+    MINESWEEPER_DEBUG(debug(std::cout) << "Min mines adj: "; for (size_t n
+                                                                  : _minMines) {
+      std::cout << n << " ";
+    } std::cout << std::endl;);
+    MINESWEEPER_DEBUG(debug(std::cout) << "Max mines adj: "; for (size_t n
+                                                                  : _maxMines) {
+      std::cout << n << " ";
+    } std::cout << std::endl;);
+  }  // SolutionSetSampler::adjustMinMaxMinesStats
 
   const std::vector<_SolutionSet>& _solutionSets;
   const _Mask& _unconstrainedVariables;
@@ -431,8 +436,7 @@ private:
   CountSampleList _countSamples;
   std::vector<float> _countSampleProbas;
 
-}; // class SolutionSetSampler
+};  // class SolutionSetSampler
 
-} // namespace vkms
-} // namespace csp
-
+}  // namespace vkms
+}  // namespace csp

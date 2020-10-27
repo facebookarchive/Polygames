@@ -21,27 +21,6 @@ typedef unsigned short Coord;
 
 //#include "breakthrough.h"
 
-class ActionForNogo : public _Action {
- public:
-  // each action has a position (_x[0], _x[1], _x[2])
-  // here for Nogo, there is (0, 0, 0) and (1, 0, 0),
-  // corresponding to steps 2 and 3 respectively.
-  ActionForNogo(int x, int y)
-      : _Action() {
-    _loc[0] = 0;
-    _loc[1] = x;
-    _loc[2] = y;
-    _hash = (x + y * 9);
-  }
-  ActionForNogo(int hash)
-      : _Action() {
-    _hash = hash;
-    _loc[0] = 0;
-    _loc[1] = hash % 9;
-    _loc[2] = hash / 9;
-  }
-};
-
 class StateForNogo : public State {
  public:
   StateForNogo()
@@ -80,12 +59,10 @@ class StateForNogo : public State {
     _features.resize(_featSize[0] * _featSize[1] * _featSize[2]);
     for (int i = 0; i < _features.size(); i++)
       _features[i] = 0.;
-    int index = 0;
-    _legalActions.resize(0);
+    clearActions();
     for (int i = 0; i < 9; i++)
       for (int j = 0; j < 9; j++) {
-        _legalActions.push_back(std::make_shared<ActionForNogo>(i, j));
-        _legalActions.back().get()->SetIndex(index++);
+        addAction(0, i, j);
       }
     fillFullFeatures();
   }
@@ -124,13 +101,11 @@ class StateForNogo : public State {
       _nogoGame.PlayAction(nogoAction);
     }
     // let us remove the nogoAction from legal actions
-    _legalActions.resize(0);
+    clearActions();
     auto legal_actions = _nogoGame.GetLegalActions();
     int index = 0;
     for (const auto& action : legal_actions) {
-      _legalActions.push_back(
-          std::make_shared<ActionForNogo>(action.GetPosition()));
-      _legalActions.back().get()->SetIndex(index++);
+      addAction(0, action.GetPosition() % 9, action.GetPosition() / 9);
     }
     //   _nogoGame.ShowState();
     // std::cerr << " number of legal actions : " << _legalActions.size() <<

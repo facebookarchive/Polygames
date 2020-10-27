@@ -16,18 +16,6 @@
 
 namespace chess {
 
-class Action : public _Action {
- public:
-  Action(int c, int y, int x, size_t index)
-      : _Action() {
-    _loc[0] = c;
-    _loc[1] = y;
-    _loc[2] = x;
-    _hash = (uint32_t)x;
-    _i = (int)index;
-  }
-};
-
 struct ChessBoard {
 
   static const size_t boardSize = 8;
@@ -70,10 +58,10 @@ struct ChessBoard {
   int fiftyMoveCounter = 0;
 };
 
-class State : public ::State {
+class State : public core::State {
  public:
   State(int seed)
-      : ::State(seed) {
+      : core::State(seed) {
   }
 
   ChessBoard board;
@@ -102,16 +90,8 @@ class State : public ::State {
     fillFullFeatures();
   }
 
-  virtual std::unique_ptr<mcts::State> clone_() const override {
+  virtual std::unique_ptr<core::State> clone_() const override {
     return std::make_unique<State>(*this);
-  }
-
-  virtual std::string actionsDescription() override {
-    std::string str;
-    for (auto& v : _legalActions) {
-      str += actionDescription(*v) + " ";
-    }
-    return str;
   }
 
   virtual std::string stateDescription() const override {
@@ -185,19 +165,6 @@ class State : public ::State {
     return str;
   }
 
-  virtual int parseAction(const std::string& str) override {
-    std::vector<std::string> actions;
-    for (auto& v : _legalActions) {
-      actions.push_back(actionDescription(*v));
-    }
-    for (size_t i = 0; i != actions.size(); ++i) {
-      if (str == actions[i]) {
-        return i;
-      }
-    }
-    return -1;
-  }
-
   virtual std::string actionDescription(const _Action& action) const override {
     auto move = board.moves.at(action.GetIndex());
     return board.moveString(move);
@@ -249,7 +216,7 @@ class State : public ::State {
   }
 
   void findActions() {
-    _legalActions.clear();
+    clearActions();
 
     const size_t boardDim = 12;
 
@@ -284,8 +251,7 @@ class State : public ::State {
       size_t x = to % boardDim - 2;
       size_t y = to / boardDim - 2;
 
-      _legalActions.push_back(
-          std::make_shared<Action>(offset, y, x, _legalActions.size()));
+      addAction(offset, y, x);
     }
   }
 

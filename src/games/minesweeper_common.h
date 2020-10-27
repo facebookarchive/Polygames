@@ -8,11 +8,11 @@
 #pragma once
 
 #include <array>
-#include <vector>
+#include <cassert>
 #include <iostream>
 #include <sstream>
-#include <cassert>
 #include <string>
+#include <vector>
 
 #define MINESWEEPER_DEBUG_COMMA ,
 // Debug output disabled:
@@ -24,29 +24,28 @@
 namespace Minesweeper {
 
 template <typename Offset, size_t STRIDE, size_t NEIGHBORS>
-struct NeighborOffsets {
-};
+struct NeighborOffsets {};
 
 template <typename Offset, size_t STRIDE>
 struct NeighborOffsets<Offset, STRIDE, 8> {
   static constexpr std::array<Offset, 8> dindices = {
-    -static_cast<Offset>(STRIDE) - 1,
-    -static_cast<Offset>(STRIDE),
-    -static_cast<Offset>(STRIDE) + 1,
-    -1,
-    1,
-    static_cast<Offset>(STRIDE) - 1,
-    static_cast<Offset>(STRIDE),
-    static_cast<Offset>(STRIDE) + 1};
-  static constexpr std::array<Offset, 8> drow = {
-    -1, -1, -1, 0, 0, 1, 1, 1};
-  static constexpr std::array<Offset, 8> dcol = {
-    -1, 0, 1, -1, 1, -1, 0, 1};
-}; // class NeighborOffsets<Offset, STRIDE, 8>
+      -static_cast<Offset>(STRIDE) - 1,
+      -static_cast<Offset>(STRIDE),
+      -static_cast<Offset>(STRIDE) + 1,
+      -1,
+      1,
+      static_cast<Offset>(STRIDE) - 1,
+      static_cast<Offset>(STRIDE),
+      static_cast<Offset>(STRIDE) + 1};
+  static constexpr std::array<Offset, 8> drow = {-1, -1, -1, 0, 0, 1, 1, 1};
+  static constexpr std::array<Offset, 8> dcol = {-1, 0, 1, -1, 1, -1, 0, 1};
+};  // class NeighborOffsets<Offset, STRIDE, 8>
 
 class BoardPosition {
-  public:
-  constexpr BoardPosition(int row, int col) noexcept : _r(row), _c(col) {
+ public:
+  constexpr BoardPosition(int row, int col) noexcept
+      : _r(row)
+      , _c(col) {
   }
   constexpr int row() const noexcept {
     return _r;
@@ -54,34 +53,33 @@ class BoardPosition {
   constexpr int col() const noexcept {
     return _c;
   }
-  private:
+
+ private:
   int _r;
   int _c;
-}; // class BoardPosition
+};  // class BoardPosition
 
-template<size_t STRIDE>
-int rowColToIdx(int row, int col) {
+template <size_t STRIDE> int rowColToIdx(int row, int col) {
   return row * static_cast<int>(STRIDE) + col;
 }
 
-template<size_t STRIDE>
-void idxToRowCol(int idx, int& row, int& col) {
+template <size_t STRIDE> void idxToRowCol(int idx, int& row, int& col) {
   row = idx / STRIDE;
   col = idx % STRIDE;
 }
 
-template<size_t WIDTH, size_t HEIGHT>
+template <size_t WIDTH, size_t HEIGHT>
 constexpr bool isInBoard(int row, int col) {
-  return (row >= 0) && (row < static_cast<int>(HEIGHT)) &&
-      (col >= 0) && (col < static_cast<int>(WIDTH));
+  return (row >= 0) && (row < static_cast<int>(HEIGHT)) && (col >= 0) &&
+         (col < static_cast<int>(WIDTH));
 }
 
-template<typename T, size_t STRIDE>
+template <typename T, size_t STRIDE>
 typename T::const_reference arrGet(const T& arr, int row, int col) {
   return arr[rowColToIdx<STRIDE>(row, col)];
 }
 
-template<typename T, size_t STRIDE>
+template <typename T, size_t STRIDE>
 typename T::reference arrGet(T& arr, int row, int col) {
   return arr[rowColToIdx<STRIDE>(row, col)];
 }
@@ -92,8 +90,7 @@ static constexpr int UNKNOWN = -1;
 static constexpr int BOOM = -2;
 static constexpr size_t NUM_NEIGHBORS = 8;
 
-template <size_t WIDTH, size_t HEIGHT, size_t MINES>
-struct GameDefs {
+template <size_t WIDTH, size_t HEIGHT, size_t MINES> struct GameDefs {
   using Board = std::array<int, HEIGHT * WIDTH>;
   using BoardProbas = std::array<float, HEIGHT * WIDTH>;
   using BoardMask = std::array<bool, HEIGHT * WIDTH>;
@@ -110,7 +107,7 @@ struct GameDefs {
       oss << std::endl;
     }
     return oss.str();
-  } // boardMaskToString
+  }  // boardMaskToString
 
   static std::string boardToString(const Board& board) {
     using BoardChars = std::array<char, WIDTH * HEIGHT>;
@@ -122,15 +119,15 @@ struct GameDefs {
       for (size_t col = 0; col < WIDTH; ++col) {
         v = board[k];
         switch (v) {
-          case UNKNOWN:
-            c = '?';
-            break;
-          case BOOM:
-            c = 'X';
-            break;
-          default:
-            assert(v >= 0);
-            c = '0' + v;
+        case UNKNOWN:
+          c = '?';
+          break;
+        case BOOM:
+          c = 'X';
+          break;
+        default:
+          assert(v >= 0);
+          c = '0' + v;
         }
         boardChars[k] = c;
         ++k;
@@ -144,7 +141,7 @@ struct GameDefs {
       oss << std::endl;
     }
     return oss.str();
-  } // boardToString
+  }  // boardToString
 
   static std::string minesToString(const Mines& mines) {
     std::ostringstream oss;
@@ -152,10 +149,13 @@ struct GameDefs {
       oss << mines[i] << " ";
     }
     return oss.str();
-  } // minesToString
+  }  // minesToString
 
-  template<typename Predicate>
-  static std::vector<BoardPosition> getNeighbors(const Board& board, int row, int col, Predicate predicate) {
+  template <typename Predicate>
+  static std::vector<BoardPosition> getNeighbors(const Board& board,
+                                                 int row,
+                                                 int col,
+                                                 Predicate predicate) {
     std::vector<BoardPosition> result;
     result.reserve(NUM_NEIGHBORS);
     int row_i, col_i;
@@ -164,15 +164,15 @@ struct GameDefs {
       col_i = col + NeighborOffsets<int, WIDTH, NUM_NEIGHBORS>::dcol[i];
       if (isInBoard<WIDTH, HEIGHT>(row_i, col_i) &&
           predicate(arrGet<Board, WIDTH>(board, row_i, col_i), row_i, col_i)) {
-       result.emplace_back(row_i, col_i);
+        result.emplace_back(row_i, col_i);
       }
     }
     return result;
-  } // getNeighbors
+  }  // getNeighbors
 
-  template<typename Predicate, typename Mask>
-  static void markNeighbors(const Board& board, int row, int col, Mask& mask,
-      Predicate predicate) {
+  template <typename Predicate, typename Mask>
+  static void markNeighbors(
+      const Board& board, int row, int col, Mask& mask, Predicate predicate) {
     int row_i, col_i;
     for (size_t i = 0; i < NUM_NEIGHBORS; ++i) {
       row_i = row + NeighborOffsets<int, WIDTH, NUM_NEIGHBORS>::drow[i];
@@ -182,11 +182,13 @@ struct GameDefs {
         mask.set(row_i, col_i);
       }
     }
-  } // markNeighbors
+  }  // markNeighbors
 
-  template<typename Predicate>
-  static size_t countNeighbors(const Board& board, int row, int col,
-      Predicate predicate) {
+  template <typename Predicate>
+  static size_t countNeighbors(const Board& board,
+                               int row,
+                               int col,
+                               Predicate predicate) {
     size_t count = 0;
     int row_i, col_i;
     for (size_t i = 0; i < NUM_NEIGHBORS; ++i) {
@@ -198,24 +200,22 @@ struct GameDefs {
       }
     }
     return count;
-  } // countNeighbors
-
+  }  // countNeighbors
 };
 
-template <size_t WIDTH, size_t HEIGHT, size_t MINES>
-class Mask {
-private:
+template <size_t WIDTH, size_t HEIGHT, size_t MINES> class Mask {
+ private:
   using BoardMask = typename GameDefs<WIDTH, HEIGHT, MINES>::BoardMask;
-public:
 
+ public:
   explicit Mask(size_t sparseSize = MINES) {
     _maskSparse.reserve(sparseSize);
   }
 
   void zero() {
-    memset(_maskDense.data(), 0, WIDTH * HEIGHT *
-        sizeof(typename BoardMask::value_type));
-   _maskSparse.clear();
+    memset(_maskDense.data(), 0,
+           WIDTH * HEIGHT * sizeof(typename BoardMask::value_type));
+    _maskSparse.clear();
   }
 
   void set(int row, int col) {
@@ -236,14 +236,14 @@ public:
   const std::vector<BoardPosition>& sparse() const {
     return _maskSparse;
   }
-private:
+
+ private:
   BoardMask _maskDense;
   SparseMask _maskSparse;
-}; // class Mask
+};  // class Mask
 
 std::ostream& debug(std::ostream& os);
 
 std::string sparseMaskToString(const SparseMask& mask);
 
-} // namespace Minesweeper
-
+}  // namespace Minesweeper

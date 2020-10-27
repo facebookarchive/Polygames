@@ -13,8 +13,8 @@
 // where (i, j) in [1, _nbSubsets] x [1, _maxNumber]
 class SchurMatrix {
     private:
-        const int _nbSubsets;
-        const int _maxNumber;
+        int _nbSubsets;
+        int _maxNumber;
         std::vector<bool> _data;
     public:
         SchurMatrix(int nbSubsets, int maxNumber);

@@ -17,7 +17,6 @@
 //#include "game.h"
 #include "../core/state.h"
 
-
 #include "fmt/printf.h"
 
 const int StateForBreakthroughNumActions = 64 * 3;
@@ -26,26 +25,11 @@ const int StateForBreakthroughY = 8;
 const int StateForBreakthroughZ = 8;
 const int BTMaxLegalMoves = 48;
 
-class ActionForBreakthrough : public _Action {
- public:
-  // each action has a position (_x[0], _x[1], _x[2])
-  // here for Breakthrough, there is (0, 0, 0) and (1, 0, 0),
-  // corresponding to steps 2 and 3 respectively.
-  ActionForBreakthrough(int x, int y, int direction)
-      : _Action() {
-    _loc[0] = direction;
-    _loc[1] = x;
-    _loc[2] = y;
-    _hash = (x + y * 8) * 3 + direction;
-  }
-};
-
-template<bool fixedPolicy = true>
-class StateForBreakthrough : public State, BTBoard {
+template <bool fixedPolicy = true>
+class StateForBreakthrough : public core::State, BTBoard {
  public:
   StateForBreakthrough(int seed)
       : State(seed) {
-    Initialize();
   }
 
   virtual ~StateForBreakthrough() {
@@ -90,20 +74,11 @@ class StateForBreakthrough : public State, BTBoard {
     fillFullFeatures();
   }
 
-  virtual std::unique_ptr<mcts::State> clone_() const override {
+  virtual std::unique_ptr<core::State> clone_() const override {
     return std::make_unique<StateForBreakthrough>(*this);
   }
 
-  virtual int parseAction(const std::string& str) {
-    for (size_t i = 0; i != _legalActions.size(); ++i) {
-      if (str == actionDescription(*_legalActions[i])) {
-        return i;
-      }
-    }
-    return -1;
-  }
-
-  std::string actionDescription(const _Action &action) const override {
+  std::string actionDescription(const _Action& action) const override {
     int dir = action.GetX();
     int x = action.GetY();
     int y = action.GetZ();
@@ -114,7 +89,7 @@ class StateForBreakthrough : public State, BTBoard {
     } else if (dir == 2) {
       ++tx;
     }
-    return fmt::sprintf("%c%d%c%d", 'a' + x, BTDy - y , 'a' + tx, BTDy - ty);
+    return fmt::sprintf("%c%d%c%d", 'a' + x, BTDy - y, 'a' + tx, BTDy - ty);
   }
 
   void findActions(int color) {
@@ -130,9 +105,7 @@ class StateForBreakthrough : public State, BTBoard {
         dir = 0;
       else if (moves[i].x1 == x)
         dir = 1;
-      _legalActions.push_back(
-          std::make_shared<ActionForBreakthrough>(x, y, dir));
-      _legalActions[i]->SetIndex(i);
+      _legalActions.emplace_back(i, dir, x, y);
     }
   }
 
@@ -154,7 +127,6 @@ class StateForBreakthrough : public State, BTBoard {
   }
   // The action just decreases the distance and swaps the turn to play.
   virtual void ApplyAction(const _Action& action) override {
-
     BTMove m;
     // print(stdout);
     if (_status == GameStatus::player0Turn) {  // White
@@ -162,14 +134,14 @@ class StateForBreakthrough : public State, BTBoard {
       m.x = action.GetY();
       m.y = action.GetZ();
       if (action.GetX() == 0) {
-        m.x1 = action.GetY() - 1;
-        m.y1 = action.GetZ() - 1;
+        m.x1 = m.x - 1;
+        m.y1 = m.y - 1;
       } else if (action.GetX() == 1) {
-        m.x1 = action.GetY();
-        m.y1 = action.GetZ() - 1;
+        m.x1 = m.x;
+        m.y1 = m.y - 1;
       } else if (action.GetX() == 2) {
-        m.x1 = action.GetY() + 1;
-        m.y1 = action.GetZ() - 1;
+        m.x1 = m.x + 1;
+        m.y1 = m.y - 1;
       }
       play(m);
       findActions(Black);
@@ -183,14 +155,14 @@ class StateForBreakthrough : public State, BTBoard {
       m.x = action.GetY();
       m.y = action.GetZ();
       if (action.GetX() == 0) {
-        m.x1 = action.GetY() - 1;
-        m.y1 = action.GetZ() + 1;
+        m.x1 = m.x - 1;
+        m.y1 = m.y + 1;
       } else if (action.GetX() == 1) {
-        m.x1 = action.GetY();
-        m.y1 = action.GetZ() + 1;
+        m.x1 = m.x;
+        m.y1 = m.y + 1;
       } else if (action.GetX() == 2) {
-        m.x1 = action.GetY() + 1;
-        m.y1 = action.GetZ() + 1;
+        m.x1 = m.x + 1;
+        m.y1 = m.y + 1;
       }
       play(m);
       findActions(White);
@@ -211,7 +183,7 @@ class StateForBreakthrough : public State, BTBoard {
   virtual void DoGoodAction() override {
 
     int i = rand() % _legalActions.size();
-    _Action a = *(_legalActions[i].get());
+    _Action a = _legalActions[i];
     ApplyAction(a);
   }
 

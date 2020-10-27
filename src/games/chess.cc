@@ -520,8 +520,8 @@ void ChessBoard::move(uint_fast32_t move) {
       if (v.second >= 3) {
         done = true;
         winner = -1;
-        found = true;
       }
+      found = true;
       break;
     }
   }

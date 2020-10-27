@@ -116,17 +116,8 @@ template <typename R> void Game::setupBoard(const R& re) {
   Board::setup({"Empty", "Black", "White"}, {" ", "●", "○"}, re);
 }
 
-Action::Action(int x, int y, bool isColorChanged)
-    : ::_Action() {
-  _loc[0] = isColorChanged;
-  _loc[1] = x;
-  _loc[2] = y;
-  _hash = Game::boardRadix * Game::boardRadix * isColorChanged +
-          Game::boardRadix * y + x;
-}
-
 State::State(int seed)
-    : ::State(seed)
+    : core::State(seed)
     , Game() {
   std::call_once(setupCalled, [&] { setupBoard(_rng); });
 }
@@ -152,7 +143,7 @@ void State::Initialize() {
   _hash = board.getHash();
 }
 
-unique_ptr<mcts::State> State::clone_() const {
+unique_ptr<core::State> State::clone_() const {
   return make_unique<State>(*this);
 }
 
@@ -203,11 +194,10 @@ void State::DoGoodAction() {
 }
 
 void State::findActions() {
-  _legalActions.clear();
+  clearActions();
   for (int i = 0; i < legalMovesCnt; i++) {
     Move& m = legalMoves[i];
-    _legalActions.push_back(make_shared<Action>(m.x, m.y, m.isColorChanged));
-    _legalActions[i]->SetIndex(i);
+    addAction(m.isColorChanged, m.x, m.y);
   }
 }
 

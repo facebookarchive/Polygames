@@ -35,35 +35,20 @@ enum class piece : int {
   p1_ring
 };
 
-class ActionForYinsh : public _Action {
- public:
-  ActionForYinsh(int action_num, int x, int y, int index)
-      : _Action() {
-    assert(action_num >= 0 && action_num < NUM_ACTIONS);
-    assert(x >= 0 && x < BOARD_X);
-    assert(y >= 0 && y < BOARD_Y);
-    _loc[0] = action_num;
-    _loc[1] = x;
-    _loc[2] = y;
-    _hash = (uint64_t)(action_num * (BOARD_X * BOARD_Y) + y * BOARD_X + x);
-    _i = (int)index;  // DNU
-  }
-};
-
-class StateForYinsh : public State {
+class StateForYinsh : public core::State {
  public:
   StateForYinsh(int seed)
       : State(seed) {
   }
   void Initialize() override;
-  // virtual unique_ptr<mcts::State> clone_() const override;
-  unique_ptr<mcts::State> clone_(void) const override;
+  // virtual unique_ptr<core::State> clone_() const override;
+  unique_ptr<core::State> clone_(void) const override;
   void ApplyAction(const _Action& action) override;
   void DoGoodAction(void) override;
   void printCurrentBoard(void) const override;
   bool ended();
-  string stateDescription(void) const override;  // DNU
-  string actionsDescription(void) override;      // DNU
+  string stateDescription(void) const override;    // DNU
+  string actionsDescription(void) const override;  // DNU
   static void fill_hash_table();
   static uint64_t hash_table[5][BOARD_X][BOARD_Y];
   static std::once_flag table_flag;

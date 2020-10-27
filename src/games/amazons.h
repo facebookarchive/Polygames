@@ -48,20 +48,20 @@ struct Move {
   int arrowX, arrowY;
 };
 
-class State : public ::State {
+class State : public core::State {
  public:
   using Board = Chessboard<10, 10>;
 
   State(int seed);
   void Initialize() override;
-  std::unique_ptr<mcts::State> clone_() const override;
+  std::unique_ptr<core::State> clone_() const override;
   void ApplyAction(const ::_Action& action) override;
   void DoGoodAction() override;
   void printCurrentBoard() const override;
   std::string stateDescription() const override;
   std::string actionDescription(const ::_Action& action) const override;
-  std::string actionsDescription() override;
-  int parseAction(const std::string& str) override;
+  std::string actionsDescription() const override;
+  int parseAction(const std::string& str) const override;
   int humanInputAction(
       std::function<std::optional<int>(std::string)> specialAction) override;
 

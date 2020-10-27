@@ -18,8 +18,8 @@ class WeakSchur {
     using Action = std::pair<int, int>;
 
     public:
-        const int _nbSubsets;
-        const int _maxNumber;
+        int _nbSubsets;
+        int _maxNumber;
 
     protected:
     public:  // todo getters ?

@@ -5,7 +5,6 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-
 #include "breakthrough.h"
 #include <list>
 #include <math.h>
@@ -27,7 +26,7 @@ unsigned long long BTHashTurn;
 // timeval stop, start;
 // unsigned long long previousTime = 0;
 
-//bool BTinitHashCalled = false;
+// bool BTinitHashCalled = false;
 std::once_flag BTinitHashCalled;
 
 void BTinitHash() {

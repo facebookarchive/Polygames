@@ -6,20 +6,18 @@
  */
 
 #include <iostream>
-#include <sstream>
 #include <random>
+#include <sstream>
 
-#include <game.h>
-#include <state.h>
+#include <core/game.h>
+#include <core/state.h>
 
 using namespace csp::vkms;
 using namespace std;
 
-
-template<size_t NTOTAL>
-float good_action_eval(State& s) {
-  size_t game_count {0};
-  float sum_score {0};
+template <size_t NTOTAL> float good_action_eval(core::State& s) {
+  size_t game_count{0};
+  float sum_score{0};
   size_t n_actions_cur_game = 0;
   while (game_count < NTOTAL) {
     s.reset();
@@ -33,17 +31,15 @@ float good_action_eval(State& s) {
   }
   const float avg_score = sum_score / float(game_count);
   return avg_score;
-} // good_action_eval
+}  // good_action_eval
 
-template<size_t W, size_t H, size_t N>
-std::string get_map_str() {
+template <size_t W, size_t H, size_t N> std::string get_map_str() {
   ostringstream oss;
   oss << "Minesweeper<W=" << W << ", H=" << H << ", M=" << N << ">";
   return oss.str();
-} // get_map_str
+}  // get_map_str
 
-
-template<size_t W, size_t H, size_t N, int SEED, size_t NTOTAL>
+template <size_t W, size_t H, size_t N, int SEED, size_t NTOTAL>
 void benchmark_vkms() {
   using namespace std::chrono;
   high_resolution_clock::time_point t1 = high_resolution_clock::now();
@@ -52,12 +48,10 @@ void benchmark_vkms() {
   high_resolution_clock::time_point t2 = high_resolution_clock::now();
   double duration_s = duration<double>(t2 - t1).count();
   auto map_str = get_map_str<W, H, N>();
-  std::cout << map_str << ", win rate = " << win_rate
-    << ", took " << duration_s << "s ("
-    << static_cast<double>(NTOTAL) / duration_s
-    << " games/s)"<< std::endl;
-} // benchmark_vkms
-
+  std::cout << map_str << ", win rate = " << win_rate << ", took " << duration_s
+            << "s (" << static_cast<double>(NTOTAL) / duration_s << " games/s)"
+            << std::endl;
+}  // benchmark_vkms
 
 int main(int, char**) {
   static constexpr int master_seed = 999;

@@ -5,9 +5,8 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-
-#include <iostream>
 #include <ctime>
+#include <iostream>
 
 #include "minesweeper_common.h"
 
@@ -20,21 +19,21 @@ static std::ostream& timestamp(std::ostream& os) {
     os << buf;
   }
   return os;
-} // timestamp
+}  // timestamp
 
 std::ostream& debug(std::ostream& os) {
   timestamp(os) << " [DEBUG] [Minesweeper] ";
   return os;
-} // debug
+}  // debug
 
 std::string sparseMaskToString(const SparseMask& mask) {
   std::ostringstream oss;
   oss << '[';
-  for (const auto& v: mask) {
+  for (const auto& v : mask) {
     oss << '(' << v.row() << ',' << v.col() << "), ";
   }
   oss << ']';
   return oss.str();
-} // sparseMaskToString
+}  // sparseMaskToString
 
-} // namespace Minesweeper
+}  // namespace Minesweeper
