@@ -9,118 +9,237 @@
 
 #include "replay_buffer.h"
 
-using tube::ReplayBuffer;
+#define ZSTD_STATIC_LINKING_ONLY
+#include "zstd/lib/zstd.h"
 
-std::vector<int64_t> sampleKfromN(int k, int n, std::mt19937& rng) {
-  std::unordered_set<int> samples;
-  while ((int)samples.size() < k && (int)samples.size() < n) {
-    int s = rng() % n;
-    samples.insert(s);
-  }
-  std::vector<int64_t> ret;
-  for (int s : samples) {
-    ret.push_back((int64_t)s);
-  }
-  return ret;
-}
-
-void ReplayBuffer::add(std::unordered_map<std::string, torch::Tensor> input) {
-  std::unique_lock<std::mutex> lk(mBuf_);
-  if (size_ == 0) {
-    for (auto& it : input) {
-      auto t = it.second.sizes();
-      std::vector<int64_t> sizes(t.begin(), t.end());
-      sizes[0] = capacity;
-      buffer_.insert({it.first, torch::zeros(sizes, it.second.dtype())});
+namespace {
+struct cctx {
+  ZSTD_CCtx* ctx;
+  cctx() {
+    ctx = ZSTD_createCCtx();
+    if (!ctx) {
+      throw std::runtime_error("Failed to allocate zstd context");
     }
   }
-  assert(input.size() == buffer_.size());
+  ~cctx() {
+    ZSTD_freeCCtx(ctx);
+  }
+};
 
-  // now perform the copying
-  torch::Tensor tensorIndices = getNextIndices(input);
-  numAdd_ += tensorIndices.size(0);
-  for (auto& b : buffer_) {
-    const std::string name = b.first;
-    auto in = input.find(name);
-    assert(in != input.end());
-    // Explicit size checking
-    auto s1 = b.second.sizes();
-    auto s2 = in->second.sizes();
-    assert(s1.size() == s2.size());
-    for (size_t i = 1; i < s1.size(); i++) {
-      assert(s1[i] == s2[i]);
+struct dctx {
+  ZSTD_DCtx* ctx;
+  dctx() {
+    ctx = ZSTD_createDCtx();
+    if (!ctx) {
+      throw std::runtime_error("Failed to allocate zstd context");
     }
-    b.second.index_copy_(0, tensorIndices, in->second);
+  }
+  ~dctx() {
+    ZSTD_freeDCtx(ctx);
+  }
+};
+}  // namespace
+
+namespace core {
+
+ReplayBuffer::ReplayBuffer(int capacity, int seed)
+    : capacity(capacity)
+    , buffer(capacity) {
+  rng_.seed(seed);
+}
+
+ReplayBuffer::~ReplayBuffer() {
+  if (!sampleThreads.empty()) {
+    std::unique_lock l(mut);
+    sampleThreadDie = true;
+    cv.notify_all();
+    l.unlock();
+    for (auto& v : sampleThreads) {
+      v.join();
+    }
   }
 }
 
-std::unordered_map<std::string, torch::Tensor> ReplayBuffer::sample(
+void ReplayBuffer::add(std::unordered_map<std::string, at::Tensor> input) {
+  if (input.empty()) {
+    return;
+  }
+  if (!hasKeys) {
+    std::lock_guard l(keyMutex);
+    if (keys.empty()) {
+      for (auto& v : input) {
+        torch::ArrayRef<int64_t> x = v.second.sizes();
+        x = torch::ArrayRef<int64_t>(x.begin() + 1, x.end());
+        keys.push_back({v.first, std::vector<int64_t>(x.begin(), x.end()),
+                        v.second.dtype()});
+      }
+      hasKeys = true;
+
+      for (auto& vx : input) {
+        printf("  key '%s' shape %s\n", vx.first.c_str(),
+               ss(vx.second.sizes()).c_str());
+      }
+    }
+  }
+
+  std::vector<char> tmpbuf;
+
+  auto n = input.begin()->second.size(0);
+
+  cctx ctx;
+
+  for (int i = 0; i != n; ++i) {
+    if (input.size() != keys.size()) {
+      throw std::runtime_error("replay buffer keys mismatch");
+    }
+    BufferEntry* newEntry = new BufferEntry[input.size()];
+
+    size_t index = 0;
+    for (const auto& [key, shape, dtype] : keys) {
+      auto t = input.at(key)[i];
+
+      if (!t.is_contiguous()) {
+        throw std::runtime_error("replay buffer input is not contiguous");
+      }
+
+      void* data = t.data_ptr();
+      size_t datasize = dtype.itemsize() * t.numel();
+
+      tmpbuf.resize(sizeof(size_t) + ZSTD_compressBound(datasize));
+      auto n = ZSTD_compressCCtx(
+          ctx.ctx, tmpbuf.data(), tmpbuf.size(), data, datasize, 0);
+      if (ZSTD_isError(n)) {
+        throw std::runtime_error("replay buffer compress failed");
+      }
+
+      auto& e = newEntry[index++];
+      e.datasize = datasize;
+      e.data.assign(tmpbuf.begin(), tmpbuf.begin() + n);
+    }
+
+    auto slot = numAdd_++ % capacity;
+    auto* prev = buffer[slot].exchange(newEntry);
+    if (prev) {
+      delete[] prev;
+    }
+  }
+}
+
+std::unordered_map<std::string, at::Tensor> ReplayBuffer::sampleImpl(
     int sampleSize) {
-  std::unique_lock<std::mutex> lk(mBuf_);
-  numSample_ += sampleSize;
-  assert(sampleSize <= size_);
-  auto sampleIndices = torch::tensor(sampleKfromN(sampleSize, size_, rng_));
-
-  std::unordered_map<std::string, torch::Tensor> result;
-  for (auto& b : buffer_) {
-    const std::string& name = b.first;
-    result.insert({name, torch::index_select(b.second, 0, sampleIndices)});
+  if (!hasKeys) {
+    return {};
   }
-  return result;
-}
-
-ReplayBuffer::SerializableState ReplayBuffer::toState() {
-  std::unique_lock<std::mutex> lk(mBuf_);
-  ReplayBuffer::SerializableState state;
-  state.capacity = capacity;
-  state.size = size_;
-  state.nextIdx = nextIdx_;
-  std::ostringstream oss;
-  oss << rng_;
-  state.rngState = oss.str();
-  state.buffer = buffer_;
-  return state;
-}
-
-void ReplayBuffer::initFromState(const SerializableState& state) {
-  std::unique_lock<std::mutex> lk(mBuf_);
-  if (state.capacity != capacity) {
-    std::ostringstream oss;
-    oss << "Attempt to initialize a buffer of capacity " << capacity
-        << " from buffer state of capacity " << state.capacity;
-    throw std::runtime_error(oss.str());
+  int siz = size();
+  std::unordered_map<std::string, torch::Tensor> r;
+  std::vector<char*> pointers;
+  for (auto& [k, shape, dtype] : keys) {
+    std::vector<int64_t> sizes;
+    sizes.assign(shape.begin(), shape.end());
+    sizes.insert(sizes.begin(), sampleSize);
+    auto tensor = torch::empty(sizes, dtype);
+    pointers.push_back((char*)tensor.data_ptr());
+    r[k] = tensor;
   }
-  size_ = state.size;
-  nextIdx_ = state.nextIdx;
-  std::istringstream iss(state.rngState);
-  iss >> rng_;
-  buffer_ = state.buffer;
-}
-
-torch::Tensor ReplayBuffer::getNextIndices(
-    std::unordered_map<std::string, torch::Tensor>& input) {
-  int inSize = -1;
-  // these are indices of replay buffer that we will copy into
-  std::vector<int64_t> copyIndices;
-  for (auto& it : input) {
-    if (inSize < 0) {
-      inSize = it.second.size(0);
-      if (inSize > capacity) {
-        std::cerr << "inSize=" << inSize << ", capacity=" << capacity
-                  << std::endl;
-        assert(inSize <= capacity);
+  dctx ctx;
+  size_t nCopies = 0;
+  auto copy = [&](size_t srcIndex) {
+    auto src = buffer[srcIndex].exchange(nullptr);
+    if (!src) {
+      return 0;
+    }
+    if (nCopies >= (size_t)sampleSize) {
+      throw std::runtime_error(
+          "replay buffer internal error: copied too many samples");
+    }
+    ++nCopies;
+    for (size_t i = 0; i != keys.size(); ++i) {
+      size_t datasize = src[i].datasize;
+      auto n = ZSTD_decompressDCtx(ctx.ctx, pointers[i], datasize,
+                                   src[i].data.data(), src[i].data.size());
+      if (ZSTD_isError(n)) {
+        throw std::runtime_error("replay buffer decompress failed");
       }
-      for (int i = 0; i < inSize; i++) {
-        copyIndices.push_back((i + nextIdx_) % capacity);
+      pointers[i] += datasize;
+    }
+    BufferEntry* nullref = nullptr;
+    if (!buffer[srcIndex].compare_exchange_strong(nullref, src)) {
+      delete[] src;
+    }
+    return 1;
+  };
+  int64_t seq = std::min(numAdd_ - prevSampleNumAdd_, (int64_t)sampleSize);
+  int64_t i = 0;
+  //    for (;i != seq;) {
+  //      i += copy((prevSampleNumAdd_ + i) % siz);
+  //    }
+  prevSampleNumAdd_ += seq;
+  std::vector<size_t> indices;
+  while (i != sampleSize) {
+    indices.clear();
+    std::unique_lock l(sampleMutex);
+    for (size_t ii = i; ii != (size_t)sampleSize;) {
+      if (sampleOrderIndex >= sampleOrder.size()) {
+        size_t p = sampleOrder.size();
+        if (p != (size_t)capacity) {
+          sampleOrder.resize(siz);
+          for (size_t i = p; i != sampleOrder.size(); ++i) {
+            sampleOrder[i] = i;
+          }
+        }
+        std::shuffle(sampleOrder.begin(), sampleOrder.end(), rng_);
+        sampleOrderIndex = 0;
       }
-      if (size_ < capacity) {
-        size_ = size_ + inSize > capacity ? capacity : size_ + inSize;
-      }
-      nextIdx_ = (nextIdx_ + inSize) % capacity;
-    } else {
-      // all the names should have the same input size
-      assert(inSize == it.second.size(0));
+      indices.push_back(sampleOrder.at(sampleOrderIndex++));
+      ++ii;
+    }
+    l.unlock();
+    for (size_t index : indices) {
+      i += copy(index);
     }
   }
-  return torch::tensor(copyIndices);
+  numSample_ += sampleSize;
+  return r;
 }
+
+std::unordered_map<std::string, at::Tensor> ReplayBuffer::sample(
+    int sampleSize) {
+  // return sampleImpl(sampleSize);
+
+  // TODO
+  // This code currently prefetches 8 samples for efficent sampling when
+  // training on 8 gpus. This should be made configurable or training
+  // should be made efficient without requiring prefetch
+  std::unique_lock l(mut);
+  if (sampleThreads.empty()) {
+    for (int i = 0; i != 8; ++i) {
+      sampleThreads.emplace_back([this]() {
+        std::unique_lock l(mut);
+        while (true) {
+          while (results.size() >= 8 || resultsSampleSize == 0) {
+            cv.wait(l);
+            if (sampleThreadDie) {
+              return;
+            }
+          }
+          l.unlock();
+          auto tmp = sampleImpl(resultsSampleSize);
+          l.lock();
+          results.push_back(std::move(tmp));
+          cv2.notify_all();
+        }
+      });
+    }
+  }
+  resultsSampleSize = sampleSize;
+  while (results.empty()) {
+    cv.notify_all();
+    cv2.wait(l);
+  }
+  auto r = std::move(results.front());
+  results.pop_front();
+  cv.notify_all();
+  return r;
+}
+
+}  // namespace core
