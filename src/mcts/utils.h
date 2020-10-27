@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include <torch/torch.h>
+
 #include <algorithm>
 #include <atomic>
 #include <cassert>
@@ -16,6 +18,7 @@
 #include <sstream>
 #include <unordered_map>
 
+#include "core/actor.h"
 #include "mcts/types.h"
 
 namespace mcts {
@@ -23,7 +26,7 @@ namespace mcts {
 class MctsOption {
  public:
   float totalTime = 0;
-  float timeRatio = 0.07;
+  float timeRatio = 0.035;
   // whether to use mcts simulations to decide a move
   // if true, it will run mcts rollouts and selection action using uct
   // if false, it will only use policy in MctsPlayer::actMcts
@@ -31,9 +34,6 @@ class MctsOption {
 
   // coefficient of prior score
   float puct = 0.0;
-
-  // TODO[qucheng]: persistentTree is not implemented
-  // bool persistentTree = false;
 
   // first K steps in the game where we use sample instead of greedily
   // pick the best action. For example, if K = 6, then each player will
@@ -44,24 +44,21 @@ class MctsOption {
   // num of rollout for each move
   int numRolloutPerThread = -1;
 
-  // TODO[qucheng]: implement time based mcts
-  // // in seconds
-  // int maxTimeSec = -1;
-
   int seed = 123;
-
-  // capacity of pre-allocated storage space
-  int storageCap = 100000;
 
   float virtualLoss = 0.0;
 
   // If true, initialize unvisited node with prior values from siblings
   bool useValuePrior = true;
 
-  // Whether to store the game state in each node, or recompute it on each
-  // rollout. Not storing it saves memory and can have greater performance
-  // on simple games that are quick to recompute.
-  bool storeStateInNode = false;
+  // Store the state in the MCTS node at multiples of this tree depth.
+  int storeStateInterval = 1;
+
+  bool randomizedRollouts = false;
+
+  bool samplingMcts = false;
+
+  float forcedRolloutsMultiplier = 2.0f;
 };
 
 class MctsStats {
@@ -96,10 +93,11 @@ class MctsStats {
   // optimistic and explore all actions once and waste a lot of rollouts (which
   // is bad for cases with high-branching factor).
   float getAvgChildV() const {
-    if (numChild_ == 0)
+    if (numChild_ == 0) {
       return 0.0;
-    else
+    } else {
       return sumChildV_ / numChild_;
+    }
   }
 
   float getAvgValue() const {
@@ -112,12 +110,12 @@ class MctsStats {
   }
 
   void addVirtualLoss(float virtualLoss) {
-    std::lock_guard<std::mutex> lock(mSelf_);
+    // std::lock_guard<std::mutex> lock(mSelf_);
     virtualLoss_ += virtualLoss;
   }
 
   void atomicUpdate(float value, float virtualLoss) {
-    std::lock_guard<std::mutex> lock(mSelf_);
+    // std::lock_guard<std::mutex> lock(mSelf_);
     value_ += value;
     numVisit_++;
     virtualLoss_ -= virtualLoss;
@@ -126,7 +124,7 @@ class MctsStats {
   // Update child value estimate with a new obtained child value
   // (from the perspective of the root node
   void atomicUpdateChildV(float childV) {
-    std::lock_guard<std::mutex> lock(mSelf_);
+    // std::lock_guard<std::mutex> lock(mSelf_);
     sumChildV_ += childV;
     numChild_++;
   }
@@ -136,6 +134,13 @@ class MctsStats {
     ss << value_ << "/" << numVisit_ << " (" << value_ / numVisit_
        << "), vloss: " << virtualLoss_;
     return ss.str();
+  }
+
+  void subtractVisit() {
+    --numVisit_;
+  }
+  void addVisit() {
+    ++numVisit_;
   }
 
  private:
@@ -148,19 +153,52 @@ class MctsStats {
   // # child that has been explored.
   int numChild_;
 
-  std::mutex mSelf_;
+  // std::mutex mSelf_;
 };
+
+template <typename F, typename Rng>
+size_t sampleDiscreteProbability(size_t nElements,
+                                 float maxValue,
+                                 F&& getValue,
+                                 Rng& rng) {
+  if (nElements == 0) {
+    throw std::runtime_error("sampleDiscreteProbability was passed 0 elements");
+  }
+  for (size_t i = 0; i != 4; ++i) {
+    size_t index = std::uniform_int_distribution<int>(0.0f, nElements - 1)(rng);
+    if (std::generate_canonical<float, 20>(rng) <= getValue(index) / maxValue) {
+      return index;
+    }
+  }
+  thread_local std::vector<float> probs;
+  probs.resize(nElements);
+  float sum = 0.0f;
+  for (size_t i = 0; i != nElements; ++i) {
+    probs[i] = getValue(i);
+    sum += probs[i];
+  }
+  float v = std::uniform_real_distribution<float>(0.0f, sum)(rng);
+  return std::lower_bound(probs.begin(), std::prev(probs.end()), v) -
+         probs.begin();
+}
 
 class MctsResult {
  public:
+  MctsResult() = default;
   MctsResult(std::minstd_rand* rng)
-      : maxVisits(0)
+      : maxVisits(-1000)
       , sumVisits(0)
       , bestAction(InvalidAction)
       , rng_(rng) {
   }
 
-  void add(const Action& a, int visits) {
+  void add(Action a, float visits) {
+    if (mctsPolicy.size() <= (size_t)a) {
+      if (mctsPolicy.capacity() <= (size_t)a) {
+        mctsPolicy.reserve(mctsPolicy.size() * 2);
+      }
+      mctsPolicy.resize(a + 1);
+    }
     mctsPolicy[a] = visits;
     sumVisits += visits;
     if (visits > maxVisits) {
@@ -170,64 +208,49 @@ class MctsResult {
   }
 
   void normalize() {
-    for (auto& pair : mctsPolicy) {
-      pair.second = pair.second / (float)sumVisits;
+    for (auto& value : mctsPolicy) {
+      value = value / (float)sumVisits;
     }
   }
 
   // assume already normalized
   void sample() {
-    float best = 0.0f;
-    for (auto& pair : mctsPolicy) {
-      float v = std::exp(pair.second * pair.second * 2) - 0.92f;
-      v = std::uniform_real_distribution<float>(0.0f, v)(*rng_);
-      if (v > best) {
-        best = v;
-        bestAction = pair.first;
+    auto weight = [this](float pival) {
+      return std::exp(pival * pival * 2) - (1.0f - 0.5f / mctsPolicy.size());
+    };
+    float maxWeight = 0.0f;
+    for (size_t i = 0; i != mctsPolicy.size(); ++i) {
+      if (mctsPolicy[i] > maxWeight) {
+        maxWeight = mctsPolicy[i];
       }
     }
+    maxWeight = weight(maxWeight);
+    bestAction = sampleDiscreteProbability(
+        mctsPolicy.size(), maxWeight,
+        [&](size_t i) { return weight(mctsPolicy[i]); }, *rng_);
   }
 
-  void setMctsPolicy(std::unordered_map<Action, float> pi) {
+  void setMctsPolicy(std::vector<float> pi) {
     mctsPolicy = std::move(pi);
   }
 
-  int maxVisits;
-  int sumVisits;
+  float maxVisits;
+  float sumVisits;
   Action bestAction;
-  std::unordered_map<Action, float> mctsPolicy;
-  float rootValue;
+  std::vector<float> mctsPolicy;
+  float rootValue = 0.0f;
+  int rollouts = 0;
+  torch::Tensor rnnState;
 
  private:
   std::minstd_rand* rng_;
 };
 
-class PiVal {
- public:
-  PiVal() {
-    reset();
-  }
+using core::PiVal;
 
-  PiVal(int playerId, float value, std::unordered_map<Action, float>&& policy)
-      : playerId(playerId)
-      , value(value)
-      , policy(policy) {
-  }
-
-  void reset() {
-    playerId = -999;
-    value = 0.0;
-    policy.clear();
-  }
-
-  int playerId;
-  float value;
-  std::unordered_map<Action, float> policy;
-};
-
-inline void printPolicy(const std::unordered_map<Action, float>& pi) {
-  for (const auto& a2p : pi) {
-    std::cout << a2p.first << ":" << a2p.second << std::endl;
+inline void printPolicy(const std::vector<float>& pi) {
+  for (mcts::Action i = 0; i != (mcts::Action)pi.size(); ++i) {
+    std::cout << i << ":" << pi[i] << std::endl;
   }
 }
 

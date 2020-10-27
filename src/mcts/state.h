@@ -18,14 +18,18 @@ namespace mcts {
 // should ONLY keep functions used by mcts
 class State {
  public:
-  bool stochasticReset() const { return _stochasticReset; }
+  bool stochasticReset() const {
+    return _stochasticReset;
+  }
   // State() {} //= default;
 
   // State(const State&) = delete;
   // State& operator=(const State&) = delete;
   virtual std::unique_ptr<State> clone() const = 0;
 
-  virtual bool isOnePlayerGame() const { return false; }
+  virtual bool isOnePlayerGame() const {
+    return false;
+  }
 
   virtual int getCurrentPlayer() const = 0;
 
@@ -55,4 +59,4 @@ class State {
   bool _stochastic;
   bool _stochasticReset;
 };
-}
+}  // namespace mcts
