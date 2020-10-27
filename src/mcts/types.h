@@ -15,4 +15,4 @@ using Action = int64_t;
 using NodeId = int64_t;
 
 const int InvalidAction = -1;
-}
+}  // namespace mcts

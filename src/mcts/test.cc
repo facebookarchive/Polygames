@@ -103,6 +103,10 @@ class TicTacToeState : public State {
     // return std::make_unique<TicTacToeState>(other);
   }
 
+  const std::vector<mcts::Action>& getMoves() const override {
+    return {};
+  }
+
   bool forward(const Action& a) override {
     assert(a >= 0 && a <= 8);
     if (board[a] != 0) {
@@ -184,18 +188,19 @@ class TestActor : public Actor {
   TestActor() {
   }
 
-  PiVal evaluate(const State& s) override {
+  PiVal& evaluate(const State& s, PiVal& pival) override {
     const auto& state = dynamic_cast<const TicTacToeState*>(&s);
     const auto& actions = state->getLegalActions();
-    std::unordered_map<Action, float> pi;
+    std::vector<float> pi;
+    pi.resize(actions.size());
 
     for (size_t i = 0; i < actions.size(); ++i) {
-      pi[actions[i]] = 1.0 / actions.size();
+      pi[i] = 1.0 / actions.size();
     }
     auto player = state->getCurrentPlayer();
     float value = state->getRandomRolloutReward(state->getCurrentPlayer());
-    PiVal piVal(player, value, std::move(pi));
-    return piVal;
+    pival = PiVal(player, value, std::move(pi));
+    return pival;
   }
 };
 
