@@ -38,36 +38,8 @@ class Connect4BenchModel(torch.jit.ScriptModule):
 
     @torch.jit.script_method
     def forward(self, x: torch.Tensor):
-        v, pi = self._forward(x, False)
-        pi = pi.view(-1, 7, 1, 1)
-        reply = {
-            'v': v,
-            'pi': pi,
-        }
+        v, pi_logit = self._forward(x, True)
+        pi_logit = pi_logit.view(-1, 7, 1, 1)
+        reply = {"v": v, "pi_logit": pi_logit}
         return reply
 
-    def loss(self, x, model, v, pi, pi_mask, stat):
-        # print(x.size())
-        # print(x[0])
-        # print(v)
-        # print(pi.size())
-        batchsize = pi.shape[0]
-        pi = pi.view(batchsize, -1)
-        pred_v, pred_logit = model._forward(x, True)
-        # utils.assert_eq(v.size(), pred_v.size())
-        # utils.assert_eq(pred_logit.size(), pi.size())
-        # utils.assert_eq(pred_logit.dim(), 2)
-
-        pred_logit = pred_logit * pi_mask.view(pred_logit.shape)
-
-        # pred_logit = pred_logit.view(batchsize, -1)
-        v_err = 0.5 * (v - pred_v).pow(2).squeeze(1)
-        pred_log_pi = nn.functional.log_softmax(pred_logit, 1)
-        pi_err = -(pred_log_pi * pi).sum(1)
-
-        # utils.assert_eq(v_err.size(), pi_err.size())
-        err = v_err + pi_err
-
-        stat['v_err'].feed(v_err.detach().mean().item())
-        stat['pi_err'].feed(pi_err.detach().mean().item())
-        return err.mean()

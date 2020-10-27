@@ -11,6 +11,12 @@ from typing import Iterator, Tuple, Union, List, Optional, Dict, Any
 
 from .weight_init import WEIGHT_INIT
 
+def boolarg(x):
+  if str(x).lower() in ["true", "yes", "on", "1", "y"]:
+    return True
+  if str(x).lower() in ["false", "no", "off", "0", "n"]:
+    return False
+  raise RuntimeError("Unknown bool value " + str(x))
 
 @dataclass
 class ArgFields:
@@ -23,12 +29,14 @@ class GameParams:
     game_name: Optional[str] = None
     out_features: bool = False
     turn_features: bool = False
+    turn_features_mc: bool = False
     geometric_features: bool = False
     random_features: int = 0
     one_feature: bool = False
     history: int = 0
     predict_end_state: bool = False
     predict_n_states: int = 0
+    player: str = "mcts"
 
     def __setattr__(self, attr, value):
         if value is None:
@@ -42,9 +50,13 @@ class GameParams:
                 "game_name",
                 "out_features",
                 "turn_features",
+                "turn_features_mc",
                 "geometric_features",
                 "one_feature",
                 "history",
+                "predict_end_state",
+                "predict_n_states",
+                "player",
             }
         )
 
@@ -70,6 +82,14 @@ class GameParams:
                     action="store_false" if cls.turn_features else "store_true",
                     help="If set, the input to the NN includes a channel "
                     "with the player index broadcasted",
+                )
+            ),
+            turn_features_mc=ArgFields(
+                opts=dict(
+                    action="store_false" if cls.turn_features_mc else "store_true",
+                    help="If set, the input to the NN includes one channel "
+                    "for each player (color), with the one corresponding to the"
+                    " current player set to 1 and the others set to 0",
                 )
             ),
             geometric_features=ArgFields(
@@ -98,16 +118,22 @@ class GameParams:
             ),
             predict_end_state=ArgFields(
                 opts=dict(
-                    type=bool,
-                    help="Side learning: predict end state (not functional for training yet)",
+                    type=boolarg,
+                    help="Side learning: predict end state",
                 )
             ),
             predict_n_states=ArgFields(
                 opts=dict(
                     type=int,
-                    help="Side learning: predict N next game states (not functional for training yet)",
+                    help="Side learning: predict N next game states",
                 )
             ),
+            player=ArgFields(
+                opts=dict(
+                    type=str,
+                    help="Type of player to use. One of: mcts, forward",
+                )
+            )
         )
         for param, arg_field in params.items():
             if arg_field.name is None:
@@ -140,6 +166,7 @@ class ModelParams:
     activation_function: str = "relu"
     global_pooling: float = 0
     batchnorm_momentum: float = 0.01
+    rnn_interval: float = 0
 
     def __setattr__(self, attr, value):
         if value is None:
@@ -261,6 +288,12 @@ class ModelParams:
                     help="Batch normalization momentum",
                 )
             ),
+            rnn_interval=ArgFields(
+                opts=dict(
+                    type=float,
+                    help="RNN layer every this many CNN layers",
+                )
+            ),
         )
         for param, arg_field in params.items():
             if arg_field.name is None:
@@ -326,7 +359,8 @@ class OptimParams:
 
 @dataclass
 class SimulationParams:
-    num_game: int = 10  # number of cores
+    num_game: int = 2
+    num_threads: int = 0
     num_actor: int = 1  # should be 1 at training time
     num_rollouts: int = 1600
     replay_capacity: int = 1_000_000
@@ -334,8 +368,12 @@ class SimulationParams:
     sync_period: int = 100
     act_batchsize: int = 1
     per_thread_batchsize: int = 0
-    train_channel_timeout_ms: int = 1
-    train_channel_num_slots: int = 1000
+    rewind: int = 0
+    randomized_rollouts: bool = False
+    sampling_mcts: bool = False
+    sample_before_step_idx: int = 30
+    train_channel_timeout_ms: int = 1000
+    train_channel_num_slots: int = 10000
 
     def __setattr__(self, attr, value):
         if value is None:
@@ -351,6 +389,9 @@ class SimulationParams:
         params = OrderedDict(
             num_game=ArgFields(
                 opts=dict(type=int, help=f"Number of game-running threads")
+            ),
+            num_threads=ArgFields(
+                opts=dict(type=int, help=f"Number of async threads")
             ),
             num_actor=ArgFields(
                 opts=dict(
@@ -393,8 +434,34 @@ class SimulationParams:
                 opts=dict(
                     type=int,
                     help="When non-zero, "
-                    "number of games in each game-running threads run sequentially "
-                    "and batched together for inference (see '--act_batchsize')",
+                    "number of games per game-running thread, "
+                    "batched together for inference (see '--act_batchsize'). "
+                    "This parameter will be automatically tuned if it is <= 0",
+                )
+            ),
+            rewind=ArgFields(
+                opts=dict(
+                    type=int,
+                    help="Use rewind feature for training; number of times to rewind",
+                )
+            ),
+            randomized_rollouts=ArgFields(
+                opts=dict(
+                    type=boolarg,
+                    help="Enable randomized rollouts",
+                )
+            ),
+            sampling_mcts=ArgFields(
+                opts=dict(
+                    type=boolarg,
+                    help="Use sampling MCTS",
+                )
+            ),
+            sample_before_step_idx=ArgFields(
+                opts=dict(
+                    type=int,
+                    help="Before this many steps in the game, sample over moves instead "
+                    " of always selecting the best move",
                 )
             ),
             train_channel_timeout_ms=ArgFields(
@@ -426,19 +493,21 @@ class SimulationParams:
 class ExecutionParams:
     checkpoint_dir: Path = None
     save_dir: str = None  # keep for deprecation warning
-    save_uncompressed: bool = False
+    save_uncompressed: bool = True
     do_not_save_replay_buffer: bool = False
     saving_period: int = 100
     max_time: Optional[int] = None
     human_first: bool = False
-    time_ratio: float = 0.07
+    time_ratio: float = 0.035
     total_time: float = 0
-    device: List[str] = field(default_factory=lambda: ["cuda:0"])
+    devices: List[str] = field(default_factory=lambda: ["cuda:0"])
     seed: int = 1
     ddp: bool = False
-    server_listen_endpoint: str = ""
-    server_connect_hostname: str = ""
+    listen: str = ""
+    connect: str = ""
     opponent_model_path: Path = None
+    tournament_mode: bool = False
+    rnn_seqlen: int = 0
 
     def __setattr__(self, attr, value):
         if value is None:
@@ -513,16 +582,14 @@ class ExecutionParams:
                     help="Total time in seconds for the entire game for one player",
                 )
             ),
-            device=ArgFields(
+            devices=ArgFields(
                 opts=dict(
                     type=str,
                     nargs="*",
                     help="List of torch devices where the computation for the model"
                     "will happen "
                     '(e.g., "cpu", "cuda:0") '
-                    "- in training mode, if there are several devices in the list, "
-                    " the first device will be the one used for training "
-                    "while the others will be used generating games",
+                    "- in training mode, only one device is allowed ",
                 )
             ),
             seed=ArgFields(
@@ -530,17 +597,17 @@ class ExecutionParams:
             ),
             ddp=ArgFields(
                 opts=dict(
-                    type=bool,
+                    type=boolarg,
                     help="Use DistributedDataParallel for training (multi GPU)",
                 )
             ),
-            server_listen_endpoint=ArgFields(
+            listen=ArgFields(
                 opts=dict(
                     type=str,
                     help="Listen for distributed training, eg. tcp://0.0.0.0:5611",
                 )
             ),
-            server_connect_hostname=ArgFields(
+            connect=ArgFields(
                 opts=dict(
                     type=str,
                     help="Connect to hostname for distributed training, eg. tcp://127.0.0.1:5611",
@@ -550,6 +617,18 @@ class ExecutionParams:
                 opts=dict(
                     type=Path,
                     help="Load this model as the opponent - will not request model updates",
+                )
+            ),
+            tournament_mode=ArgFields(
+                opts=dict(
+                    type=boolarg,
+                    help="Use tournament mode",
+                )
+            ),
+            rnn_seqlen=ArgFields(
+                opts=dict(
+                    type=int,
+                    help="RNN sequence length used for training",
                 )
             ),
         )
@@ -569,7 +648,7 @@ class EvalParams:
     real_time: bool = False
     checkpoint_dir: Path = None
     checkpoint: Path = None
-    device_eval: List[str] = field(default_factory=lambda: ["cuda:1"])
+    device_eval: List[str] = field(default_factory=lambda: ["cuda:0"])
     num_game_eval: int = 100
     num_parallel_games_eval: int = None
     num_actor_eval: int = 1
@@ -705,12 +784,7 @@ class EvalParams:
             num_actor_opponent=ArgFields(
                 opts=dict(
                     type=int,
-                    help="Number of actors per player for the pure MCTS opponent, "
-                    "one actor being one thread doing MCTS "
-                    "- the more num_actor_opponent, the larger the MCTS "
-                    "- when a NN as been chosen as an opponent "
-                    "(see '--checkpoint_opponent'),"
-                    "it needs to be set to a number > 1",
+                    help="Number of MCTS actor threads for the opponent",
                 )
             ),
             num_rollouts_opponent=ArgFields(
