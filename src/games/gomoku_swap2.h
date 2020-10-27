@@ -68,16 +68,11 @@ class Game {
   int legalMovesCnt;
 };
 
-class Action : public ::_Action {
- public:
-  Action(int x, int y, bool isColorChanged);
-};
-
-class State : public ::State, public Game {
+class State : public core::State, public Game {
  public:
   State(int seed);
   void Initialize() override;
-  unique_ptr<mcts::State> clone_() const override;
+  unique_ptr<core::State> clone_() const override;
   void ApplyAction(const ::_Action& action) override;
   void DoGoodAction() override;
   // void printCurrentBoard() const override;

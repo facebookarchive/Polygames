@@ -57,12 +57,11 @@ struct PathInfo {
   PathInfo() = default;
 
   PathInfo(int index, Color color, unsigned borders, unsigned corners)
-    : _mainPathIndex(index)
-    , _color(color)
-    , _borders(borders)
-    , _corners(corners) {
+      : _mainPathIndex(index)
+      , _color(color)
+      , _borders(borders)
+      , _corners(corners) {
   }
-
 };
 
 template <int SIZE, bool PIE> class Board {
@@ -85,8 +84,7 @@ template <int SIZE, bool PIE> class Board {
 
   static inline Hash<SIZE> _hash;
 
- public: // TODO getter ?
-
+ public:  // TODO getter ?
   // PathInfo of the paths indexed from _pathBoard
   int _pathsEnd;
   std::array<PathInfo, fullsize(SIZE) * fullsize(SIZE)> _paths;
@@ -115,8 +113,8 @@ template <int SIZE, bool PIE> class Board {
 
  protected:
   void getPathIndexAndColorAtIndex(int index,
-                                    int& pathIndex,
-                                    Color& color) const;
+                                   int& pathIndex,
+                                   Color& color) const;
 
   ////////////////////////////////////////////////////////////
   // Havannah-specific
@@ -194,37 +192,43 @@ template <int SIZE, bool PIE> Havannah::Board<SIZE, PIE>::Board() {
   _hash.init();
 }
 
-
-template <int SIZE, bool PIE> Havannah::Color Havannah::Board<SIZE, PIE>::getCurrentColor() const {
+template <int SIZE, bool PIE>
+Havannah::Color Havannah::Board<SIZE, PIE>::getCurrentColor() const {
   return _currentColor;
 }
 
-template <int SIZE, bool PIE> Havannah::Color Havannah::Board<SIZE, PIE>::getWinnerColor() const {
+template <int SIZE, bool PIE>
+Havannah::Color Havannah::Board<SIZE, PIE>::getWinnerColor() const {
   return _winnerColor;
 }
 
-template <int SIZE, bool PIE> PLAYER Havannah::Board<SIZE, PIE>::colorToPlayer(Color color) const {
+template <int SIZE, bool PIE>
+PLAYER Havannah::Board<SIZE, PIE>::colorToPlayer(Color color) const {
   if (color == COLOR_NONE)
     return PLAYER_NULL;
   else if (color == COLOR_BLACK)
     return _hasPie ? PLAYER_1 : PLAYER_0;
-  else 
+  else
     return _hasPie ? PLAYER_0 : PLAYER_1;
 }
 
-template <int SIZE, bool PIE> PLAYER Havannah::Board<SIZE, PIE>::getCurrentPlayer() const {
+template <int SIZE, bool PIE>
+PLAYER Havannah::Board<SIZE, PIE>::getCurrentPlayer() const {
   return colorToPlayer(_currentColor);
 }
 
-template <int SIZE, bool PIE> PLAYER Havannah::Board<SIZE, PIE>::getWinnerPlayer() const {
+template <int SIZE, bool PIE>
+PLAYER Havannah::Board<SIZE, PIE>::getWinnerPlayer() const {
   return colorToPlayer(_winnerColor);
 }
 
-template <int SIZE, bool PIE> bool Havannah::Board<SIZE, PIE>::isGameFinished() const {
+template <int SIZE, bool PIE>
+bool Havannah::Board<SIZE, PIE>::isGameFinished() const {
   return _nbEmptyIndices == 0 or _winnerColor != COLOR_NONE;
 }
 
-template <int SIZE, bool PIE> std::optional<int> Havannah::Board<SIZE, PIE>::getLastIndex() const {
+template <int SIZE, bool PIE>
+std::optional<int> Havannah::Board<SIZE, PIE>::getLastIndex() const {
   return _lastIndex;
 }
 
@@ -250,9 +254,8 @@ unsigned long long Havannah::Board<SIZE, PIE>::getHashValue() const {
 }
 
 template <int SIZE, bool PIE>
-void Havannah::Board<SIZE, PIE>::getPathIndexAndColorAtIndex(int index,
-                                                         int& pathIndex,
-                                                         Color& color) const {
+void Havannah::Board<SIZE, PIE>::getPathIndexAndColorAtIndex(
+    int index, int& pathIndex, Color& color) const {
 
   assert(index >= 0);
   assert(index < _nbFullIndices);
@@ -340,15 +343,14 @@ template <int SIZE, bool PIE> void Havannah::Board<SIZE, PIE>::play(int index) {
     _hash.updateTurn();
      */
 
-  }
-  else {
+  } else {
     assert(_pathBoard[index] == 0);
 
     // find previous path & cell at index
     int boardPathIndex;
     Color boardColor;
     getPathIndexAndColorAtIndex(index, boardPathIndex, boardColor);
-  
+
     // if board cell is empty, update board
     if (boardColor == COLOR_NONE) {
 
@@ -390,7 +392,7 @@ template <int SIZE, bool PIE> void Havannah::Board<SIZE, PIE>::play(int index) {
         _paths[_pathsEnd] =
             PathInfo(_pathsEnd, _currentColor, borders, corners);
         _pathsEnd++;
-      _pathBoard[index] = mainPathIndex;
+        _pathBoard[index] = mainPathIndex;
       }
       // if the cell is connected to an existing path, then update paths
       // and check end of game
@@ -410,8 +412,8 @@ template <int SIZE, bool PIE> void Havannah::Board<SIZE, PIE>::play(int index) {
               _paths[k] = mainPath;
           }
         }
-      _pathBoard[index] = mainPathIndex;
-  
+        _pathBoard[index] = mainPathIndex;
+
         // update winner
         if (isWinningPath(mainPath, mainPathIndex, index))
           _winnerColor = _currentColor;
@@ -433,7 +435,8 @@ bool Havannah::Board<SIZE, PIE>::isValidCell(const Cell& refCell) const {
          i + j >= SIZE - 1 and i + j <= 3 * SIZE - 3;
 }
 
-template <int SIZE, bool PIE> bool Havannah::Board<SIZE, PIE>::isValidIndex(int index) const {
+template <int SIZE, bool PIE>
+bool Havannah::Board<SIZE, PIE>::isValidIndex(int index) const {
   Cell c = convertIndexToCell(index);
   return isValidCell(c);
 }
@@ -441,7 +444,7 @@ template <int SIZE, bool PIE> bool Havannah::Board<SIZE, PIE>::isValidIndex(int 
 template <int SIZE, bool PIE>
 std::vector<int> Havannah::Board<SIZE, PIE>::findLegalIndices() const {
   std::vector<int> emptyIndices;
-  emptyIndices.reserve(_nbEmptyIndices+1);
+  emptyIndices.reserve(_nbEmptyIndices + 1);
   for (int k = 0; k < _nbFullIndices; k++)
     if (isValidIndex(k) and _pathBoard[k] == 0)
       emptyIndices.push_back(k);
@@ -479,8 +482,8 @@ std::vector<int> Havannah::Board<SIZE, PIE>::findWinnerPath() const {
 
 template <int SIZE, bool PIE>
 bool Havannah::Board<SIZE, PIE>::isWinningPath(const PathInfo& path,
-                                          int pathIndex,
-                                          int cellIndex) {
+                                               int pathIndex,
+                                               int cellIndex) {
 
   // test if path is connected to 3 borders
   if (computeNbOnes(path._borders) >= 3) {
@@ -576,7 +579,8 @@ unsigned Havannah::Board<SIZE, PIE>::computeCorners(int index) const {
   return corners;
 }
 
-template <int SIZE, bool PIE> int Havannah::Board<SIZE, PIE>::computeNbOnes(unsigned f) const {
+template <int SIZE, bool PIE>
+int Havannah::Board<SIZE, PIE>::computeNbOnes(unsigned f) const {
   int n = f & 1u;
   f >>= 1;
   n += f & 1u;
@@ -592,7 +596,8 @@ template <int SIZE, bool PIE> int Havannah::Board<SIZE, PIE>::computeNbOnes(unsi
 }
 
 template <int SIZE, bool PIE>
-std::vector<int> Havannah::Board<SIZE, PIE>::findPathIndices(int pathIndex) const {
+std::vector<int> Havannah::Board<SIZE, PIE>::findPathIndices(
+    int pathIndex) const {
   std::vector<int> indices;
   indices.reserve(2 * fullsize(SIZE));
   for (int k = 0; k < _nbFullIndices; k++) {
@@ -606,7 +611,7 @@ std::vector<int> Havannah::Board<SIZE, PIE>::findPathIndices(int pathIndex) cons
 
 template <int SIZE, bool PIE>
 int Havannah::Board<SIZE, PIE>::computeNbNeighbours(int cellIndex,
-                                               Color color) const {
+                                                    Color color) const {
   int nbNeighbours = 0;
   for (int neighbourIndex : _neighboursBoard[cellIndex]) {
     if (neighbourIndex == -1)
@@ -618,7 +623,8 @@ int Havannah::Board<SIZE, PIE>::computeNbNeighbours(int cellIndex,
 }
 
 template <int SIZE, bool PIE>
-bool Havannah::Board<SIZE, PIE>::detectHole(const std::vector<int>& indices) const {
+bool Havannah::Board<SIZE, PIE>::detectHole(
+    const std::vector<int>& indices) const {
 
   std::vector<Cell> cells;
   cells.reserve(indices.size());
@@ -707,4 +713,3 @@ bool Havannah::Board<SIZE, PIE>::detectHole(const std::vector<int>& indices) con
 
   return false;
 }
-

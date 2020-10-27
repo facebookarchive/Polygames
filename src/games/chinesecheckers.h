@@ -71,7 +71,7 @@ class Game {
   template <typename R> static void setupBoard(const R& re);
   static constexpr Player chessToPlayer(Chess chess);
   static constexpr Chess playerToChess(Player player);
-  
+
   static constexpr size_t players = 2;
   static constexpr size_t chesses = 2;
   static constexpr int boardWH = 11;             // width and height in board
@@ -88,7 +88,7 @@ class Game {
 
   Move Pass = {pass, pass, Chesses::empty, true};
 
-  const short int move_table[121][6] = {
+  static constexpr short int move_table[121][6] = {
       //  position {LU,RU,L,R,LD,RD}
       {-1, -1, -1, -1, P_A2, P_A3},                // A1
       {-1, P_A1, -1, P_A3, P_A4, P_A5},            // A2
@@ -217,23 +217,18 @@ class Game {
   int JumpOBS(int cur, int dirct);
 };
 
-class Action : public ::_Action {
- public:
-  Action(int method, int cur, int next);
-};
-
-class State : public ::State, public Game {
+class State : public core::State, public Game {
  public:
   State(int seed);
   void Initialize() override;
-  unique_ptr<mcts::State> clone_() const override;
+  unique_ptr<core::State> clone_() const override;
   void ApplyAction(const _Action& action) override;
   void DoGoodAction() override;
   void printCurrentBoard() const override;
   string stateDescription() const override;
-  string actionsDescription() override;
+  string actionsDescription() const override;
   string actionDescription(const ::_Action& action) const override;
-  int parseAction(const string& str) override;
+  int parseAction(const string& str) const override;
   int humanInputAction(
       std::function<std::optional<int>(std::string)> specialAction) override;
 

@@ -49,12 +49,11 @@ struct PathInfo {
   PathInfo() = default;
 
   PathInfo(int index, Color color, bool border1, bool border2)
-    : _mainPathIndex(index)
-    , _color(color)
-    , _isConnectedBorder1(border1)
-    , _isConnectedBorder2(border2) {
+      : _mainPathIndex(index)
+      , _color(color)
+      , _isConnectedBorder1(border1)
+      , _isConnectedBorder2(border2) {
   }
-
 };
 
 template <int SIZE, bool PIE> class Board {
@@ -81,7 +80,7 @@ template <int SIZE, bool PIE> class Board {
   // path of each cell (index in _paths)
   std::array<int, SIZE * SIZE> _pathBoard;
 
-  static inline Hash<SIZE> _hash;
+  // static inline Hash<SIZE> _hash;
 
  public:
   Board();
@@ -102,8 +101,8 @@ template <int SIZE, bool PIE> class Board {
 
  protected:
   void getPathIndexAndColorAtIndex(int index,
-                                    int& pathIndex,
-                                    Color& color) const;
+                                   int& pathIndex,
+                                   Color& color) const;
 
   ////////////////////////////////////////////////////////////
   // hex-specific
@@ -151,8 +150,7 @@ template <int SIZE> void Hex::Hash<SIZE>::init() {
   _value = 0;
 }
 
-template <int SIZE>
-void Hex::Hash<SIZE>::updateArray(int color, int j, int i) {
+template <int SIZE> void Hex::Hash<SIZE>::updateArray(int color, int j, int i) {
   _value ^= _array[color][j][i];
 }
 
@@ -169,39 +167,46 @@ template <int SIZE> unsigned long long Hex::Hash<SIZE>::getValue() const {
 ///////////////////////////////////////////////////////////////////////////////
 
 template <int SIZE, bool PIE> Hex::Board<SIZE, PIE>::Board() {
-  _hash.init();
+  //_hash.init();
 }
 
-template <int SIZE, bool PIE> Hex::Color Hex::Board<SIZE, PIE>::getCurrentColor() const {
+template <int SIZE, bool PIE>
+Hex::Color Hex::Board<SIZE, PIE>::getCurrentColor() const {
   return _currentColor;
 }
 
-template <int SIZE, bool PIE> Hex::Color Hex::Board<SIZE, PIE>::getWinnerColor() const {
+template <int SIZE, bool PIE>
+Hex::Color Hex::Board<SIZE, PIE>::getWinnerColor() const {
   return _winnerColor;
 }
 
-template <int SIZE, bool PIE> PLAYER Hex::Board<SIZE, PIE>::colorToPlayer(Color color) const {
+template <int SIZE, bool PIE>
+PLAYER Hex::Board<SIZE, PIE>::colorToPlayer(Color color) const {
   if (color == COLOR_NONE)
     return PLAYER_NULL;
   else if (color == COLOR_BLACK)
     return _hasPie ? PLAYER_1 : PLAYER_0;
-  else 
+  else
     return _hasPie ? PLAYER_0 : PLAYER_1;
 }
 
-template <int SIZE, bool PIE> PLAYER Hex::Board<SIZE, PIE>::getCurrentPlayer() const {
+template <int SIZE, bool PIE>
+PLAYER Hex::Board<SIZE, PIE>::getCurrentPlayer() const {
   return colorToPlayer(_currentColor);
 }
 
-template <int SIZE, bool PIE> PLAYER Hex::Board<SIZE, PIE>::getWinnerPlayer() const {
+template <int SIZE, bool PIE>
+PLAYER Hex::Board<SIZE, PIE>::getWinnerPlayer() const {
   return colorToPlayer(_winnerColor);
 }
 
-template <int SIZE, bool PIE> bool Hex::Board<SIZE, PIE>::isGameFinished() const {
+template <int SIZE, bool PIE>
+bool Hex::Board<SIZE, PIE>::isGameFinished() const {
   return _nbEmptyIndices == 0 or _winnerColor != COLOR_NONE;
 }
 
-template <int SIZE, bool PIE> std::optional<int> Hex::Board<SIZE, PIE>::getLastIndex() const {
+template <int SIZE, bool PIE>
+std::optional<int> Hex::Board<SIZE, PIE>::getLastIndex() const {
   return _lastIndex;
 }
 
@@ -209,7 +214,8 @@ template <int SIZE, bool PIE> bool Hex::Board<SIZE, PIE>::canPie() const {
   return PIE and _nbEmptyIndices == _nbIndices - 1 and not _hasPie;
 }
 
-template <int SIZE, bool PIE> Hex::Cell Hex::Board<SIZE, PIE>::convertIndexToCell(int index) {
+template <int SIZE, bool PIE>
+Hex::Cell Hex::Board<SIZE, PIE>::convertIndexToCell(int index) {
   int i = index / SIZE;
   int j = index % SIZE;
   return Cell(i, j);
@@ -220,14 +226,16 @@ int Hex::Board<SIZE, PIE>::convertCellToIndex(const Cell& refCell) {
   return refCell.first * SIZE + refCell.second;
 }
 
-template <int SIZE, bool PIE> unsigned long long Hex::Board<SIZE, PIE>::getHashValue() const {
-  return _hash.getValue();
+template <int SIZE, bool PIE>
+unsigned long long Hex::Board<SIZE, PIE>::getHashValue() const {
+  return 0;
+  // return _hash.getValue();
 }
 
 template <int SIZE, bool PIE>
 void Hex::Board<SIZE, PIE>::getPathIndexAndColorAtIndex(int index,
-                                                    int& pathIndex,
-                                                    Color& color) const {
+                                                        int& pathIndex,
+                                                        Color& color) const {
   assert(index >= 0);
   assert(index < _nbFullIndices);
 
@@ -302,8 +310,7 @@ template <int SIZE, bool PIE> void Hex::Board<SIZE, PIE>::play(int index) {
     _hash.updateTurn();
      */
 
-  }
-  else {
+  } else {
     assert(_pathBoard[index] == 0);
 
     // find previous path & cell at index
@@ -315,10 +322,10 @@ template <int SIZE, bool PIE> void Hex::Board<SIZE, PIE>::play(int index) {
     if (boardColor == COLOR_NONE) {
 
       // update hash
-      int color = getCurrentColor() == COLOR_BLACK ? 0 : 1;
-      Cell cell = convertIndexToCell(index);
-      _hash.updateArray(color, cell.second, cell.first);
-      _hash.updateTurn();
+      // int color = getCurrentColor() == COLOR_BLACK ? 0 : 1;
+      // Cell cell = convertIndexToCell(index);
+      //_hash.updateArray(color, cell.second, cell.first);
+      //_hash.updateTurn();
 
       // cell data
       int mainPathIndex = _pathsEnd;
@@ -389,18 +396,19 @@ template <int SIZE, bool PIE> void Hex::Board<SIZE, PIE>::play(int index) {
 
 template <int SIZE, bool PIE>
 bool Hex::Board<SIZE, PIE>::isValidCell(const Cell& refCell) const {
-  return refCell.first >= 0 and refCell.first < SIZE 
-    and refCell.second >= 0 and refCell.second < SIZE;
+  return refCell.first >= 0 and refCell.first < SIZE and refCell.second >= 0 and
+         refCell.second < SIZE;
 }
 
-template <int SIZE, bool PIE> bool Hex::Board<SIZE, PIE>::isValidIndex(int index) const {
+template <int SIZE, bool PIE>
+bool Hex::Board<SIZE, PIE>::isValidIndex(int index) const {
   return (index >= 0 and index < _nbFullIndices);
 }
 
 template <int SIZE, bool PIE>
 std::vector<int> Hex::Board<SIZE, PIE>::findLegalIndices() const {
   std::vector<int> emptyIndices;
-  emptyIndices.reserve(_nbEmptyIndices+1);
+  emptyIndices.reserve(_nbEmptyIndices + 1);
   for (int k = 0; k < _nbFullIndices; k++)
     if (_pathBoard[k] == 0)
       emptyIndices.push_back(k);
@@ -409,8 +417,8 @@ std::vector<int> Hex::Board<SIZE, PIE>::findLegalIndices() const {
   return emptyIndices;
 }
 
-
-template <int SIZE, bool PIE> std::vector<int> Hex::Board<SIZE, PIE>::findWinnerPath() const {
+template <int SIZE, bool PIE>
+std::vector<int> Hex::Board<SIZE, PIE>::findWinnerPath() const {
   assert(_winnerColor != COLOR_NONE);
 
   // find winning main path index
@@ -434,13 +442,13 @@ template <int SIZE, bool PIE> std::vector<int> Hex::Board<SIZE, PIE>::findWinner
   return winIndices;
 }
 
-
 template <int SIZE, bool PIE>
-void Hex::Board<SIZE, PIE>::computeBorderConnection(int index,
-                                                    Color color,
-                                                    bool& isConnectedBorder1,
-                                                    bool& isConnectedBorder2) const {
-     
+void Hex::Board<SIZE, PIE>::computeBorderConnection(
+    int index,
+    Color color,
+    bool& isConnectedBorder1,
+    bool& isConnectedBorder2) const {
+
   if (color == COLOR_BLACK) {
     isConnectedBorder1 = (index < SIZE);
     isConnectedBorder2 = (index >= _nbFullIndices - SIZE);
@@ -453,4 +461,3 @@ void Hex::Board<SIZE, PIE>::computeBorderConnection(int index,
     isConnectedBorder2 = false;
   }
 }
-

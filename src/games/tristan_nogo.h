@@ -5,6 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+#include <iostream>
 #include <list>
 #include <math.h>
 #include <stdio.h>
@@ -12,7 +13,6 @@
 #include <string.h>
 #include <sys/time.h>
 #include <time.h>
-#include <iostream>
 
 using namespace std;
 
@@ -428,12 +428,12 @@ class NogoBoard {
   }
 
   void play(NogoMove c) {
-    //std::cerr << " before:" << std::endl;
-    //print(stderr);
-        //std::cerr << c.inter % Dx << "," << c.inter / Dx << std::endl;
+    // std::cerr << " before:" << std::endl;
+    // print(stderr);
+    // std::cerr << c.inter % Dx << "," << c.inter / Dx << std::endl;
     joue(interMove[c.inter], c.color);
-    //std::cerr << " after:" << std::endl;
-    //print(stderr);
+    // std::cerr << " after:" << std::endl;
+    // print(stderr);
     turn = opponent(turn);
     if (length < MaxPlayoutLength) {
       rollout[length] = c;

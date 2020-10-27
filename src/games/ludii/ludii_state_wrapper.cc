@@ -16,12 +16,12 @@
 
 namespace Ludii {
 
-Action::Action(int i, int j, int k) {
-  _loc[0] = i;
-  _loc[1] = j;
-  _loc[2] = k;
-  _hash = uint32_t(0);  // TODO implement hash for stochastic games
-}
+// Action::Action(int i, int j, int k) {
+//  _loc[0] = i;
+//  _loc[1] = j;
+//  _loc[2] = k;
+//  _hash = uint32_t(0);  // TODO implement hash for stochastic games
+//}
 
 void LudiiStateWrapper::Initialize() {
   Reset();
@@ -67,13 +67,11 @@ void LudiiStateWrapper::findActions() {
   _legalActions.reserve(nbMoves);
   for (size_t i = 0; i < nbMoves; ++i) {
     const std::array<int, 3>& move = moves[i];
-    _legalActions.push_back(
-        std::make_shared<Ludii::Action>(move[0], move[1], move[2]));
-    _legalActions.back()->SetIndex(i);
+    _legalActions.emplace_back(i, move[0], move[1], move[2]);
   }
 }
 
-std::unique_ptr<mcts::State> LudiiStateWrapper::clone_() const {
+std::unique_ptr<core::State> LudiiStateWrapper::clone_() const {
   return std::make_unique<LudiiStateWrapper>(*this);
 }
 
@@ -129,7 +127,7 @@ void LudiiStateWrapper::DoGoodAction() {
 
 LudiiStateWrapper::LudiiStateWrapper(int seed,
                                      LudiiGameWrapper&& inLudiiGameWrapper)
-    : ::State(seed) {
+    : core::State(seed) {
 
   JNIEnv* jenv = JNIUtils::GetEnv();
   ludiiGameWrapper =
@@ -176,7 +174,7 @@ LudiiStateWrapper::LudiiStateWrapper(int seed,
 }
 
 LudiiStateWrapper::LudiiStateWrapper(const LudiiStateWrapper& other)
-    : ::State(other)
+    : core::State(other)
     , ludiiGameWrapper(other.ludiiGameWrapper) {
 
   JNIEnv* jenv = JNIUtils::GetEnv();

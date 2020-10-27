@@ -31,13 +31,7 @@
                         */
 namespace Mastermind {
 
-template <int SIZE, int HORIZON, int ARITY> class Action : public ::_Action {
- public:
-  Action(int i, int j, int k);
-  std::string to_string() const;
-};
-
-template <int SIZE, int HORIZON, int ARITY> class State : public ::State {
+template <int SIZE, int HORIZON, int ARITY> class State : public core::State {
  private:
   // just for enabling verbosity
   bool mmverbose;
@@ -94,7 +88,7 @@ template <int SIZE, int HORIZON, int ARITY> class State : public ::State {
   void Initialize() override;
   void ApplyAction(const _Action& action) override;
   void DoGoodAction() override;
-  std::unique_ptr<mcts::State> clone_() const override;
+  std::unique_ptr<core::State> clone_() const override;
 };
 
 // Hamming distance.
@@ -219,32 +213,12 @@ bool State<SIZE, HORIZON, ARITY>::unicity(int real[],
 }  // namespace Mastermind
 
 ///////////////////////////////////////////////////////////////////////////////
-// Mastermind::Action
-///////////////////////////////////////////////////////////////////////////////
-
-template <int SIZE, int HORIZON, int ARITY>
-Mastermind::Action<SIZE, HORIZON, ARITY>::Action(int i, int j, int k) {
-  _loc[0] = i;
-  _loc[1] = j;
-  _loc[2] = k;
-  _hash = uint32_t(i * (SIZE) + j);
-  _i = -1;  // to be updated after the action is created (position in
-            // _legalActions)
-}
-
-template <int SIZE, int HORIZON, int ARITY>
-std::string Mastermind::Action<SIZE, HORIZON, ARITY>::to_string() const {
-  return "(slot=" + std::to_string(_loc[0]) + ", time=" +
-         std::to_string(_loc[1]) + ", color=" + std::to_string(_loc[2]) + ")";
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // Mastermind::State
 ///////////////////////////////////////////////////////////////////////////////
 
 template <int SIZE, int HORIZON, int ARITY>
 Mastermind::State<SIZE, HORIZON, ARITY>::State(int seed)
-    : ::State(seed) {
+    : core::State(seed) {
   mmverbose = false;
   if (mmverbose) {
     std::cerr << " cretion" << std::endl;
@@ -259,15 +233,13 @@ Mastermind::State<SIZE, HORIZON, ARITY>::State(int seed)
 
 template <int SIZE, int HORIZON, int ARITY>
 void Mastermind::State<SIZE, HORIZON, ARITY>::findActions() {
-  _legalActions.clear();
+  clearActions();
   int time = _timeStep / SIZE;
   int slot = _timeStep % SIZE;
   if (_status == GameStatus::player0Turn) {
     assert(time < HORIZON);
     for (int i = 0; i < ARITY; i++) {
-      _legalActions.push_back(
-          std::make_shared<Action<SIZE, HORIZON, ARITY>>(i, time, slot));
-      _legalActions[i]->SetIndex(i);
+      addAction(i, time, slot);
     }
     if (mmverbose) {
       std::cerr << " fa done" << std::endl;
@@ -318,7 +290,7 @@ void Mastermind::State<SIZE, HORIZON, ARITY>::ApplyAction(
     std::cout << "before:\n" << stateDescription();
   }
   if (_legalActions.size() == 0) {
-    //std::cout << boost::stacktrace::stacktrace();
+    // std::cout << boost::stacktrace::stacktrace();
     std::cout << "no legal action " << stateDescription() << std::endl;
     std::cout << "but playing " << actionDescription(action) << std::endl;
     std::cout << "wonstatus=" << (_status == GameStatus::player0Win)
@@ -406,15 +378,15 @@ void Mastermind::State<SIZE, HORIZON, ARITY>::ApplyAction(
 
   // TODO(oteytaud): cartesian product of actions would be better!
   if (mmverbose) {
-	  std::cerr << " findactions " << std::endl;
+    std::cerr << " findactions " << std::endl;
   }
   findActions();
   if (mmverbose) {
-	  std::cerr << " fff " << std::endl;
+    std::cerr << " fff " << std::endl;
   }
   fillFullFeatures();
   if (mmverbose) {
-	  std::cerr << "AA done" << std::endl;
+    std::cerr << "AA done" << std::endl;
   }
 }
 
@@ -427,7 +399,7 @@ void Mastermind::State<SIZE, HORIZON, ARITY>::DoGoodAction() {
 }
 
 template <int SIZE, int HORIZON, int ARITY>
-std::unique_ptr<mcts::State> Mastermind::State<SIZE, HORIZON, ARITY>::clone_()
+std::unique_ptr<core::State> Mastermind::State<SIZE, HORIZON, ARITY>::clone_()
     const {
   return std::make_unique<Mastermind::State<SIZE, HORIZON, ARITY>>(*this);
 }

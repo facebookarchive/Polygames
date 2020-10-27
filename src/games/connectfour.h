@@ -14,19 +14,19 @@
 
 #include "../core/state.h"
 
-class ActionForConnectFour : public _Action {
- public:
-  ActionForConnectFour(int x, size_t index)
-      : _Action() {
-    _loc[0] = x;
-    _loc[1] = 0;
-    _loc[2] = 0;
-    _hash = (uint32_t)x;
-    _i = (int)index;
-  }
-};
+// class ActionForConnectFour : public _Action {
+// public:
+//  ActionForConnectFour(int x, size_t index)
+//      : _Action() {
+//    _loc[0] = x;
+//    _loc[1] = 0;
+//    _loc[2] = 0;
+//    _hash = (uint32_t)x;
+//    _i = (int)index;
+//  }
+//};
 
-class StateForConnectFour : public State {
+class StateForConnectFour : public core::State {
  public:
   StateForConnectFour(int seed)
       : State(seed) {
@@ -54,7 +54,7 @@ class StateForConnectFour : public State {
     fillFullFeatures();
   }
 
-  virtual std::unique_ptr<mcts::State> clone_() const override {
+  virtual std::unique_ptr<core::State> clone_() const override {
     return std::make_unique<StateForConnectFour>(*this);
   }
 
@@ -90,11 +90,10 @@ class StateForConnectFour : public State {
   }
 
   void findActions() {
-    _legalActions.clear();
+    clearActions();
     for (int i = 0; i != boardWidth; ++i) {
       if (height[i] != boardHeight) {
-        _legalActions.push_back(
-            std::make_shared<ActionForConnectFour>(i, _legalActions.size()));
+        addAction(i, 0, 0);
       }
     }
   }
@@ -146,8 +145,8 @@ class StateForConnectFour : public State {
     return DoRandomAction();
   }
 
-  const int boardWidth = 7;
-  const int boardHeight = 6;
+  int boardWidth = 7;
+  int boardHeight = 6;
   std::vector<char> board;
   std::vector<char> height;
 };

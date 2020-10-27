@@ -12,7 +12,7 @@
 // 1-based indexed vector of int
 class SchurVector {
     private:
-        const int _maxIndex;
+        int _maxIndex;
         std::vector<int> _data;
     public:
         SchurVector(int maxIndex);

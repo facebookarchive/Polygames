@@ -16,8 +16,7 @@ namespace vkms {
 #define rowColToIdx Minesweeper::rowColToIdx
 #define arrGet Minesweeper::arrGet
 
-template<size_t WIDTH, size_t HEIGHT, size_t MINES>
-class SolutionSet {
+template <size_t WIDTH, size_t HEIGHT, size_t MINES> class SolutionSet {
 
   using _GameDefs = Minesweeper::GameDefs<WIDTH, HEIGHT, MINES>;
   using Board = typename _GameDefs::Board;
@@ -28,17 +27,17 @@ class SolutionSet {
   using Solution = std::list<size_t>;
   using Solutions = std::list<Solution>;
 
-  public:
-
-  SolutionSet(const ConnectedComponent& cc, const Board& board,
-      const _Mask& mines) :
-      _variables(cc._variables),
-      _constraints(cc._constraints),
-      _varToConstr(_variables.size()),
-      _constrToVar(_constraints.size()),
-      _minNumMines(MINES),
-      _maxNumMines(0),
-      _varStates(_variables.size(), -1) {
+ public:
+  SolutionSet(const ConnectedComponent& cc,
+              const Board& board,
+              const _Mask& mines)
+      : _variables(cc._variables)
+      , _constraints(cc._constraints)
+      , _varToConstr(_variables.size())
+      , _constrToVar(_constraints.size())
+      , _minNumMines(MINES)
+      , _maxNumMines(0)
+      , _varStates(_variables.size(), -1) {
     initializeVariableIdxMap();
     initializeMaps();
     _constrCounts = computeConstraintNminesLeft(board, mines);
@@ -46,27 +45,27 @@ class SolutionSet {
     _varOrder = variablesOrderedByNconstraintsDescending();
     enumerateSolutions(board, mines);
     MINESWEEPER_DEBUG(dumpSolutionStats(debug(std::cout)) << std::endl);
-  } // SolutionSet
+  }  // SolutionSet
 
   size_t minNumMines() const {
     return _minNumMines;
-  } // min_num_mines
-  
+  }  // min_num_mines
+
   size_t maxNumMines() const {
     return _maxNumMines;
-  } // max_num_mines
+  }  // max_num_mines
 
   bool hasSamples(size_t nmines) const {
     return _solutions.find(nmines) != _solutions.end();
-  } // hasSamples
+  }  // hasSamples
 
   size_t numSamples(size_t nmines) const {
     return _solutions.at(nmines).size();
-  } // hasSamples
+  }  // hasSamples
 
   const Minesweeper::SparseMask& getVariables() const {
     return _variables;
-  } // getVariables
+  }  // getVariables
 
   std::vector<float> getVarProbas(size_t nmines) const {
     std::vector<float> probas(_variables.size(), 0);
@@ -83,9 +82,9 @@ class SolutionSet {
       proba /= solutions.size();
     }
     return probas;
-  } // getVarProbas
+  }  // getVarProbas
 
-  template<typename RngEngine>
+  template <typename RngEngine>
   std::vector<int> sample(size_t nmines, RngEngine& rng) const {
     std::vector<int> sample;
     if (!nmines) {
@@ -93,21 +92,21 @@ class SolutionSet {
     }
     sample.reserve(nmines);
     assert(hasSamples(nmines));
-    const auto& solutions = _solutions.at(nmines); 
+    const auto& solutions = _solutions.at(nmines);
     std::uniform_int_distribution<size_t> distribution(0, solutions.size() - 1);
     size_t sampleIdx = distribution(rng);
     auto solutionsIt = solutions.begin();
-    for (size_t i = 0; i < sampleIdx; ++i, ++solutionsIt);
+    for (size_t i = 0; i < sampleIdx; ++i, ++solutionsIt)
+      ;
     const auto& solution = *solutionsIt;
     assert(solution.size() == nmines);
     for (auto mineIdx : solution) {
       sample.push_back(mineIdx);
     }
     return sample;
-  } // sample
+  }  // sample
 
-  private:
-
+ private:
   void initializeVariableIdxMap() {
     int mineIdx;
     for (size_t i = 0; i < _variables.size(); ++i) {
@@ -115,29 +114,28 @@ class SolutionSet {
       assert(mineIdx >= 0);
       _mineIdxToVarIdx[static_cast<size_t>(mineIdx)] = i;
     }
-  } // initializeVariableIdxMap
+  }  // initializeVariableIdxMap
 
   void initializeMaps() {
     for (size_t i = 0; i < _variables.size(); ++i) {
       Minesweeper::BoardPosition bp_i = _variables[i];
       for (size_t j = 0; j < _constraints.size(); ++j) {
         Minesweeper::BoardPosition bp_j = _constraints[j];
-        if ((bp_i.col() - bp_j.col() >= -1) &&
-            (bp_i.col() - bp_j.col() <= 1) &&
-            (bp_i.row() - bp_j.row() >= -1) &&
-            (bp_i.row() - bp_j.row() <= 1)) {
+        if ((bp_i.col() - bp_j.col() >= -1) && (bp_i.col() - bp_j.col() <= 1) &&
+            (bp_i.row() - bp_j.row() >= -1) && (bp_i.row() - bp_j.row() <= 1)) {
           _varToConstr[i].push_back(j);
           _constrToVar[j].push_back(i);
         }
-      } // for j
-    } // for i
-  } // initializeMaps
-    
-  std::vector<size_t> computeConstraintNminesLeft(
-      const Board& board, const _Mask& mines) {
+      }  // for j
+    }    // for i
+  }      // initializeMaps
+
+  std::vector<size_t> computeConstraintNminesLeft(const Board& board,
+                                                  const _Mask& mines) {
     std::vector<size_t> counts(_constrToVar.size(), 0);
-    auto select_mines = [&](int UNUSED(v), int row, int col)
-        { return mines.get(row, col); };
+    auto select_mines = [&](int UNUSED(v), int row, int col) {
+      return mines.get(row, col);
+    };
     int v, row, col;
     size_t count, nmines;
     for (size_t j = 0; j < _constrToVar.size(); ++j) {
@@ -151,17 +149,18 @@ class SolutionSet {
       counts[j] = count - nmines;
     }
     return counts;
-  } // computeConstraintNminesLeft
-   
+  }  // computeConstraintNminesLeft
+
   std::vector<size_t> variablesOrderedByNconstraintsDescending() {
     std::vector<size_t> order(_varToConstr.size());
     for (size_t i = 0; i < order.size(); ++i) {
       order[i] = i;
     }
-    std::sort(order.begin(), order.end(), [this](size_t i, size_t j)
-        { return this->_varToConstr[i].size() > this->_varToConstr[j].size(); });
+    std::sort(order.begin(), order.end(), [this](size_t i, size_t j) {
+      return this->_varToConstr[i].size() > this->_varToConstr[j].size();
+    });
     return order;
-  } // variablesOrderedByNconstraintsDescending
+  }  // variablesOrderedByNconstraintsDescending
 
   void assignMine(size_t i) {
     _varStates[i] = 1;
@@ -173,7 +172,7 @@ class SolutionSet {
         _constrStates[j]--;
       }
     }
-  } // assignMine
+  }  // assignMine
 
   void assignNotMine(size_t i) {
     if (_varStates[i] == 1) {
@@ -182,7 +181,7 @@ class SolutionSet {
       }
     }
     _varStates[i] = 0;
-  } // assignNotMine
+  }  // assignNotMine
 
   int nextUnassignedVariable() const {
     for (size_t i = 0; i < _varOrder.size(); ++i) {
@@ -191,7 +190,7 @@ class SolutionSet {
       }
     }
     return -1;
-  } // nextUnassignedVariable
+  }  // nextUnassignedVariable
 
   bool constraintsSatisfied() const {
     for (size_t constrState : _constrStates) {
@@ -200,7 +199,7 @@ class SolutionSet {
       }
     }
     return true;
-  } // constraintsSatisfied
+  }  // constraintsSatisfied
 
   bool updateStates() {
     bool changed = false;
@@ -232,12 +231,13 @@ class SolutionSet {
           changed = true;
         }
       }
-    } // for j
+    }  // for j
     return changed;
-  } // updateConstrStates
+  }  // updateConstrStates
 
   void updateFromAssignments() {
-    std::copy(_constrCounts.begin(), _constrCounts.end(), _constrStates.begin());
+    std::copy(
+        _constrCounts.begin(), _constrCounts.end(), _constrStates.begin());
     std::vector<int> varStates(_varStates);
     std::fill(_varStates.begin(), _varStates.end(), -1);
     for (size_t v : _assignedVars) {
@@ -252,13 +252,13 @@ class SolutionSet {
     do {
       changed = updateStates();
     } while (changed);
-  } // updateConstraint
+  }  // updateConstraint
 
   void assignVariable(size_t i) {
     _assignedVars.push_back(i);
     _varStates[i] = 1;
     updateFromAssignments();
-  } // assignVariable
+  }  // assignVariable
 
   void triggerLastAssignment() {
     if (_assignedVars.empty()) {
@@ -275,7 +275,7 @@ class SolutionSet {
     assert(_varStates[lastAssigned] == 1);
     _varStates[lastAssigned] = 0;
     updateFromAssignments();
-  } // triggerLastAssignment
+  }  // triggerLastAssignment
 
   void enumerateSolution() {
     Solution mines;
@@ -293,7 +293,7 @@ class SolutionSet {
       _maxNumMines = mines.size();
     }
     _solutions[mines.size()].push_back(mines);
-  } // enumerateSolution
+  }  // enumerateSolution
 
   bool checkSolutionAgainstBoard(const Board& board, const _Mask& mines) {
     for (size_t i = 0; i < _constraints.size(); ++i) {
@@ -304,12 +304,14 @@ class SolutionSet {
           ++nMines;
         }
       }
-      auto select_mines = [&](int UNUSED(v), int row, int col)
-          { return mines.get(row, col); };
+      auto select_mines = [&](int UNUSED(v), int row, int col) {
+        return mines.get(row, col);
+      };
       size_t nMinesMarked = _GameDefs::countNeighbors(
           board, _constraints[i].row(), _constraints[i].col(), select_mines);
       nMines += nMinesMarked;
-      int v = arrGet<Board, WIDTH>(board, _constraints[i].row(), _constraints[i].col());
+      int v = arrGet<Board, WIDTH>(
+          board, _constraints[i].row(), _constraints[i].col());
       assert(v > 0);
       if (static_cast<size_t>(v) != nMines) {
         /*MINESWEEPER_DEBUG(debug(std::cout) << "Constraint " << i \
@@ -325,7 +327,7 @@ class SolutionSet {
       }
     }
     return true;
-  } // checkSolutionAgainstBoard
+  }  // checkSolutionAgainstBoard
 
   std::string stateToString(const Board& board) {
     using BoardChars = std::array<char, WIDTH * HEIGHT>;
@@ -337,15 +339,15 @@ class SolutionSet {
       for (size_t col = 0; col < WIDTH; ++col) {
         v = board[k];
         switch (v) {
-          case Minesweeper::UNKNOWN:
-            c = '.';
-            break;
-          case Minesweeper::BOOM:
-            c = 'X';
-            break;
-          default:
-            assert(v >= 0);
-            c = '0' + v;
+        case Minesweeper::UNKNOWN:
+          c = '.';
+          break;
+        case Minesweeper::BOOM:
+          c = 'X';
+          break;
+        default:
+          assert(v >= 0);
+          c = '0' + v;
         }
         boardChars[k] = c;
         ++k;
@@ -372,14 +374,15 @@ class SolutionSet {
       oss << std::endl;
     }
     return oss.str();
-  } // stateToString
+  }  // stateToString
 
   void enumerateSolutions(const Board& board, const _Mask& mines) {
     _solutions.clear();
     _minNumMines = MINES;
     _maxNumMines = 0;
     std::fill(_varStates.begin(), _varStates.end(), -1);
-    std::copy(_constrCounts.begin(), _constrCounts.end(), _constrStates.begin());
+    std::copy(
+        _constrCounts.begin(), _constrCounts.end(), _constrStates.begin());
     _assignedVars.clear();
     int v;
     do {
@@ -402,17 +405,20 @@ class SolutionSet {
         }
       }
     } while (!_assignedVars.empty());
-    MINESWEEPER_DEBUG(if (_solutions.empty()) { enumerateSolutionsDebug(board); });
+    MINESWEEPER_DEBUG(
+        if (_solutions.empty()) { enumerateSolutionsDebug(board); });
     assert(!_solutions.empty());
-  } // enumerateSolutions
+  }  // enumerateSolutions
 
   void enumerateSolutionsDebug(const Board& board) {
-    debug(std::cout) << "Debugging session for solutions enumeration!" << std::endl;
+    debug(std::cout) << "Debugging session for solutions enumeration!"
+                     << std::endl;
     _solutions.clear();
     _minNumMines = MINES;
     _maxNumMines = 0;
     std::fill(_varStates.begin(), _varStates.end(), -1);
-    std::copy(_constrCounts.begin(), _constrCounts.end(), _constrStates.begin());
+    std::copy(
+        _constrCounts.begin(), _constrCounts.end(), _constrStates.begin());
     _assignedVars.clear();
     int v;
     do {
@@ -448,7 +454,7 @@ class SolutionSet {
         }
       }
     } while (!_assignedVars.empty());
-  } // enumerateSolutionsDebug
+  }  // enumerateSolutionsDebug
 
   std::ostream& dumpSolutionStats(std::ostream& os) {
     os << "Solution set: ";
@@ -456,7 +462,7 @@ class SolutionSet {
       os << nmines << " mines (" << solution.size() << " solutions), ";
     }
     return os;
-  } // printSolutionStats
+  }  // printSolutionStats
 
   bool checkConsistency() {
     size_t i = 0;
@@ -468,10 +474,14 @@ class SolutionSet {
       size_t constrCount = _constrCounts[i];
       size_t constrState = _constrStates[i];
       for (size_t j : indices) {
-        switch(_varStates[j]) {
-        case -1: nUnassigned++; break;
-        case 1: nMines++; break;
-        default: ;
+        switch (_varStates[j]) {
+        case -1:
+          nUnassigned++;
+          break;
+        case 1:
+          nMines++;
+          break;
+        default:;
         }
       }
       if ((constrCount < constrState) || (constrCount < nMines) ||
@@ -486,7 +496,7 @@ class SolutionSet {
       ++i;
     }
     return true;
-  } // SolutionSet::checkConsistency
+  }  // SolutionSet::checkConsistency
 
   void checkCanAssignVar(size_t varIdx) {
     for (size_t j : _varToConstr[varIdx]) {
@@ -498,25 +508,25 @@ class SolutionSet {
         assert(false);
       }
     }
-  } // SolutionSet::checkCanAssignVar
+  }  // SolutionSet::checkCanAssignVar
 
   void dumpDebugInfo(const Board& board) {
     debug(std::cout) << "Solution set:" << std::endl;
     debug(std::cout) << "Variables: " << sparseMaskToString(_variables)
-        << std::endl;
+                     << std::endl;
     debug(std::cout) << "Constraints: " << sparseMaskToString(_constraints)
-        << std::endl;
+                     << std::endl;
     debug(std::cout) << "Variables to constraints: " << std::endl;
     size_t i = 0;
     for (const Indices& indices : _varToConstr) {
       debug(std::cout) << "  " << i++ << ": " << valuesToString(indices)
-        << std::endl;
+                       << std::endl;
     }
     debug(std::cout) << "Constraints to variables: " << std::endl;
     i = 0;
     for (const Indices& indices : _constrToVar) {
       debug(std::cout) << "  " << i++ << ": " << valuesToString(indices)
-        << std::endl;
+                       << std::endl;
     }
     debug(std::cout) << "Assigned variables: ";
     for (size_t i : _assignedVars) {
@@ -530,26 +540,24 @@ class SolutionSet {
     }
     std::cout << std::endl;
     debug(std::cout) << "Variables order: " << valuesToString(_varOrder)
-        << std::endl;
+                     << std::endl;
     debug(std::cout) << "Constraint counts: " << valuesToString(_constrCounts)
-        << std::endl;
+                     << std::endl;
     debug(std::cout) << "Constraint states: " << valuesToString(_constrStates)
-        << std::endl;
+                     << std::endl;
     debug(std::cout) << "State Board:" << std::endl;
     std::cout << stateToString(board) << std::endl;
-  } // SolutionSet::dumpDebugInfo
+  }  // SolutionSet::dumpDebugInfo
 
-  template<typename T>
-  std::string valuesToString(const T& values) {
+  template <typename T> std::string valuesToString(const T& values) {
     std::ostringstream oss;
     for (typename T::value_type v : values) {
       oss << v << ", ";
     }
     return oss.str();
-  } // SolutionSet::indicesToString
+  }  // SolutionSet::indicesToString
 
-  private:
-
+ private:
   const Minesweeper::SparseMask& _variables;
   const Minesweeper::SparseMask& _constraints;
   std::vector<Indices> _varToConstr;
@@ -567,8 +575,7 @@ class SolutionSet {
   std::vector<size_t> _constrCounts;
   std::vector<size_t> _constrStates;
 
-}; // class SolutionSet
+};  // class SolutionSet
 
-
-} // namespace vkms
-} // namespace csp
+}  // namespace vkms
+}  // namespace csp

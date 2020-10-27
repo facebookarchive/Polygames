@@ -25,10 +25,10 @@
 
 namespace Ludii {
 
-class Action : public ::_Action {
- public:
-  Action(int i, int j, int k);
-};
+// class Action : public ::_Action {
+// public:
+//  Action(int i, int j, int k);
+//};
 
 /**
  * C++ wrapper around Ludii's "LudiiStateWrapper" class.
@@ -36,11 +36,11 @@ class Action : public ::_Action {
  * This class takes care of calling all the required Java methods from Ludii
  * states.
  */
-class LudiiStateWrapper : public ::State {
+class LudiiStateWrapper : public core::State {
 
  public:
   void Initialize();
-  std::unique_ptr<mcts::State> clone_() const;
+  std::unique_ptr<core::State> clone_() const;
   void ApplyAction(const _Action& action);
   void DoGoodAction();
 
@@ -109,6 +109,11 @@ class LudiiStateWrapper : public ::State {
 
   virtual bool isOnePlayerGame() const override;
 
+  LudiiStateWrapper& operator=(LudiiStateWrapper const&) {
+    throw std::runtime_error("hi, this is ludii copy assignment operator");
+    return *this;
+  }
+
  private:
   void findFeatures();
   void findActions();
@@ -116,7 +121,7 @@ class LudiiStateWrapper : public ::State {
   // We don't want to be accidentally coyping objects of this class
   // (without having implemented our own, correct copy constructor or assignment
   // operator)
-  LudiiStateWrapper& operator=(LudiiStateWrapper const&) = delete;
+  // LudiiStateWrapper& operator=(LudiiStateWrapper const&) = delete;
 
   /** Pointer to our Game wrapper */
   std::shared_ptr<LudiiGameWrapper> ludiiGameWrapper;

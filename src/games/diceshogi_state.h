@@ -42,7 +42,7 @@ class ActionForDiceshogi : public _Action {
   }  // step is 2 or 3.
 };
 
-class StateForDiceshogi : public State {
+class StateForDiceshogi : public core::State {
  public:
   StateForDiceshogi(int seed)
       : State(seed) {
@@ -105,7 +105,7 @@ class StateForDiceshogi : public State {
     situation.push(hash);
   }
 
-  virtual std::unique_ptr<mcts::State> clone_() const override {
+  virtual std::unique_ptr<core::State> clone_() const override {
     return std::make_unique<StateForDiceshogi>(*this);
   }
 
@@ -118,7 +118,7 @@ class StateForDiceshogi : public State {
   bool won(int color) {
     if (chess[color].back().type == DSPieceType::King)
       return true;
-    if (_legalActions.empty())
+    if (_NewlegalActions.empty())
       return true;
     if (fourfold() && opponent(turn) == color)
       return true;
@@ -144,8 +144,8 @@ class StateForDiceshogi : public State {
   virtual std::string actionsDescription() override {
     std::stringstream ss;
     char x1, y1;
-    for (int i = 0; i < (int)_legalActions.size(); i++) {
-      _Action& action = *(_legalActions[i]);
+    for (int i = 0; i < (int)_NewlegalActions.size(); i++) {
+      _Action& action = *(_NewlegalActions[i]);
       int color = (GameStatus)_status == GameStatus::player1Turn ? DiceWhite
                                                                  : DiceBlack;
       DSPieceType type = z_to_type(action.GetX());
@@ -821,15 +821,14 @@ class StateForDiceshogi : public State {
 
     int nb = dice_moves.size();
 
-    _legalActions.clear();
+    clearActions();
     for (int i = 0; i < nb; ++i) {
       int x = dice_moves[i].next.x;
       int y = dice_moves[i].next.y;
       dice_moves[i].piece.promoted |= dice_moves[i].promote;
       int z = type_to_z(dice_moves[i].piece);
 
-      _legalActions.push_back(std::make_shared<ActionForDiceshogi>(x, y, z));
-      _legalActions[i]->SetIndex(i);
+      addAction(z, x, y);
     }
   }
 

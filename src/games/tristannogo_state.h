@@ -22,25 +22,10 @@ const int StateForTristannogoY = Dx;
 const int StateForTristannogoZ = Dy;
 const int NogoMaxLegalMoves = Dx * Dy;
 
-class ActionForTristannogo : public _Action {
- public:
-  // each action has a position (_x[0], _x[1], _x[2])
-  // here for Tristannogo, there is (0, 0, 0) and (1, 0, 0),
-  // corresponding to steps 2 and 3 respectively.
-  ActionForTristannogo(int x, int y)
-      : _Action() {
-    _loc[0] = 0;
-    _loc[1] = x;
-    _loc[2] = y;
-    _hash = (x + y * Dx);
-  }
-};
-
-class StateForTristannogo : public State, NogoBoard {
+class StateForTristannogo : public core::State, NogoBoard {
  public:
   StateForTristannogo(int seed)
       : State(seed) {
-    Initialize();
   }
 
   virtual ~StateForTristannogo() {
@@ -85,7 +70,7 @@ class StateForTristannogo : public State, NogoBoard {
     fillFullFeatures();
   }
 
-  virtual std::unique_ptr<mcts::State> clone_() const override {
+  virtual std::unique_ptr<core::State> clone_() const override {
     return std::make_unique<StateForTristannogo>(*this);
   }
 
@@ -93,12 +78,11 @@ class StateForTristannogo : public State, NogoBoard {
     NogoMove moves[NogoMaxLegalMoves];
     int nb = legalNogoMoves(color, moves);
 
-    _legalActions.clear();
+    clearActions();
     for (int i = 0; i < nb; i++) {
       int x = moves[i].inter % Dx;
       int y = moves[i].inter / Dx;
-      _legalActions.push_back(std::make_shared<ActionForTristannogo>(x, y));
-      _legalActions[i]->SetIndex(i);
+      addAction(0, x, y);
     }
   }
 
@@ -116,11 +100,11 @@ class StateForTristannogo : public State, NogoBoard {
         if (board[interMove[i]] == White)
           _features[Dx * Dy + i] = 1;
       for (int i = 0; i < Dx * Dy; i++)
-	if (legal(interMove[i], Black))
-	    _features[3 * Dx * Dy + i] = 1;
+        if (legal(interMove[i], Black))
+          _features[3 * Dx * Dy + i] = 1;
       for (int i = 0; i < Dx * Dy; i++)
-	if (legal(interMove[i], White))
-	    _features[4 * Dx * Dy + i] = 1;
+        if (legal(interMove[i], White))
+          _features[4 * Dx * Dy + i] = 1;
     } else {
       assert(_status == GameStatus::player1Turn);  // White
       for (int i = 0; i < 5 * Dx * Dy; i++)
@@ -132,13 +116,13 @@ class StateForTristannogo : public State, NogoBoard {
         if (board[interMove[i]] == White)
           _features[Dx * Dy + i] = 1;
       for (int i = 0; i < Dx * Dy; i++)
-	_features[2 * Dx * Dy + i] = 1;
+        _features[2 * Dx * Dy + i] = 1;
       for (int i = 0; i < Dx * Dy; i++)
-	if (legal(interMove[i], Black))
-	    _features[3 * Dx * Dy + i] = 1;
+        if (legal(interMove[i], Black))
+          _features[3 * Dx * Dy + i] = 1;
       for (int i = 0; i < Dx * Dy; i++)
-	if (legal(interMove[i], White))
-	    _features[4 * Dx * Dy + i] = 1;
+        if (legal(interMove[i], White))
+          _features[4 * Dx * Dy + i] = 1;
     }
   }
   // The action just decreases the distance and swaps the turn to play.
@@ -177,19 +161,19 @@ class StateForTristannogo : public State, NogoBoard {
   virtual void DoGoodAction() override {
 
     int i = rand() % _legalActions.size();
-    _Action a = *(_legalActions[i].get());
+    const _Action& a = _legalActions[i];
     ApplyAction(a);
   }
-  
+
   std::string stateDescription() const override {
-    std::string s ("  0 1 2 3 4 5 6 7 8\n");
+    std::string s("  0 1 2 3 4 5 6 7 8\n");
     for (int i = 0; i < Dy; i++) {
-      s += std::to_string (i);
+      s += std::to_string(i);
       for (int j = 0; j < Dx; j++) {
         if (board[interMove[i * Dy + j]] == Black)
-           s += " @";
-	else if (board[interMove[i * Dy + j]] == White)
-	  s += " O";
+          s += " @";
+        else if (board[interMove[i * Dy + j]] == White)
+          s += " O";
         else if (board[interMove[i * Dy + j]] == Empty)
           s += " +";
       }

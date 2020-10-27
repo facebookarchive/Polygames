@@ -18,26 +18,13 @@
 #pragma once
 #include "../core/state.h"
 #include "shogi.h"
+#include <mutex>
 #include <queue>
 #include <sstream>
 #include <vector>
 
-#include <mutex>
-
-class ActionForMinishogi : public _Action {
- public:
-  ActionForMinishogi(int x, int y, int p, size_t index)
-      : _Action() {
-    _loc[0] = p;
-    _loc[1] = x;
-    _loc[2] = y;
-    _hash = (x + y * 5) * 19 + p;
-    _i = (int)index;
-  }
-};
-
 template <int version = 2>
-class StateForMinishogi : public State, public Shogi {
+class StateForMinishogi : public core::State, public Shogi {
  public:
   static inline uint64_t HashArray[2][10][Dx][Dy];
   static inline uint64_t HashArrayJail[20];
@@ -67,7 +54,8 @@ class StateForMinishogi : public State, public Shogi {
     _featSize[0] = 217;
     if (version == 2) {
       _featSize[0] =
-          (6 + 4 + 6) * 2 + 3;  // (6 pieces + 4 promoted + 6 off board (counts)) * 2 + 3 repeat counts
+          (6 + 4 + 6) * 2 + 3;  // (6 pieces + 4 promoted + 6 off board
+                                // (counts)) * 2 + 3 repeat counts
     }
     _featSize[1] = Dy;
     _featSize[2] = Dx;
@@ -388,23 +376,20 @@ class StateForMinishogi : public State, public Shogi {
     }
 
     int i = 0;
-    _legalActions.clear();
+    clearActions();
     for (auto m : moves) {
       m.piece.promoted = m.promote;
 
       if (version == 2) {
-        _legalActions.push_back(std::make_shared<ActionForMinishogi>(
-            m.next.y, m.next.x,
-            (int)m.piece.type - 1 + (m.piece.pos.on_board() ? 0 : 6),
-            _legalActions.size()));
+        addAction((int)m.piece.type - 1 + (m.piece.pos.on_board() ? 0 : 6),
+                  m.next.y, m.next.x);
       } else {
 
         int x = m.next.x;
         int y = m.next.y;
         int z = type_to_z(m.piece);
 
-        _legalActions.push_back(std::make_shared<ActionForMinishogi>(
-            x, y, z, _legalActions.size()));
+        addAction(z, x, y);
       }
       i++;
     }
@@ -456,15 +441,6 @@ class StateForMinishogi : public State, public Shogi {
     return str;
   }
 
-  virtual int parseAction(const std::string& str) override {
-    for (size_t i = 0; i != _legalActions.size(); ++i) {
-      if (str == actionDescription(*_legalActions[i])) {
-        return i;
-      }
-    }
-    return -1;
-  }
-
   virtual std::string actionDescription(const _Action& action) const {
     const Move& move = moves.at(action.GetIndex());
 
@@ -474,9 +450,9 @@ class StateForMinishogi : public State, public Shogi {
     bool disx = false;
     if (p.pos.on_board()) {
       for (const Move& m : moves) {
-        if ((m.piece.type == p.type || new_type(m.piece.type) == p.type) && m.piece.promoted == p.promoted &&
-            m.piece.pos.on_board() && m.piece.pos != p.pos &&
-            m.next == move.next) {
+        if ((m.piece.type == p.type || new_type(m.piece.type) == p.type) &&
+            m.piece.promoted == p.promoted && m.piece.pos.on_board() &&
+            m.piece.pos != p.pos && m.next == move.next) {
           if (m.piece.pos.x == p.pos.x) {
             disy = true;
           } else {
@@ -514,7 +490,7 @@ class StateForMinishogi : public State, public Shogi {
     return s;
   }
 
-  virtual std::unique_ptr<mcts::State> clone_() const override {
+  virtual std::unique_ptr<core::State> clone_() const override {
     return std::make_unique<StateForMinishogi>(*this);
   }
 
@@ -668,7 +644,7 @@ class StateForMinishogi : public State, public Shogi {
       findFeature();
       fillFullFeatures();
     } else {
-      _legalActions.clear();
+      clearActions();
     }
   }
 

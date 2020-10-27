@@ -317,19 +317,8 @@ constexpr Chess Game::playerToChess(Player player) {
   return 0xFF;
 }
 
-Action::Action(int method, int cur, int next)
-    : ::_Action() {
-  // fprintf(stderr,"_Action()\n");
-  _loc[0] = method;
-  _loc[1] = cur;
-  _loc[2] = next;
-  _hash = method * (Game::boardWH * Game::boardWH) *
-              (Game::boardWH * Game::boardWH) +
-          cur * (Game::boardWH * Game::boardWH) + next;
-}
-
 State::State(int seed)
-    : ::State(seed)
+    : core::State(seed)
     , Game() {
   // fprintf(stderr,"State(int seed)\n");
   call_once(setupCalled, [&] { setupBoard(_rng); });
@@ -357,7 +346,7 @@ void State::Initialize() {
   _hash = board.getHash();
 }
 
-unique_ptr<mcts::State> State::clone_() const {
+unique_ptr<core::State> State::clone_() const {
   // fprintf(stderr,"clone_()\n");
   return make_unique<State>(*this);
 }
@@ -450,17 +439,13 @@ bool State::canChange(Player player) {
 
 void State::findActions() {
   // fprintf(stderr,"findActions()\n");
-  _legalActions.clear();
-  int i = 0;
+  clearActions();
   for (auto& m : legalMoves) {
     if (m.x != pass && m.tx != pass) {
-      _legalActions.push_back(make_shared<Action>(m.method, m.x, m.tx));
+      addAction(m.method, m.x, m.tx);
     } else {
-      _legalActions.push_back(make_shared<Action>(2, 0, 0));
+      addAction(2, 0, 0);
     }
-
-    _legalActions[i]->SetIndex(i);
-    i += 1;
   }
 }
 
@@ -485,13 +470,13 @@ void State::DoGoodAction() {
   assert(!_legalActions.empty());
   std::uniform_int_distribution<size_t> distr(0, _legalActions.size() - 1);
   size_t i = distr(_rng);
-  _Action a = *(_legalActions[i].get());
+  _Action a = _legalActions[i];
   int cur = a.GetY(), next = a.GetZ();
   Chess chess = board.getChess(cur);
   while (prePos == next && preChess == chess) {
     std::uniform_int_distribution<size_t> distr(0, _legalActions.size() - 1);
-    size_t i = distr(_rng);
-    _Action a = *(_legalActions[i].get());
+    // size_t i = distr(_rng);
+    //_Action a = _NewlegalActions[i];
   }
   prePos = cur;
   preChess = chess;
@@ -514,11 +499,10 @@ string State::actionDescription(const ::_Action& action) const {
     ostr << "<continue jumps>\t";
 
   int cur = way.front().x, goal = action.GetZ(), method = action.GetX();
-  if (method == 2){
+  if (method == 2) {
     ostr << " <-Pass-> ";
-    goal = way[way.size()-2].tx;
-  }
-  else if (method == 0)
+    goal = way[way.size() - 2].tx;
+  } else if (method == 0)
     ostr << "move from ";
   else
     ostr << "jump from ";
@@ -526,9 +510,10 @@ string State::actionDescription(const ::_Action& action) const {
   return ostr.str();
 }
 
-string State::actionsDescription() {
+string State::actionsDescription() const {
   // fprintf(stderr,"actionsDescription()\n");
   ostringstream ostr;
+  auto board = this->board;
   board.legal.clear();
 
   for (auto& m : legalMoves) {
@@ -538,7 +523,7 @@ string State::actionsDescription() {
   return ostr.str();
 }
 
-int State::parseAction(const string& str) {
+int State::parseAction(const string& str) const {
   auto parse = [&](const string& s, int& x) {
     if (s == "pass" || s == "p") {
       x = pass;
@@ -611,6 +596,7 @@ int State::parseAction(const string& str) {
   if (!parse(str, cur))
     return -1;
 
+  auto board = this->board;
   board.legal.clear();
   bool found = false;
   for (auto& m : legalMoves) {
@@ -636,11 +622,11 @@ int State::parseAction(const string& str) {
   auto& legalActions = GetLegalActions();
   for (size_t i = 0; i < legalActions.size(); i++) {
     if (cur == pass) {
-      if (legalActions[i]->GetX() == 2) {
+      if (legalActions[i].GetX() == 2) {
         return (int)i;
       }
     } else {
-      if (legalActions[i]->GetY() == cur && legalActions[i]->GetZ() == goal)
+      if (legalActions[i].GetY() == cur && legalActions[i].GetZ() == goal)
         return (int)i;
     }
   }

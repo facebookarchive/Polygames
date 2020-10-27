@@ -21,27 +21,6 @@ typedef unsigned short Coord;
 
 //#include "breakthrough.h"
 
-class ActionForNogo : public _Action {
- public:
-  // each action has a position (_x[0], _x[1], _x[2])
-  // here for Nogo, there is (0, 0, 0) and (1, 0, 0),
-  // corresponding to steps 2 and 3 respectively.
-  ActionForNogo(int x, int y)
-      : _Action() {
-    _loc[0] = 0;
-    _loc[1] = x;
-    _loc[2] = y;
-    _hash = (x + y * 9);
-  }
-  ActionForNogo(int hash)
-      : _Action() {
-    _hash = hash;
-    _loc[0] = 0;
-    _loc[1] = hash % 9;
-    _loc[2] = hash / 9;
-  }
-};
-
 class StateForNogo : public State {
  public:
   StateForNogo()
@@ -80,12 +59,10 @@ class StateForNogo : public State {
     _features.resize(_featSize[0] * _featSize[1] * _featSize[2]);
     for (int i = 0; i < _features.size(); i++)
       _features[i] = 0.;
-    int index = 0;
-    _legalActions.resize(0);
+    clearActions();
     for (int i = 0; i < 9; i++)
       for (int j = 0; j < 9; j++) {
-        _legalActions.push_back(std::make_shared<ActionForNogo>(i, j));
-        _legalActions.back().get()->SetIndex(index++);
+        addAction(0, i, j);
       }
     fillFullFeatures();
   }
@@ -124,22 +101,20 @@ class StateForNogo : public State {
       _nogoGame.PlayAction(nogoAction);
     }
     // let us remove the nogoAction from legal actions
-    _legalActions.resize(0);
+    clearActions();
     auto legal_actions = _nogoGame.GetLegalActions();
     int index = 0;
     for (const auto& action : legal_actions) {
-      _legalActions.push_back(
-          std::make_shared<ActionForNogo>(action.GetPosition()));
-      _legalActions.back().get()->SetIndex(index++);
+      addAction(0, action.GetPosition() % 9, action.GetPosition() / 9);
     }
     //   _nogoGame.ShowState();
-    // std::cerr << " number of legal actions : " << _legalActions.size() <<
+    // std::cerr << " number of legal actions : " << _NewlegalActions.size() <<
     // std::endl;
     // first channel: black stones.
     // second channel: white stones.
     // third channel: 0 if player  black to play, 1 otherwise.
     // assert(false);
-    if (_legalActions.size() == 0) {
+    if (_NewlegalActions.size() == 0) {
       // if (_nogoGame.IsTerminalState()) {
       assert(_nogoGame.IsTerminalState());
       if (_status == GameStatus::player0Turn)
@@ -159,7 +134,7 @@ class StateForNogo : public State {
         _status = GameStatus::player0Turn;
     }
     assert(_status == GameStatus::player1Win ||
-           _status == GameStatus::player0Win || _legalActions.size() > 0);
+           _status == GameStatus::player0Win || _NewlegalActions.size() > 0);
     //      std::cerr << " play 0 wins:" << (_status == GameStatus::player0Win)
     //      << std::endl;
     //     std::cerr << " play 1 wins:" << (_status == GameStatus::player1Win)
@@ -173,8 +148,8 @@ class StateForNogo : public State {
   // FIXME
   virtual void DoGoodAction() override {
 
-    int i = rand() % _legalActions.size();
-    _Action a = *(_legalActions[i].get());
+    int i = rand() % _NewlegalActions.size();
+    _Action a = *(_NewlegalActions[i].get());
     ApplyAction(a);
   }
 

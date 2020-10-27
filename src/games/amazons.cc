@@ -17,7 +17,7 @@
 namespace Amazons {
 
 State::State(int seed)
-    : ::State(seed) {
+    : core::State(seed) {
   std::call_once(setupCalled, [&] { setupBoard(_rng); });
 }
 
@@ -36,7 +36,7 @@ void State::Initialize() {
   fillFeatures();
 }
 
-std::unique_ptr<mcts::State> State::clone_() const {
+std::unique_ptr<core::State> State::clone_() const {
   return std::make_unique<State>(*this);
 }
 
@@ -77,12 +77,12 @@ std::string State::actionDescription(const ::_Action& action) const {
   return oss.str();
 }
 
-std::string State::actionsDescription() {
+std::string State::actionsDescription() const {
   std::ostringstream oss;
   oss << "Position of queen chesses which are able to move: ";
   std::set<int> xySet;
   for (auto& legalAction : _legalActions)
-    xySet.insert(legalAction->GetX());
+    xySet.insert(legalAction.GetX());
   std::size_t i = 0;
   for (int xy : xySet) {
     oss << "`" << board.getPosStr(xy) << "`";
@@ -93,7 +93,7 @@ std::string State::actionsDescription() {
   return oss.str();
 }
 
-int State::parseAction(const std::string& str) {
+int State::parseAction(const std::string& str) const {
   auto getXY = [&](const std::set<int>& xySet, const std::string& content) {
     std::cout << content << std::endl
               << "Allowed positions: ('" << Board::getMarkSymbol()
@@ -124,10 +124,10 @@ int State::parseAction(const std::string& str) {
   std::unordered_map<int, std::set<int>> arrowXYSet;
   std::unordered_map<int, std::unordered_map<int, int>> iMap;
   for (std::size_t i = 0; i < _legalActions.size(); i++) {
-    if (fromXY != _legalActions[i]->GetX())
+    if (fromXY != _legalActions[i].GetX())
       continue;
-    int toXY = _legalActions[i]->GetY();
-    int arrowXY = _legalActions[i]->GetZ();
+    int toXY = _legalActions[i].GetY();
+    int arrowXY = _legalActions[i].GetZ();
     toXYSet.insert(toXY);
     arrowXYSet[toXY].insert(arrowXY);
     iMap[toXY][arrowXY] = i;
@@ -235,15 +235,14 @@ bool State::canGoNext(Player nextPlayer) {
 }
 
 void State::findLegalActions(Player player) {
-  _legalActions.clear();
+  clearActions();
   int i = 0;
 
   auto addLegalActions = [&](Move move) {
     int fromXY = Board::posTo1D(move.fromX, move.fromY);
     int toXY = Board::posTo1D(move.toX, move.toY);
     int arrowXY = Board::posTo1D(move.arrowX, move.arrowY);
-    _legalActions.push_back(
-        std::make_shared<Action>(i++, fromXY, toXY, arrowXY));
+    addAction(fromXY, toXY, arrowXY);
     assert(i <= maxLegalActionsCnt);
   };
 

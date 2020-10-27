@@ -9,39 +9,40 @@
 // Author 2. CHIU,HSIEN-TUNG yumjelly@gmail.com
 #pragma once
 
+#include "../core/state.h"
+#include "connect6.h"
 #include <iostream>
 #include <random>
 #include <string>
 #include <vector>
-#include "../core/state.h"
-#include "connect6.h"
 
 #include <fmt/printf.h>
 
-namespace Connect6{
-  
+namespace Connect6 {
+
 const int StateForConnect6NumActions = 19 * 19 * 3;
 
-class ActionForConnect6 : public ::_Action {
- public:
-  ActionForConnect6(int x, int y)
-      : _Action() {
-    _loc[0] = 0;
-    _loc[1] = x;
-    _loc[2] = y;
-    _hash = x + y * 19;
-  }  // step is 2 or 3.
-};
+// class ActionForConnect6 : public ::_Action {
+// public:
+//  ActionForConnect6(int x, int y)
+//      : _Action() {
+//    _loc[0] = 0;
+//    _loc[1] = x;
+//    _loc[2] = y;
+//    _hash = x + y * 19;
+//  }  // step is 2 or 3.
+//};
 
-template<int version = 2>
-class StateForConnect6 : public ::State, C6Board {
+template <int version = 2>
+class StateForConnect6 : public core::State, C6Board {
  public:
   int twice;
   int firhand;
 
   StateForConnect6(int seed)
-      : State(seed) {}
-  
+      : State(seed) {
+  }
+
   virtual void Initialize() override {
     // printf("Initialize\n");
     // People implementing classes should not have much to do in _moves; just
@@ -77,7 +78,7 @@ class StateForConnect6 : public ::State, C6Board {
     fillFullFeatures();
   }
 
-  virtual std::unique_ptr<mcts::State> clone_() const override {
+  virtual std::unique_ptr<core::State> clone_() const override {
     return std::make_unique<StateForConnect6>(*this);
   }
 
@@ -91,8 +92,7 @@ class StateForConnect6 : public ::State, C6Board {
       int x = moves[i].x;
       int y = moves[i].y;
 
-      _legalActions.push_back(std::make_shared<ActionForConnect6>(x, y));
-      _legalActions[i]->SetIndex(i);
+      _legalActions.emplace_back(i, 0, x, y);
     }
   }
 
@@ -105,7 +105,8 @@ class StateForConnect6 : public ::State, C6Board {
     }
 
     if (version == 2) {
-      std::fill(_features.begin() + 2 * C6Dx * C6Dy, _features.end(), twice || firhand ? 1.0f : 0.0f);
+      std::fill(_features.begin() + 2 * C6Dx * C6Dy, _features.end(),
+                twice || firhand ? 1.0f : 0.0f);
     } else {
       std::vector<float> old(_features);
       for (int i = 0; i < C6Dx * C6Dy * 2; i++)
@@ -189,7 +190,6 @@ class StateForConnect6 : public ::State, C6Board {
           }
         }
       }
-
     }
     findFeatures();
     _hash = hash;
@@ -224,11 +224,12 @@ class StateForConnect6 : public ::State, C6Board {
     return s;
   }
 
-  std::string actionDescription(const _Action &action) const override {
-    return std::string(1, 'A' + action.GetZ()) + std::to_string(action.GetY() + 1);
+  std::string actionDescription(const _Action& action) const override {
+    return std::string(1, 'A' + action.GetZ()) +
+           std::to_string(action.GetY() + 1);
   }
 
-  int parseAction(const std::string &str) override {
+  int parseAction(const std::string& str) const override {
     if (str.size() < 2) {
       return -1;
     }
@@ -244,8 +245,8 @@ class StateForConnect6 : public ::State, C6Board {
       return -1;
     }
     for (auto& a : _legalActions) {
-      if (a->GetZ() == z && a->GetY() == y) {
-        return a->GetIndex();
+      if (a.GetZ() == z && a.GetY() == y) {
+        return a.GetIndex();
       }
     }
     return -1;
@@ -253,7 +254,8 @@ class StateForConnect6 : public ::State, C6Board {
 
   int humanInputAction(
       std::function<std::optional<int>(std::string)> specialAction) {
-    std::cout << "Current board:" << std::endl << stateDescription() << std::endl;
+    std::cout << "Current board:" << std::endl
+              << stateDescription() << std::endl;
     std::string str;
     int index = -1;
     while (index < 0) {
@@ -268,7 +270,6 @@ class StateForConnect6 : public ::State, C6Board {
     }
     return index;
   }
-
 };
 
-}
+}  // namespace Connect6
