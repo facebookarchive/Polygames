@@ -60,4 +60,4 @@ class FixedLengthTrajectory {
  private:
   int nextSlot_;
 };
-}
+}  // namespace tube

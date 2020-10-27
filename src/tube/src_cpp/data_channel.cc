@@ -88,10 +88,9 @@ const std::unordered_map<std::string, torch::Tensor> DataChannel::getInput() {
 
   bool returnAll = false;
   do {
-    returnAll =
-        cvFilled_.wait_for(lk, std::chrono::milliseconds(timeoutMs), [this] {
-          return terminated_ || numFilledSlot_ == batchsize;
-        });
+    returnAll = cvFilled_.wait_for(
+        lk, std::chrono::milliseconds(timeoutMs),
+        [this] { return terminated_ || numFilledSlot_ == batchsize; });
   } while (numFilledSlot_ == 0 && !terminated_);
 
   if (returnAll) {
@@ -212,7 +211,7 @@ std::unordered_map<std::string, torch::Tensor> DataChannel::getReply(int slot) {
 }
 
 void DataChannel::releaseSlot(int slot) {
-  //assert(slotStatus_[slot] == SlotStatus::replied);
+  // assert(slotStatus_[slot] == SlotStatus::replied);
   slotStatus_[slot] = SlotStatus::avail;
 
   std::unique_lock<std::mutex> lk(mAvailSlots_);
@@ -225,8 +224,8 @@ const std::unordered_map<std::string, torch::Tensor>
 DataChannel::sliceTensorsForSend() {
   assert(sentSlots_.empty());
   for (int i = 0; i < (int)slotStatus_.size(); ++i) {
-    if (slotStatus_[i] == SlotStatus::filled
-        || slotStatus_[i] == SlotStatus::filledAutoRelease) {
+    if (slotStatus_[i] == SlotStatus::filled ||
+        slotStatus_[i] == SlotStatus::filledAutoRelease) {
       sentSlots_.push_back(i);
     }
   }
