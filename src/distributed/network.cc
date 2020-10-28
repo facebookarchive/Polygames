@@ -658,13 +658,17 @@ class ServerImpl : public Ref<ServerImpl> {
   }
 
   void bind(std::string_view endpoint) {
-    if (endpoint.empty())
+    if (endpoint.empty()) {
       return;
+    }
     bound = true;
     auto [hostname, port] = decodeEndpoint(endpoint);
 
     asio::error_code ec;
-    asio::ip::address address = asio::ip::make_address(hostname, ec);
+    asio::ip::address address;
+    if (hostname != "*") {
+      address = asio::ip::make_address(hostname, ec);
+    }
     if (ec) {
       auto resolver = resolverCache.make(context);
       (*resolver)->async_resolve(
