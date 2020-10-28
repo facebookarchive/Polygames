@@ -99,7 +99,6 @@ def _set_mcts_option(
 ) -> mcts.MctsOption:
     # TODO: put hardcoded value in conf file
     mcts_option = mcts.MctsOption()
-    mcts_option.use_mcts = True
     mcts_option.puct = 1.1
     mcts_option.sample_before_step_idx = sample_before_step_idx
     mcts_option.num_rollout_per_thread = num_rollouts
