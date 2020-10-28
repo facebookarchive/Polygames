@@ -572,20 +572,24 @@ std::vector<MctsResult> MctsPlayer::actMcts(
     roots[i]->freeTree();
   }
 
-  uint64_t n = rolloutCount - beginRolloutCount;
-  double s = std::chrono::duration_cast<
-                 std::chrono::duration<double, std::ratio<1, 1>>>(
-                 std::chrono::steady_clock::now() - begin)
-                 .count();
-  rolloutsPerSecond_ = n / s;
+  bool verbose = false;
 
-  printf("rollouts per second: %g\n", rolloutsPerSecond_);
+  if (verbose) {
+    uint64_t n = rolloutCount - beginRolloutCount;
+    double s = std::chrono::duration_cast<
+                   std::chrono::duration<double, std::ratio<1, 1>>>(
+                   std::chrono::steady_clock::now() - begin)
+                   .count();
+    rolloutsPerSecond_ = n / s;
 
-  double sx = std::chrono::duration_cast<
-                  std::chrono::duration<double, std::ratio<1, 1>>>(
-                  std::chrono::steady_clock::now() - starttime)
-                  .count();
-  printf("total rollouts per second: %g\n", rolloutCount / sx);
+    printf("rollouts per second: %g\n", rolloutsPerSecond_);
+
+    double sx = std::chrono::duration_cast<
+                    std::chrono::duration<double, std::ratio<1, 1>>>(
+                    std::chrono::steady_clock::now() - starttime)
+                    .count();
+    printf("total rollouts per second: %g\n", rolloutCount / sx);
+  }
 
   return result;
 }
