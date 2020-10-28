@@ -27,11 +27,6 @@ class MctsOption {
  public:
   float totalTime = 0;
   float timeRatio = 0.035;
-  // whether to use mcts simulations to decide a move
-  // if true, it will run mcts rollouts and selection action using uct
-  // if false, it will only use policy in MctsPlayer::actMcts
-  bool useMcts = true;
-
   // coefficient of prior score
   float puct = 0.0;
 

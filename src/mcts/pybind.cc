@@ -22,7 +22,6 @@ PYBIND11_MODULE(mcts, m) {
   py::class_<MctsOption>(m, "MctsOption")
       .def(py::init<>())
       .def(py::init<const MctsOption&>())
-      .def_readwrite("use_mcts", &MctsOption::useMcts)
       .def_readwrite("puct", &MctsOption::puct)
       .def_readwrite("sample_before_step_idx", &MctsOption::sampleBeforeStepIdx)
       .def_readwrite("num_rollout_per_thread", &MctsOption::numRolloutPerThread)

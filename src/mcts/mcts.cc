@@ -564,14 +564,12 @@ std::vector<MctsResult> MctsPlayer::actMcts(
     }
   }
 
-  if (option_.useMcts) {
-    for (size_t i = 0; i != states.size(); ++i) {
-      auto* n = roots[i]->getChild(result[i].bestAction);
-      if (n && n->getPiVal().rnnState.defined()) {
-        result[i].rnnState = n->getPiVal().rnnState;
-      }
-      roots[i]->freeTree();
+  for (size_t i = 0; i != states.size(); ++i) {
+    auto* n = roots[i]->getChild(result[i].bestAction);
+    if (n && n->getPiVal().rnnState.defined()) {
+      result[i].rnnState = n->getPiVal().rnnState;
     }
+    roots[i]->freeTree();
   }
 
   uint64_t n = rolloutCount - beginRolloutCount;
