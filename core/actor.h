@@ -44,7 +44,7 @@ class Actor : public mcts::Actor {
     dispatcher_.addDataBlocks({feat_}, {pi_, value_});
   }
 
-  mcts::PiVal evaluate(const mcts::State& s) override {
+  mcts::PiVal evaluate(const mcts::State& s, const bool isRoot, std::minstd_rand& rng) override {
     const auto state = dynamic_cast<const State*>(&s);
     assert(state != nullptr);
 
@@ -87,7 +87,7 @@ class Actor : public mcts::Actor {
       policy.fill_(uniformPolicy_);
     }
 
-    auto a2pi = getLegalPi(*state, policy);
+    auto a2pi = getLegalPi(*state, policy, isRoot, rng);
     return mcts::PiVal(state->getCurrentPlayer(), val, std::move(a2pi));
   }
 
@@ -97,10 +97,12 @@ class Actor : public mcts::Actor {
 
   void evaluate(
       const std::vector<const mcts::State*>& s,
-      const std::function<void(size_t, mcts::PiVal)>& resultCallback) override {
+      const std::function<void(size_t, mcts::PiVal)>& resultCallback,
+	  const std::vector<bool>& isRoots, 
+	  std::minstd_rand& rng) override {
 
     if (!assembler_) {
-      return mcts::Actor::evaluate(s, resultCallback);
+      return mcts::Actor::evaluate(s, resultCallback, isRoots, rng);
     }
 
     if (!batchFeat_.defined() || batchFeat_[0].sizes() != feat_->data.sizes() ||
@@ -141,7 +143,7 @@ class Actor : public mcts::Actor {
       } else {
         val = state->getRandomRolloutReward(state->getCurrentPlayer());
       }
-      auto a2pi = getLegalPi(*dynamic_cast<const State*>(state), piAcc[i]);
+      auto a2pi = getLegalPi(*dynamic_cast<const State*>(state), piAcc[i], isRoots[i], rng);
       resultCallback(
           i, mcts::PiVal(state->getCurrentPlayer(), val, std::move(a2pi)));
     }

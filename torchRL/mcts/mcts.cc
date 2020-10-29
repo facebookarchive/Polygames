@@ -162,6 +162,7 @@ void mcts::computeRollouts(const std::vector<Node*>& rootNode,
 
     batch.clear();
     size_t e = states.size();
+	std::vector<bool> isRoots;
     for (size_t i = 0; i != e; ++i) {
       auto& st = states[i];
       if (st.state->terminated()) {
@@ -176,6 +177,7 @@ void mcts::computeRollouts(const std::vector<Node*>& rootNode,
         --e;
       } else {
         batch.push_back(&*st.state);
+		isRoots.push_back((st.node->getParent() == nullptr));
       }
     }
 
@@ -184,7 +186,9 @@ void mcts::computeRollouts(const std::vector<Node*>& rootNode,
         auto& st = states[index];
         st.node->settle(st.root->getPiVal().playerId, piVal);
         st.node->release();
-      });
+      },
+	  isRoots,
+	  rng);
     }
 
     // 3.Backpropgation

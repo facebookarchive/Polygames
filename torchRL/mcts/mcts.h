@@ -75,7 +75,7 @@ class MctsPlayer : public Player {
     // prior only
     if (!option_.useMcts) {
       for (size_t i = 0; i != states.size(); ++i) {
-        PiVal piVal = actors_[0]->evaluate(*states[i]);
+        PiVal piVal = actors_[0]->evaluate(*states[i], false, rng_);
         result[i].setMctsPolicy(std::move(piVal.policy));
       }
     } else {
@@ -191,7 +191,7 @@ class MctsPlayer : public Player {
   }
 
   float calculateValue(const State& state) {
-    PiVal result =actors_.at(0)->evaluate(state);
+    PiVal result =actors_.at(0)->evaluate(state, false, rng_);
     return result.value;
   }
 

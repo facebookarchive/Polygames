@@ -23,16 +23,18 @@ class Actor {
   Actor(const Actor&) = delete;
   Actor& operator=(const Actor&) = delete;
 
-  virtual PiVal evaluate(const State& s) = 0;
+  virtual PiVal evaluate(const State& s, const bool isRoot, std::minstd_rand& rng) = 0;
 
   virtual ~Actor() {
   }
 
   virtual void evaluate(
       const std::vector<const State*>& s,
-      const std::function<void(size_t, PiVal)>& resultCallback) {
+      const std::function<void(size_t, PiVal)>& resultCallback,
+	  const std::vector<bool>& isRoots, 
+	  std::minstd_rand& rng) {
     for (size_t i = 0; i != s.size(); ++i) {
-      resultCallback(i, evaluate(*s[i]));
+      resultCallback(i, evaluate(*s[i], isRoots[i], rng));
     }
   };
 

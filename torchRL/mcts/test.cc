@@ -184,7 +184,7 @@ class TestActor : public Actor {
   TestActor() {
   }
 
-  PiVal evaluate(const State& s) override {
+  PiVal evaluate(const State& s, const bool isRoot, std::minstd_rand& rng) override {
     const auto& state = dynamic_cast<const TicTacToeState*>(&s);
     const auto& actions = state->getLegalActions();
     std::unordered_map<Action, float> pi;

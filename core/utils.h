@@ -79,10 +79,22 @@ inline void normalize(std::unordered_map<mcts::Action, float>& a2pi) {
 }
 
 inline std::unordered_map<mcts::Action, float> getLegalPi(
-    const State& state, torch::TensorAccessor<float, 3> accessor) {
+    const State& state, torch::TensorAccessor<float, 3> accessor, const bool isRoot, std::minstd_rand& rng) {
   std::unordered_map<mcts::Action, float> a2pi;
   const auto& legalActions = state.GetLegalActions();
   auto as = state.GetActionSize();
+  
+  auto dirichlet_vector = std::vector<float>{};
+  float dirichlet_vector_sum = 0.f;
+  if (isRoot) {
+    std::gamma_distribution<float> gamma(13.f / (legalActions.size() + 13.f), 1.f);
+	for (size_t i = 0; i < legalActions.size(); ++i) {
+	  dirichlet_vector.emplace_back(gamma(rng));
+	}
+	
+	dirichlet_vector_sum = std::accumulate(begin(dirichlet_vector), end(dirichlet_vector), 0.f);
+  }
+  
   for (const auto& action : legalActions) {
     if ((action->GetX() >= as[0]) || (action->GetY() >= as[1]) ||
         (action->GetZ() >= as[2])) {
@@ -98,11 +110,19 @@ inline std::unordered_map<mcts::Action, float> getLegalPi(
     assert(it.second == true);
   }
   normalize(a2pi);
+  
+  if (isRoot) {
+    for (auto& p : a2pi) {
+      p.second = 0.75f * p.second + 0.25f * (dirichlet_vector[p.first] / dirichlet_vector_sum);
+    }
+	normalize(a2pi);
+  }
+  
   return a2pi;
 }
 
 inline std::unordered_map<mcts::Action, float> getLegalPi(
-    const State& state, const torch::Tensor& pi) {
+    const State& state, const torch::Tensor& pi, const bool isRoot, std::minstd_rand& rng) {
   // assert pi is prob not logit
   // std::cout << pi.sum().item<float>() << std::endl;
   float pi_sum = pi.sum().item<float>();
@@ -110,7 +130,7 @@ inline std::unordered_map<mcts::Action, float> getLegalPi(
   assert(pi.min().item<float>() >= (float)0);
 
   auto accessor = pi.accessor<float, 3>();
-  return getLegalPi(state, accessor);
+  return getLegalPi(state, accessor, isRoot, rng);
 }
 
 inline int64_t product(const std::vector<int64_t>& nums) {
