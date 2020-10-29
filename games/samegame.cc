@@ -130,6 +130,8 @@ void Samegame::Board::play(int n) {
 
  _score += m._eval;
 
+ _moveHistory.push_back(m);
+
  // compute i-contractions
  for (int j=0; j<_nbJ; ++j) {
   int i=0;
@@ -261,6 +263,11 @@ void Samegame::Board::contractI(int i0, int j0) {
 int Samegame::Board::ind(int i, int j) const {
  assert(isValid(i, j));
  return i * _nbJ + j;
+}
+
+
+const std::vector<Samegame::Board::Move> & Samegame::Board::getMoveHistory() const {
+    return _moveHistory;
 }
 
 // TODO check data ordering

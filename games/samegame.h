@@ -53,6 +53,8 @@ namespace Samegame {
    std::vector<Move> _moves;      // <= nbI*nbJ
    double _score;
 
+   std::vector<Move> _moveHistory;
+
    static const std::vector<int> DATASETS;
 
   public:
@@ -71,6 +73,8 @@ namespace Samegame {
    const std::vector<Move> & getMoves() const;
    void play(int n);
    bool play(int i, int j);
+
+   const std::vector<Move> & getMoveHistory() const;
 
   protected:
    void findGroups();

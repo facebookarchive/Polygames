@@ -105,6 +105,12 @@ void Samegame::State::ApplyAction(const _Action& action) {
   // TODO test samegame score
   if (_board.getScore() > 0.25) {
       std::cerr << "terminated with score = " << _board.getScore() << std::endl;
+      for (const Samegame::Board::Move & m : _board.getMoveHistory())
+          std::cerr 
+              << m._i << " " 
+              << m._j << " " 
+              << m._color << " "  
+              << m._eval << std::endl;
       abort();
   }
  }
