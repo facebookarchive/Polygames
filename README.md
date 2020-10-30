@@ -191,7 +191,7 @@ In this case `cuda:0` will be used for training the model while `cuda:1`, `cuda:
 Notes:
 
 - By default, the number of threads used for processing and batch sizes for inference are set automatically. These can be overriden with `num_thread` and `per_thread_batchsize` respectively.
-- `num_game` specifies the number of "master" threads scheduling games, and the total number of games being run in parallel will be `num_game * per_thread_batchsize`. Since `per_thread_batchsize` is automatically determined by default, this could be a larger number in some instances.
+- `num_game` specifies the number of "master" threads scheduling games, and the total number of games being run in parallel will be `num_game * per_thread_batchsize`. Since `per_thread_batchsize` is automatically determined by default, this could be a large number in some instances.
 
 #### Examples for the evaluation mode
 
