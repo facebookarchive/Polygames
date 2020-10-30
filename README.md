@@ -9,7 +9,7 @@ For Nix users: see [this doc](./nix/README.md).
 
 ## Requirement:
 ```
-C++14 compatible compiler
+C++17 compatible compiler
 miniconda3
 ```
 
@@ -35,112 +35,26 @@ conda create --name [your env name] python=3.7 pip
 conda activate [your env name] # Or source activate [your env name], depending on conda version.
 
 conda install numpy pyyaml mkl mkl-include setuptools cmake cffi typing
-conda install -c pytorch magma-cuda100
+conda install pytorch cudatoolkit=10.1
 conda install -c conda-forge tensorboardx
 conda install -c conda-forge openjdk
 
-
 pip install visdom
 
-# clone the repo
-# Note: put the repo onto /scratch partition for MUCH FASTER building speed.
-git clone --recursive https://github.com/pytorch/pytorch --branch=v1.1.0
-cd pytorch
-
-export CMAKE_PREFIX_PATH=${CONDA_PREFIX:-"$(dirname $(which conda))/../"}
-# set cuda arch list so that the built binary can be run on both pascal and volta
-TORCH_CUDA_ARCH_LIST="6.0;7.0" python setup.py install
 ```
-
-Note that the CMake needs to find the same Python for which pytorch is
-compiled against during the subsequent compilation process to avoid
-any compatibility issue. We can modidy ```torchRL/tube/CMakeLists.txt```
-to select the correct PythonLib if necessary.
-
 
 ### Clone the repo and build
 
 ```
-git clone ...
-mkdir build
-cd build
-cmake ..
-make
-```
-On devfair, you may need to ```sudo ln -s /public/apps/cuda/10.0
-/usr/local/cuda``` if you see the error ```No rule to make target
-'/usr/local/cuda/lib64/libculibos.a'```
-
-#### Troubleshooting
-1. Undefined references to several BLAS methods, e.g.
-   ```
-   /private/home/xxx/.conda/envs/polygames/lib/python3.7/site-packages/torch/lib/libcaffe2.so: undefined reference to `cblas_sgemm_pack_get_size'
-   /private/home/xxx/.conda/envs/polygames/lib/python3.7/site-packages/torch/lib/libcaffe2.so: undefined reference to `cblas_gemm_s8u8s32_compute'
-   /private/home/xxx/.conda/envs/polygames/lib/python3.7/site-packages/torch/lib/libcaffe2.so: undefined reference to `cblas_gemm_s8u8s32_pack_get_size'
-   ```
-   * **Solution 1**: prioritize `mkl` from your environment (e.g. over the one in `/public/apps/anaconda3/5.0.1/lib`). For that
-     - check that `mkl` from the environment contains the required methods:
-        ```
-        nm ${CONDA_PREFIX:-"$(dirname $(which conda))/../"}/lib/libmkl_rt.so | grep cblas_gemm_s8u8s32_compute
-        ```
-        or more generally
-        ```
-        METHOD_NAME=cblas_gemm_s8u8s32_compute; \
-        ls -1 ${CONDA_PREFIX:-"$(dirname $(which conda))/../"}/lib/libmkl_*.so | \
-        xargs -i sh -c "echo Looking for $METHOD_NAME in {} ; nm {};" | \
-        grep $METHOD_NAME
-        ```
-        Expected output example:
-        ```
-        Looking for cblas_gemm_s8u8s32_compute in <path_to_env>/lib/libmkl_rt.so
-        (...) T cblas_gemm_s8u8s32_compute
-        ```
-     - update your `LD_LIBRARY_PATH`:
-        ```
-        export LD_LIBRARY_PATH=${CONDA_PREFIX:-"$(dirname $(which conda))/../"}/lib/:$LD_LIBRARY_PATH
-        ```
-   * **Solution 2**: add stub implementations.
-     Add to a cpp source file (e.g., ```torchRL/tube/src_cpp/data_channel.cc```) the  following snippet:
-     ```
-     extern "C" void cblas_gemm_s8u8s32_pack() {
-         std::terminate();
-     }
-     extern "C" void cblas_sgemm_pack_get_size() {
-         std::terminate();
-     }
-     extern "C" void cblas_gemm_s8u8s32_compute() {
-         std::terminate();
-     }
-     extern "C" void cblas_gemm_s8u8s32_pack_get_size() {
-         std::terminate();
-     }
-     ```
-## Compilation Guide without modules:
-
-### First install conda and pytorch
-create a fresh conda environment with python3
-you will need to have miniconda3 set up
-```
-conda create --name [your env name] python=3.7 pip
-
-conda activate [your env name] # Or source activate [your env name], depending on conda version.
-
-conda install numpy pyyaml mkl mkl-include setuptools cmake cffi typing
-conda install -c pytorch magma-cuda100
-conda install -c conda-forge tensorboardx
-pip install visdom
-conda install pytorch=1.1.0 cuda92 -c pytorch [this version is compatible with cuda9] 
-
-```
-### Clone the repo and build
-
-```
-git clone ... 
+git clone --recursive https://github.com/facebookincubator/polygames
 cd polygames
+
 mkdir build
 cd build
-cmake .. [gcc>=7]
-make
+
+cmake .. -DCMAKE_BUILD_TYPE=relwithdebinfo -DPYTORCH15=ON
+make -j
+
 ```
 
 ## Content
@@ -148,8 +62,8 @@ make
 The repo contains mostly the following folders:
 
 - the `pypolygames` python package, which serves as an entry point for the application
-- the `torchRL` folder, containing C++ bindings for python
-- the `games` folder, containing the games coded in C++
+- the `src` folder, containing all C++ source code and third party libraries
+  - the `src/games` folder, containing the games coded in C++
 
 ## How to use the application
 
@@ -276,14 +190,8 @@ In this case `cuda:0` will be used for training the model while `cuda:1`, `cuda:
 
 Notes:
 
-- the total number of threads is given by `num_game * num_actor`
-- in training mode it is better to leave `num_actor` to its default value of 1
-- `num_game` should be set to the number of available cores on the training platform
-- within each threads, `per_thread_batchsize` games will be played sequentially and batched together; a sensible value to take advantage of GPUs is to set it to 256
-- there is a tradeoff between CPU utilisation and GPU utilisation; since CPU utilisation is much more sentitive to `per_thread_batchsize` than GPU utilisation, it is probably safer to set this parameter on the conservative side (e.g., 256)
-- the performance of a training is highly dependent on the MCTS size, the larger the better - to the extent of time taken to generate rollouts is not detrimental to the training time (it seems that 1600 is a sensible default)
-- small models and small `num_rollouts` can lead to a Red Queen Effect: competing against itself, the model learns to adapt to itself then beats itself, which incur cycles in win rate vs `num_epoch`. The solution is to increase the model size and/or `num_rollouts`
-- checkpoints are by default compressed with gzip and store the replay buffer in order to facilitate resuming training or fine-tuning
+- By default, the number of threads used for processing and batch sizes for inference are set automatically. These can be overriden with `num_thread` and `per_thread_batchsize` respectively.
+- `num_game` specifies the number of "master" threads scheduling games, and the total number of games being run in parallel will be `num_game * per_thread_batchsize`. Since `per_thread_batchsize` is automatically determined by default, this could be a larger number in some instances.
 
 #### Examples for the evaluation mode
 
@@ -339,7 +247,7 @@ python -m pypolygames eval \
 Notes:
 
 - `num_actor_eval`, `num_rollouts_eval`, `num_actor_opponent` and `num_rollouts_opponent` are independent from the values used during training; in particular for proper benchmarking `num_actor_eval` and `num_rollouts_eval` should be set to the values used in human mode
-- as for training, `num_game_eval * num_actor_eval` (resp. `num_game_eval * num_actor_opponent`) is the number of threads used by the model to be evaluated (resp. the opponent)
+- `num_game_eval * num_actor_eval` (resp. `num_game_eval * num_actor_opponent`) is the number of threads used by the model to be evaluated (resp. the opponent)
 - there is no `per_thread_batchsize` in this mode
 - the higher `num_actor_eval` (resp. `num_actor_opponent`), the larger MCTS for a move in a given game will be, up to a limit where overheads between threads lead to decreasing returns. Empiracally this limit seems to be around 8. This limit may be game/model/platform dependent and should be tuned for a given instance.
 - against a pure MCTS opponent, `num_rollouts_opponent` should be set significantly higher than `num_rollouts_eval`
