@@ -13,21 +13,13 @@ C++17 compatible compiler
 miniconda3
 ```
 
-## Compilation Guide using modules:
+## Compilation Guide:
 
 ### First install conda and pytorch
 
-Create a fresh conda environment with python3.7 and
-compile pytorch from scratch.
+Create a fresh conda environment with python3.7, install pytorch and dependencies.
 
-Instruction for building on devfair:
 ```
-# loading proper modules on devfair
-module purge
-module load anaconda3
-module load cudnn/v7.4-cuda.10.0
-module load cuda/10.0
-
 # create a fresh conda environment with python3
 # you will need to have miniconda3 set up
 conda create --name [your env name] python=3.7 pip
@@ -37,13 +29,14 @@ conda activate [your env name] # Or source activate [your env name], depending o
 conda install numpy pyyaml mkl mkl-include setuptools cmake cffi typing
 conda install pytorch cudatoolkit=10.1
 conda install -c conda-forge tensorboardx
-conda install -c conda-forge openjdk
+conda install -c conda-forge openjdk  # optional
 
 pip install visdom
 
 ```
 
 ### Clone the repo and build
+
 
 ```
 git clone --recursive https://github.com/facebookincubator/polygames
@@ -56,6 +49,8 @@ cmake .. -DCMAKE_BUILD_TYPE=relwithdebinfo -DPYTORCH15=ON
 make -j
 
 ```
+
+LUDII support can be disabled by appending `-DWITH_LUDII=OFF` to the cmake command (required if you don't have jdk)
 
 ## Content
 
