@@ -171,6 +171,9 @@ LudiiStateWrapper::LudiiStateWrapper(int seed,
   JNIUtils::CheckJniException(jenv);
   resetMethodID = jenv->GetMethodID(ludiiStateWrapperClass, "reset", "()V");
   JNIUtils::CheckJniException(jenv);
+  copyFromMethodID = 
+      jenv->GetMethodID(ludiiStateWrapperClass, "copyFrom", "(Lutils/LudiiStateWrapper;)V");
+  JNIUtils::CheckJniException(jenv);
 }
 
 LudiiStateWrapper::LudiiStateWrapper(const LudiiStateWrapper& other)
@@ -202,6 +205,31 @@ LudiiStateWrapper::LudiiStateWrapper(const LudiiStateWrapper& other)
   toTensorFlatMethodID = other.toTensorFlatMethodID;
   currentPlayerMethodID = other.currentPlayerMethodID;
   resetMethodID = other.resetMethodID;
+  copyFromMethodID = other.copyFromMethodID;
+}
+
+LudiiStateWrapper& LudiiStateWrapper::operator=(LudiiStateWrapper const& other) {
+  if (&other == this)
+    return *this;
+
+  core::State::operator=(other);
+
+  JNIEnv* jenv = JNIUtils::GetEnv();
+  jenv->CallVoidMethod(ludiiStateWrapperJavaObject, copyFromMethodID, other.ludiiStateWrapperJavaObject);
+  JNIUtils::CheckJniException(jenv);
+  
+  // We can just copy all the pointers to methods
+  legalMovesTensorsMethodID = other.legalMovesTensorsMethodID;
+  numLegalMovesMethodID = other.numLegalMovesMethodID;
+  applyNthMoveMethodID = other.applyNthMoveMethodID;
+  returnsMethodID = other.returnsMethodID;
+  isTerminalMethodID = other.isTerminalMethodID;
+  toTensorFlatMethodID = other.toTensorFlatMethodID;
+  currentPlayerMethodID = other.currentPlayerMethodID;
+  resetMethodID = other.resetMethodID;
+  copyFromMethodID = other.copyFromMethodID;
+  
+  return *this;
 }
 
 LudiiStateWrapper::~LudiiStateWrapper() {

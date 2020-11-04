@@ -109,10 +109,7 @@ class LudiiStateWrapper : public core::State {
 
   virtual bool isOnePlayerGame() const override;
 
-  LudiiStateWrapper& operator=(LudiiStateWrapper const&) {
-    throw std::runtime_error("hi, this is ludii copy assignment operator");
-    return *this;
-  }
+  LudiiStateWrapper& operator=(LudiiStateWrapper const& other);
 
  private:
   void findFeatures();
@@ -152,6 +149,9 @@ class LudiiStateWrapper : public core::State {
 
   /** Method ID for the reset() method in Java */
   jmethodID resetMethodID;
+  
+  /** Method ID for the copyFrom() method in Java */
+  jmethodID copyFromMethodID;
 };
 
 }  // namespace Ludii
