@@ -479,7 +479,8 @@ def train_model(
 
     batchsizes = {
       "s":  [c, h, w],
-      "v": [3],
+      "v": [3 if getattr(model, "logit_value", False) else 1],
+      "pred_v": [1],
       "pi": [c_prime, h_prime, w_prime],
       "pi_mask": [c_prime, h_prime, w_prime]
     }
