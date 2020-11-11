@@ -26,18 +26,18 @@ LudiiGameWrapper::LudiiGameWrapper(const std::string lud_path) {
   JNIEnv* jenv = JNIUtils::GetEnv();
   jclass ludiiGameWrapperClass = JNIUtils::LudiiGameWrapperClass();
 
-  // Find the LudiiGameWrapper Java constructor
-  jmethodID ludiiGameWrapperConstructor = jenv->GetMethodID(
-      ludiiGameWrapperClass, "<init>", "(Ljava/lang/String;)V");
+  // Find the LudiiGameWrapper Java construct method
+  jmethodID ludiiGameWrapperConstruct = jenv->GetStaticMethodID(
+      ludiiGameWrapperClass, "construct", "(Ljava/lang/String;)Lutils/LudiiGameWrapper;");
   JNIUtils::CheckJniException(jenv);
 
   // Convert our lud path into a Java string
   jstring java_lud_path = jenv->NewStringUTF(lud_path.c_str());
   JNIUtils::CheckJniException(jenv);
 
-  // Call our Java constructor to instantiate new object
-  jobject local_ref = jenv->NewObject(
-      ludiiGameWrapperClass, ludiiGameWrapperConstructor, java_lud_path);
+  // Call our Java construct method to instantiate new object
+  jobject local_ref = jenv->CallStaticObjectMethod(
+      ludiiGameWrapperClass, ludiiGameWrapperConstruct, java_lud_path);
   JNIUtils::CheckJniException(jenv);
   ludiiGameWrapperJavaObject = jenv->NewGlobalRef(local_ref);
   jenv->DeleteLocalRef(local_ref);
@@ -73,11 +73,10 @@ LudiiGameWrapper::LudiiGameWrapper(
   JNIEnv* jenv = JNIUtils::GetEnv();
   jclass ludiiGameWrapperClass = JNIUtils::LudiiGameWrapperClass();
 
-  // Find the LudiiGameWrapper Java constructor (with extra argument for
+  // Find the LudiiGameWrapper Java construct method (with extra argument for
   // options)
-  jmethodID ludiiGameWrapperConstructor =
-      jenv->GetMethodID(ludiiGameWrapperClass, "<init>",
-                        "(Ljava/lang/String;[Ljava/lang/String;)V");
+  jmethodID ludiiGameWrapperConstruct = jenv->GetStaticMethodID(
+      ludiiGameWrapperClass, "construct", "(Ljava/lang/String;[Ljava/lang/String;)Lutils/LudiiGameWrapper;");
   JNIUtils::CheckJniException(jenv);
 
   // Convert our lud path into a Java string
@@ -94,10 +93,9 @@ LudiiGameWrapper::LudiiGameWrapper(
     JNIUtils::CheckJniException(jenv);
   }
 
-  // Call our Java constructor to instantiate new object
-  jobject local_ref =
-      jenv->NewObject(ludiiGameWrapperClass, ludiiGameWrapperConstructor,
-                      java_lud_path, java_game_options);
+  // Call our Java construct method to instantiate new object
+  jobject local_ref = jenv->CallStaticObjectMethod(
+      ludiiGameWrapperClass, ludiiGameWrapperConstruct, java_lud_path, java_game_options);
   JNIUtils::CheckJniException(jenv);
   ludiiGameWrapperJavaObject = jenv->NewGlobalRef(local_ref);
   jenv->DeleteLocalRef(local_ref);
@@ -124,10 +122,7 @@ LudiiGameWrapper::LudiiGameWrapper(
 
   // Clean up memory
   jenv->DeleteLocalRef(java_lud_path);
-  jenv->DeleteLocalRef(java_game_options);  // TODO see if we also need to clean
-                                            // elements of array first?
-
-  // TODO also handle the Game object caching with options
+  jenv->DeleteLocalRef(java_game_options);
 }
 
 LudiiGameWrapper::LudiiGameWrapper(LudiiGameWrapper const& other) {
