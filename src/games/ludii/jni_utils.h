@@ -41,7 +41,7 @@ class JNIUtils {
 
   static void CheckJniException(JNIEnv* jenv) {
     if (jenv->ExceptionCheck()) {
-      jenv->ExceptionDescribe(jenv);
+      jenv->ExceptionDescribe();
       jenv->ExceptionClear();
       printf("Java Exception at line %d of %s\n", __LINE__, __FILE__);
       throw std::runtime_error("Java exception thrown!");
