@@ -739,7 +739,7 @@ struct BatchExecutor {
     size_t ngames = size_t(std::max(game->perThreadBatchSize, 1));
 
     if (game->perThreadBatchSize < 1) {
-      int bs = 10240;
+      int bs = 102400;
       int n = 0;
       for (auto& v : players_) {
         auto actorPlayer = dynamic_cast<ActorPlayer*>(v);

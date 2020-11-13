@@ -368,6 +368,8 @@ class SimulationParams:
     sync_period: int = 100
     act_batchsize: int = 1
     per_thread_batchsize: int = 0
+    bsfinder_max_bs: int = 10240
+    bsfinder_max_ms: float = 100
     rewind: int = 0
     randomized_rollouts: bool = False
     sampling_mcts: bool = False
@@ -437,6 +439,20 @@ class SimulationParams:
                     "number of games per game-running thread, "
                     "batched together for inference (see '--act_batchsize'). "
                     "This parameter will be automatically tuned if it is <= 0",
+                )
+            ),
+            bsfinder_max_bs=ArgFields(
+                opts=dict(
+                    type=int,
+                    help="The maximum batch size for the automatic batch size "
+                    "finder to use",
+                )
+            ),
+            bsfinder_max_ms=ArgFields(
+                opts=dict(
+                    type=float,
+                    help="The maximum time in milliseconds for a batch size "
+                    "found by the automatic batch size finder to use",
                 )
             ),
             rewind=ArgFields(

@@ -74,6 +74,9 @@ class ModelManager {
   int64_t bufferNumAdd() const;
   bool isTournamentOpponent() const;
   bool wantsTournamentResult();
+
+  void setFindBatchSizeMaxMs(float ms);
+  void setFindBatchSizeMaxBs(int n);
 };
 
 }  // namespace core

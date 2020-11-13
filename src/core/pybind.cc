@@ -82,7 +82,9 @@ PYBIND11_MODULE(polygames, m) {
       .def("start_client", &ModelManager::startClient)
       .def("start_replay_buffer_server", &ModelManager::startReplayBufferServer)
       .def("start_replay_buffer_client", &ModelManager::startReplayBufferClient)
-      .def("remote_sample", &ModelManager::remoteSample);
+      .def("remote_sample", &ModelManager::remoteSample)
+      .def("set_find_batch_size_max_ms", &ModelManager::setFindBatchSizeMaxMs)
+      .def("set_find_batch_size_max_bs", &ModelManager::setFindBatchSizeMaxBs);
 
   py::class_<SampleResult>(m, "SampleResult").def("get", &SampleResult::get);
 }
