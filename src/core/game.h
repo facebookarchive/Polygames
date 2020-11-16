@@ -249,6 +249,9 @@ to look into this) if the strategy is identical to knuth’s.
       if (jni_env) {
 		if (gameOptions.size() > 0) {
 		  Ludii::LudiiGameWrapper game_wrapper(ludii_name, gameOptions);
+		  for (const std::string option : gameOptions) {
+	        std::cout << "Using Game Option: " << option << std::endl;
+		  }
           state_ =
             newState<Ludii::LudiiStateWrapper>(seed, std::move(game_wrapper));
 		} else {
