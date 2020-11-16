@@ -62,7 +62,7 @@ class Game : public tube::EnvThread {
 
  public:
   Game(std::string gameName,
-       std::vector<std::string>> gameOptions,
+       std::vector<std::string> gameOptions,
        int numEpisode,
        int seed,
        bool evalMode,
