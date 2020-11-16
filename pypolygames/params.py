@@ -27,6 +27,7 @@ class ArgFields:
 @dataclass
 class GameParams:
     game_name: Optional[str] = None
+    game_options: List[str] = None
     out_features: bool = False
     turn_features: bool = False
     turn_features_mc: bool = False
@@ -48,6 +49,7 @@ class GameParams:
             getattr(self, field) == getattr(other_game_params, field)
             for field in {
                 "game_name",
+                "game_options",
                 "out_features",
                 "turn_features",
                 "turn_features_mc",
@@ -68,6 +70,14 @@ class GameParams:
                     type=str,
                     help="Game name - if left unspecified it will default to the game "
                     "that the model selected with '--model_name' refers to as default",
+                )
+            ),
+            game_options=ArgFields(
+                opts=dict(
+                    type=str,
+                    nargs="*",
+                    default=None,
+                    help="Optional list of extra options to customise the game.",
                 )
             ),
             out_features=ArgFields(
