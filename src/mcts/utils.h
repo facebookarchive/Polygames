@@ -169,8 +169,8 @@ size_t sampleDiscreteProbability(size_t nElements,
   probs.resize(nElements);
   float sum = 0.0f;
   for (size_t i = 0; i != nElements; ++i) {
-    probs[i] = getValue(i);
-    sum += probs[i];
+    sum += getValue(i);
+    probs[i] = sum;
   }
   float v = std::uniform_real_distribution<float>(0.0f, sum)(rng);
   return std::lower_bound(probs.begin(), std::prev(probs.end()), v) -
