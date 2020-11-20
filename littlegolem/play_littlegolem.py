@@ -12,7 +12,7 @@ import os
 
 def lg_connect(thelogin, thepassword):
     ''' Send login request and get session/login cookies. '''
-    myresponse = requests.post("http://www.littlegolem.net/jsp/login/", 
+    myresponse = requests.post("https://www.littlegolem.net/jsp/login/index.jsp",
             data = {'login': thelogin, 'password': thepassword})
     if myresponse.status_code != requests.codes.ok:
         raise ConnectionError("failed to request littlegolem (lg_connect)")
