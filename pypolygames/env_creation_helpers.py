@@ -25,7 +25,7 @@ def sanitize_game_params(game_params: GameParams) -> None:
     game_params.per_thread_batchsize = 0
     
     # Many old models don't have the game_options attribute
-    if not hasattr(game_params, 'game_optipns'):
+    if not hasattr(game_params, 'game_options'):
         game_params.game_options = list()
 
 
