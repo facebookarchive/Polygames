@@ -27,7 +27,7 @@ conda create --name [your env name] python=3.7 pip
 conda activate [your env name] # Or source activate [your env name], depending on conda version.
 
 conda install numpy pyyaml mkl mkl-include setuptools cmake cffi typing
-conda install pytorch cudatoolkit=10.1
+conda install pytorch cudatoolkit=10.1 -c pytorch
 conda install -c conda-forge tensorboardx
 conda install -c conda-forge openjdk  # optional
 
