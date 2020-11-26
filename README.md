@@ -364,6 +364,25 @@ it into one for the default board size of 15x15, it is still necessary to provid
 to the convert script. This tells it that the goal is indeed to revert to default options,
 rather than just leaving whichever options were baked into the source model.
 
+### Examples for generating figures of models
+
+If the optional `graphviz` and `torchviz` dependencies are installed, we can use `torchviz`
+to automatically generate figures of our models. This can be done using `draw_model` script:
+
+```
+python -m pypolygames draw_model \
+	--game_name="Hex5pie" \
+	--model_name="ResConvConvLogitPoolModelV2" \
+	--out="/private/home/$USER/ImageName"
+```
+
+This command will generate an image of the `ResConvConvLogitPoolModelV2`
+architecture when playing `Hex5pie`, and save it to `/private/home/$USER/ImageName.png`
+(note that the `.png` extension will be automatically appended).
+
+Any arguments that can be used to modify the game, or any aspect of the Neural Network
+architecture, can be used in this command.
+
 ## Contributing
 
 We welcome contributions! Please check basic instructions [here](.github/CONTRIBUTING.md)
