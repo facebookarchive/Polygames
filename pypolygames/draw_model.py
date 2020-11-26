@@ -5,32 +5,6 @@
 
 import time
 from typing import Iterator, Tuple, Callable, Optional, List, Dict
-from pathlib import Path
-import copy
-
-import torch
-import torchviz
-
-import polygames
-
-from .model_zoo.utils import get_game_info 
-from .params import GameParams, ModelParams
-from .env_creation_helpers import (
-    create_model,
-)
-
-
-def draw_model(
-    game_params: GameParams,
-    model_params: ModelParams,
-    out: str,
-):# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
-#
-# This source code is licensed under the MIT license found in the
-# LICENSE file in the root directory of this source tree.
-
-import time
-from typing import Iterator, Tuple, Callable, Optional, List, Dict
 import copy
 
 import torch
