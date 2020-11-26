@@ -30,8 +30,10 @@ conda install numpy pyyaml mkl mkl-include setuptools cmake cffi typing
 conda install pytorch cudatoolkit=10.1 -c pytorch
 conda install -c conda-forge tensorboardx
 conda install -c conda-forge openjdk  # optional
+conda install -c conda-forge graphviz
 
 pip install visdom
+pip install torchviz
 
 ```
 
