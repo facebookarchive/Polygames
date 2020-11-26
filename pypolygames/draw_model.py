@@ -13,7 +13,7 @@ import torchviz
 
 import polygames
 
-from ..model_zoo.utils import get_game_info
+from .model_zoo.utils import get_game_info 
 from .params import GameParams, ModelParams
 from .env_creation_helpers import (
     create_model,
