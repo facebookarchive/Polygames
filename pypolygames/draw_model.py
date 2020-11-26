@@ -8,7 +8,6 @@ from typing import Iterator, Tuple, Callable, Optional, List, Dict
 import copy
 
 import torch
-import torchviz
 
 import polygames
 
@@ -24,6 +23,7 @@ def draw_model(
     model_params: ModelParams,
     out: str,
 ):
+    import torchviz
     m = create_model(game_params=game_params,
                      model_params=model_params)
                      
