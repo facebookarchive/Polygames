@@ -29,11 +29,11 @@ def draw_model(
                      model_params=model_params)
                      
     info = get_game_info(game_params)
-    model.eval()  # necessary for batch norm as it expects more than 1 ex in training
+    m.eval()  # necessary for batch norm as it expects more than 1 ex in training
     feature_size = info["feature_size"][:3]
     action_size = info["action_size"][:3]
     input_data = torch.zeros([1] + feature_size, device=torch.device("cpu"))
-    dot = torchviz.make_dot(model(input_data), params=dict(model.named_parameters()))
+    dot = torchviz.make_dot(m(input_data), params=dict(m.named_parameters()))
     dot.format = 'png'
     Path(out).parent.mkdir(parents=True, exist_ok=True)
     dot.render(out)
