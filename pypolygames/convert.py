@@ -30,6 +30,9 @@ def convert_checkpoint(
     out: str,
     skip: List[str],
     auto_tune_nnsize: bool,
+    zero_shot: bool,
+    move_source_channels: List[int],
+    state_source_channels: List[int],
 ):
     checkpoint = utils.load_checkpoint(
         checkpoint_path=model_params.init_checkpoint)
@@ -62,17 +65,37 @@ def convert_checkpoint(
     if fix_global_pooling:
         print("Note: attempting to patch global pooling weights to match the new model")
         
+    if zero_shot:
+        print("Note: converting model for zero-shot evaluation only! Added/reinitialized params will be all 0 and untrainable!")
+        
+    if auto_tune_nnsize or move_source_channels is not None or state_source_channels is not None:
+        # We'll need to load the game info
+        old_game_info = zutils.get_game_info(old_game_params)
+        new_game_info = zutils.get_game_info(new_game_params)
+        
     if auto_tune_nnsize:
         # We want to automatically tune nnsize, such that the number
         # of filters in hidden layers does not change from source to
         # target model
-        old_game_info = zutils.get_game_info(old_game_params)
-        new_game_info = zutils.get_game_info(new_game_params)
         c_old, _, _ = old_game_info["feature_size"][:3]
         c_new, _, _ = new_game_info["feature_size"][:3]
         new_nnsize = float((getattr(old_model_params, 'nnsize') * c_old) / c_new)
         print("Auto-tuning nnsize to:", new_nnsize)
         setattr(new_model_params, 'nnsize', new_nnsize)
+        
+    if move_source_channels is not None:
+        c_action_new, _, _ = new_game_info["action_size"][:3]
+        if c_action_new != len(move_source_channels):
+            print("ERROR: if --move_source_channels is specified, it must have exactly c_action_new entries!")
+            print("c_action_new = ", c_action_new)
+            print("len(move_source_channels) = ", len(move_source_channels))
+            
+    if state_source_channels is not None:
+        c_state_new, _, _ = new_game_info["feature_size"][:3]
+        if c_state_new != len(state_source_channels):
+            print("ERROR: if --state_source_channels is specified, it must have exactly c_state_new entries!")
+            print("c_state_new = ", c_state_new)
+            print("len(state_source_channels) = ", len(state_source_channels))
 
     m = create_model(game_params=new_game_params,
                      model_params=new_model_params)
@@ -97,6 +120,10 @@ def convert_checkpoint(
     for k, dst in s.items():
         if k in taken:
             continue
+            
+        if zero_shot:
+            dst = dst.fill_(0) 
+        
         if skip is not None and k in skip:
             print("%s shape %s skipped" % (k, dst.shape))
             params_reinitialized += dst.numel()
@@ -105,6 +132,53 @@ def convert_checkpoint(
             params_added += dst.numel()
             continue
         src = model_state_dict[k]
+        
+        if move_source_channels is not None and "pi_logit." in k:
+            # Use manually specified channels to transfer from for
+            # last Conv2D operation that produces pi logits
+            if "weight" in k:
+                for i in range(len(move_source_channels)):
+                    if move_source_channels[i] >= 0:
+                        dst_view = dst
+                        src_view = src
+                        for j in range(dst_view.dim()):
+                            if j == 0:  # Don't narrow this dim, need original indexing
+                                continue
+                            if src_view.shape[j] > dst_view.shape[j]:
+                                src_view = src_view.narrow(j, 0, dst_view.shape[j])
+                            if dst_view.shape[j] > src_view.shape[j]:
+                                dst_view = dst_view.narrow(j, 0, src_view.shape[j])
+                    
+                        dst_view[i] = src_view[move_source_channels[i]]
+            elif "bias" in k:
+                for i in range(len(move_source_channels)):
+                    if move_source_channels[i] >= 0:
+                        dst[i] = src[move_source_channels[i]]
+            continue
+            
+        if state_source_channels is not None and "mono.0." in k:
+            # Use manually specified channels to transfer from for
+            # first Conv2D operation on state tensor
+            if "weight" in k:
+                for i in range(len(state_source_channels)):
+                    if state_source_channels[i] >= 0:
+                        dst_view = dst
+                        src_view = src
+                        for j in range(dst_view.dim()):
+                            if j == 1:  # Don't narrow this dim, need original indexing
+                                continue
+                            if src_view.shape[j] > dst_view.shape[j]:
+                                src_view = src_view.narrow(j, 0, dst_view.shape[j])
+                            if dst_view.shape[j] > src_view.shape[j]:
+                                dst_view = dst_view.narrow(j, 0, src_view.shape[j])
+                    
+                        dst_view[:, i] = src_view[:, state_source_channels[i]]
+            elif "bias" in k:
+                for i in range(len(state_source_channels)):
+                    if state_source_channels[i] >= 0:
+                        dst[i] = src[state_source_channels[i]]
+            continue
+        
         delta = dst.numel() - src.numel()
         if delta > 0:
             params_added += delta
