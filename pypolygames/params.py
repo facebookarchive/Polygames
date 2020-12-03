@@ -324,6 +324,7 @@ class OptimParams:
     lr: float = 1e-3
     eps: float = 1.5e-4
     grad_clip: float = 0.25
+    reset_optimizer_state: bool = False
 
     def __setattr__(self, attr, value):
         if value is None:
@@ -354,6 +355,12 @@ class OptimParams:
             ),
             grad_clip=ArgFields(
                 opts=dict(type=float, help=f"Max norm of the gradients")
+            ),
+            reset_optimizer_state=ArgFields(
+                opts=dict(
+                    action="store_false" if cls.reset_optimizer_state else "store_true",
+                    help="If set, any internal state of optimizer from checkpoint will be reset"
+                )
             ),
         )
         for param, arg_field in params.items():
