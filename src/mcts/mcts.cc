@@ -107,7 +107,7 @@ Action pickBestAction(int rootPlayerId,
   }
 
   if (sample) {
-    return sampleDiscreteProbability(pi.size(), 1.0f,
+    return sampleDiscreteProbability(pi.size(),
                                      [&](size_t index) {
                                        float score = getScore(
                                            index, node->getChild(index));
