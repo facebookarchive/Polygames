@@ -174,7 +174,7 @@ LudiiStateWrapper::LudiiStateWrapper(int seed,
   copyFromMethodID = 
       jenv->GetMethodID(ludiiStateWrapperClass, "copyFrom", "(Lutils/LudiiStateWrapper;)V");
   JNIUtils::CheckJniException(jenv);
-  getRandomRolloutsRewardMethodID -
+  getRandomRolloutsRewardMethodID =
       jenv->GetMethodID(ludiiStateWrapperClass, "getRandomRolloutsReward", "(III)D");
   JNIUtils::CheckJniException(jenv);
 }
