@@ -147,6 +147,9 @@ class Actor {
   }
 
   void batchResize(size_t n) {
+    if (!modelManager_) {
+      return;
+    }
     if (!batchFeat_.defined() || batchFeat_[0].sizes() != feat_->data.sizes() ||
         batchFeat_.size(0) < n) {
       auto allocBatch = [&](auto&& sizes) {
