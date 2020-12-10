@@ -174,6 +174,9 @@ LudiiStateWrapper::LudiiStateWrapper(int seed,
   copyFromMethodID = 
       jenv->GetMethodID(ludiiStateWrapperClass, "copyFrom", "(Lutils/LudiiStateWrapper;)V");
   JNIUtils::CheckJniException(jenv);
+  getRandomRolloutsRewardMethodID -
+      jenv->GetMethodID(ludiiStateWrapperClass, "getRandomRolloutsReward", "(III)D");
+  JNIUtils::CheckJniException(jenv);
 }
 
 LudiiStateWrapper::LudiiStateWrapper(const LudiiStateWrapper& other)
@@ -206,6 +209,7 @@ LudiiStateWrapper::LudiiStateWrapper(const LudiiStateWrapper& other)
   currentPlayerMethodID = other.currentPlayerMethodID;
   resetMethodID = other.resetMethodID;
   copyFromMethodID = other.copyFromMethodID;
+  getRandomRolloutsRewardMethodID = other.getRandomRolloutsRewardMethodID;
 }
 
 LudiiStateWrapper& LudiiStateWrapper::operator=(LudiiStateWrapper const& other) {
@@ -228,6 +232,7 @@ LudiiStateWrapper& LudiiStateWrapper::operator=(LudiiStateWrapper const& other) 
   currentPlayerMethodID = other.currentPlayerMethodID;
   resetMethodID = other.resetMethodID;
   copyFromMethodID = other.copyFromMethodID;
+  getRandomRolloutsRewardMethodID = other.getRandomRolloutsRewardMethodID;
   
   return *this;
 }
@@ -311,6 +316,16 @@ void LudiiStateWrapper::Reset() const {
 
 bool LudiiStateWrapper::isOnePlayerGame() const {
   return (ludiiGameWrapper->NumPlayers() == 1);
+}
+
+float LudiiStateWrapper::getRandomRolloutReward(int player) const {
+  const int numSimulation = 10;
+  const int rolloutRandomMovesCap = 200;	// Use -1 for no cap on num moves in rollout
+  JNIEnv* jenv = JNIUtils::GetEnv();
+  const double avgReward = (double)jenv->CallDoubleMethod(
+      ludiiStateWrapperJavaObject, getRandomRolloutsRewardMethodID, player, numSimulation, rolloutRandomMovesCap);
+  JNIUtils::CheckJniException(jenv);
+  return (float) avgReward;
 }
 
 }  // namespace Ludii
