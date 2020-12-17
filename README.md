@@ -385,7 +385,7 @@ architecture, can be used in this command.
 
 ### Running games through Ludii
 
-See [detailed documentation on the Ludii integration here](./src/games/ludii/README.md).
+See [detailed documentation on the Ludii integration here](./src/games/ludii/).
 
 ## Contributing
 
