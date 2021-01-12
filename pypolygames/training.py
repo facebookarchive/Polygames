@@ -86,6 +86,8 @@ def create_training_environment(
         simulation_params.train_channel_timeout_ms,
         simulation_params.train_channel_num_slots,
     )
+    model_manager.set_find_batch_size_max_bs(simulation_params.bsfinder_max_bs)
+    model_manager.set_find_batch_size_max_ms(simulation_params.bsfinder_max_ms)
     if is_server:
         model_manager.start_server(listen_ep)
     if is_client:
@@ -137,6 +139,8 @@ def create_training_environment(
           simulation_params.train_channel_timeout_ms,
           simulation_params.train_channel_num_slots,
       )
+      model_manager_opponent.set_find_batch_size_max_bs(simulation_params.bsfinder_max_bs)
+      model_manager_opponent.set_find_batch_size_max_ms(simulation_params.bsfinder_max_ms)
       print("tournament_mode is " + str(execution_params.tournament_mode))
       if execution_params.tournament_mode:
         model_manager_opponent.set_is_tournament_opponent(True)
@@ -479,7 +483,8 @@ def train_model(
 
     batchsizes = {
       "s":  [c, h, w],
-      "v": [3],
+      "v": [3 if getattr(model, "logit_value", False) else 1],
+      "pred_v": [1],
       "pi": [c_prime, h_prime, w_prime],
       "pi_mask": [c_prime, h_prime, w_prime]
     }

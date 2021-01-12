@@ -663,8 +663,8 @@ class ModelManagerImpl {
     float call1 = t.elapsed() / 10.0f * 1000.0f;
     fmt::printf("Base latency: %gms\n", call1);
 
-    float maxms = 100.0f;
-    int maxbs = 10240;
+    float maxms = findBatchSizeMaxMs_;
+    int maxbs = findBatchSizeMaxBs_;
 
     struct I {
       float latency = 0.0f;
@@ -695,7 +695,7 @@ class ModelManagerImpl {
         float ms = t.elapsed() * 1000;
         latency += ms;
         throughput += i / ms;
-        if (ms > maxms || i >= maxbs) {
+        if (ms > maxms || i > maxbs) {
           ++badcount;
         }
       }
@@ -867,6 +867,13 @@ class ModelManagerImpl {
     }
   }
 
+  void setFindBatchSizeMaxMs(float ms) {
+    findBatchSizeMaxMs_ = ms;
+  }
+  void setFindBatchSizeMaxBs(int n) {
+    findBatchSizeMaxBs_ = n;
+  }
+
  private:
   const std::string jitModel_;
   torch::Device device_;
@@ -890,6 +897,9 @@ class ModelManagerImpl {
 
   std::atomic<bool> hasFoundBatchSize_ = false;
   std::atomic<int> foundBatchSize_ = 0;
+
+  std::atomic<float> findBatchSizeMaxMs_ = 100.0f;
+  std::atomic<int> findBatchSizeMaxBs_ = 10240;
 };
 
 ModelManager::ModelManager() {
@@ -1022,6 +1032,14 @@ bool ModelManager::isTournamentOpponent() const {
 
 bool ModelManager::wantsTournamentResult() {
   return impl->wantsTournamentResult();
+}
+
+void ModelManager::setFindBatchSizeMaxMs(float ms) {
+  impl->setFindBatchSizeMaxMs(ms);
+}
+
+void ModelManager::setFindBatchSizeMaxBs(int n) {
+  impl->setFindBatchSizeMaxBs(n);
 }
 
 }  // namespace core
