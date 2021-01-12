@@ -48,6 +48,7 @@ add_executable( polygames-tests
  ludii-game-tests.cc
  ../games/ludii/jni_utils.cc
  ../games/ludii/ludii_game_wrapper.cc
+ ../games/ludii/ludii_state_wrapper.cc
  )
 
 target_link_libraries( polygames-tests 
