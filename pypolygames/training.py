@@ -45,7 +45,7 @@ def create_optimizer(
     optim = torch.optim.Adam(
         model.parameters(), lr=optim_params.lr, eps=optim_params.eps
     )
-    if optim_state_dict is not None:
+    if optim_state_dict is not None and not optim_params.reset_optimizer_state:
         try:
             optim.load_state_dict(optim_state_dict)
         except ValueError:
