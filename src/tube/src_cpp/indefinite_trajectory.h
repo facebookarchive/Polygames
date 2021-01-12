@@ -25,7 +25,8 @@ class IndefiniteTrajectory {
       , sizes(sizes)
       , buffer(std::make_shared<DataBlock>(name, sizes, dtype))
       , trajectory(std::make_shared<DataBlock>(
-            name, utils::pushLeft(blockLen, sizes), dtype)) {}
+            name, utils::pushLeft(blockLen, sizes), dtype)) {
+  }
 
   torch::Tensor& getBuffer() {
     return buffer->data;
@@ -71,4 +72,4 @@ class IndefiniteTrajectory {
  private:
   std::deque<torch::Tensor> trajectory_;
 };
-}
+}  // namespace tube

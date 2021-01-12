@@ -14,7 +14,6 @@ namespace tube {
 
 class Dispatcher {
  public:
-
   static constexpr int DISPATCH_ERR_DC_TERM = -2;
   static constexpr int DISPATCH_ERR_NO_SLOT = -1;
   static constexpr int DISPATCH_NOERR = 0;
@@ -89,7 +88,7 @@ class Dispatcher {
 
   void terminate() {
     if (dc_) {
-       dc_->terminate();
+      dc_->terminate();
     }
   }
 
