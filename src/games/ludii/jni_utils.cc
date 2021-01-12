@@ -70,18 +70,20 @@ void JNIUtils::InitJVM(std::string jar_location) {
   JavaVMInitArgs vm_args;
 
 #ifdef CHECK_JNI
-  const size_t num_jvm_args = 2;
+  const size_t num_jvm_args = 3;
 #else
-  const size_t num_jvm_args = 1;
+  const size_t num_jvm_args = 2;
 #endif
 
   JavaVMOption options[num_jvm_args];
   std::string java_classpath = "-Djava.class.path=" + jar_location;
   options[0].optionString = java_classpath.data();
+  std::string heapdump_str = "-XX:+HeapDumpOnOutOfMemoryError";
+  options[1].optionString = heapdump_str.data();
 
 #ifdef CHECK_JNI
   std::string check_jni = "-Xcheck:jni";
-  options[1].optionString = check_jni.data();
+  options[2].optionString = check_jni.data();
 #endif
 
   vm_args.version = 0x00010002;
