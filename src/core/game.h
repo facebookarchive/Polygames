@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "forward_player.h"
 #include "mcts/mcts.h"
 #include "tube/src_cpp/data_channel.h"
 #include "tube/src_cpp/dispatcher.h"
@@ -42,6 +43,7 @@
 #include "../games/tristannogo_state.h"
 #include "../games/weakschur/weakschur_state.h"
 #include "../games/yinsh.h"
+
 #include "human_player.h"
 #include "utils.h"
 
@@ -52,33 +54,42 @@
 
 //#define DEBUG_GAME
 
+namespace core {
+
 // Class for 2player fully observable game.
 class Game : public tube::EnvThread {
+  friend struct BatchExecutor;
+
  public:
   Game(std::string gameName,
        int numEpisode,
        int seed,
        bool evalMode,
        bool outFeatures,
-       bool turnFeatures,
+       bool turnFeaturesSingleChannel,
+       bool turnFeaturesMultiChannel,
        bool geometricFeatures,
        int history,
        int randomFeatures,
        bool oneFeature,
-       int perThreadBatchSize)
+       int perThreadBatchSize,
+       int maxRewinds,
+       bool predictEndState,
+       int predictNStates)
       : numEpisode(numEpisode)
       , evalMode(evalMode)
       , perThreadBatchSize(perThreadBatchSize)
+      , maxRewinds(maxRewinds)
+      , predictEndState(predictEndState)
+      , predictNStates(predictNStates)
       , result_(2, 0) {
-    State::setFeatures(outFeatures, turnFeatures, geometricFeatures, history,
-                       randomFeatures, oneFeature);
     gameName_ = gameName;
     if (isGameNameMatched({"Connect6"})) {
-      state_ = std::make_unique<Connect6::StateForConnect6<1>>(seed);
+      state_ = newState<Connect6::StateForConnect6<1>>(seed);
     } else if (isGameNameMatched({"Connect6v2"})) {
-      state_ = std::make_unique<Connect6::StateForConnect6<2>>(seed);
+      state_ = newState<Connect6::StateForConnect6<2>>(seed);
     } else if (isGameNameMatched({"Connect4"})) {
-      state_ = std::make_unique<StateForConnectFour>(seed);
+      state_ = newState<StateForConnectFour>(seed);
       /*
 combinations with numcolors 2,6,8 and slots 4,5,6,10 are interesting. For time
 horizon it is more difficult to guess. I’d go with 0.5*slots, 1.0 slots, 1.5
@@ -92,139 +103,139 @@ to look into this) if the strategy is identical to knuth’s.
       // Mastermind_<size>_<horizon>_<arity>
     } else if (isGameNameMatched({"Mastermind_4_5_6"})) {
       // should be winning proba 1
-      state_ = std::make_unique<Mastermind::State<4, 5, 6>>(seed);
+      state_ = newState<Mastermind::State<4, 5, 6>>(seed);
     } else if (isGameNameMatched({"Mastermind_4_6_6"})) {
       // should be winning proba 1
-      state_ = std::make_unique<Mastermind::State<4, 6, 6>>(seed);
+      state_ = newState<Mastermind::State<4, 6, 6>>(seed);
     } else if (isGameNameMatched({"Mastermind_4_7_6"})) {
       // should be winning proba 1
-      state_ = std::make_unique<Mastermind::State<4, 7, 6>>(seed);
+      state_ = newState<Mastermind::State<4, 7, 6>>(seed);
     } else if (isGameNameMatched({"Mastermind_4_3_6"})) {
-      state_ = std::make_unique<Mastermind::State<4, 4, 6>>(seed);
+      state_ = newState<Mastermind::State<4, 4, 6>>(seed);
     } else if (isGameNameMatched({"Mastermind_4_4_6"})) {
-      state_ = std::make_unique<Mastermind::State<4, 3, 6>>(seed);
+      state_ = newState<Mastermind::State<4, 3, 6>>(seed);
     } else if (isGameNameMatched({"Mastermind_10_5_2"})) {
-      state_ = std::make_unique<Mastermind::State<10, 5, 2>>(seed);
+      state_ = newState<Mastermind::State<10, 5, 2>>(seed);
     } else if (isGameNameMatched({"Mastermind_10_6_2"})) {
-      state_ = std::make_unique<Mastermind::State<10, 6, 2>>(seed);
+      state_ = newState<Mastermind::State<10, 6, 2>>(seed);
     } else if (isGameNameMatched({"Mastermind_10_7_2"})) {
-      state_ = std::make_unique<Mastermind::State<10, 7, 2>>(seed);
+      state_ = newState<Mastermind::State<10, 7, 2>>(seed);
     } else if (isGameNameMatched({"Mastermind_10_8_2"})) {
-      state_ = std::make_unique<Mastermind::State<10, 8, 2>>(seed);
+      state_ = newState<Mastermind::State<10, 8, 2>>(seed);
     } else if (isGameNameMatched({"Mastermind_10_9_2"})) {
-      state_ = std::make_unique<Mastermind::State<10, 9, 2>>(seed);
+      state_ = newState<Mastermind::State<10, 9, 2>>(seed);
     } else if (isGameNameMatched({"Mastermind_10_10_2"})) {
-      state_ = std::make_unique<Mastermind::State<10, 10, 2>>(seed);
+      state_ = newState<Mastermind::State<10, 10, 2>>(seed);
     } else if (isGameNameMatched({"Mastermind_10_15_2"})) {
-      state_ = std::make_unique<Mastermind::State<10, 15, 2>>(seed);
+      state_ = newState<Mastermind::State<10, 15, 2>>(seed);
     } else if (isGameNameMatched({"Mastermind"})) {
-      state_ = std::make_unique<Mastermind::State<3, 2, 2>>(seed);
+      state_ = newState<Mastermind::State<3, 2, 2>>(seed);
     } else if (isGameNameMatched(
                    {"Minesweeper_4_4_4"})) {  // width, height, mines
-      state_ = std::make_unique<Minesweeper::State<4, 4, 4>>(seed);
+      state_ = newState<Minesweeper::State<4, 4, 4>>(seed);
     } else if (isGameNameMatched(
                    {"Minesweeper_3_1_1"})) {  // width, height, mines
-      state_ = std::make_unique<Minesweeper::State<3, 1, 1>>(seed);
+      state_ = newState<Minesweeper::State<3, 1, 1>>(seed);
     } else if (isGameNameMatched(
                    {"Minesweeper_5_2_3"})) {  // width, height, mines
-      state_ = std::make_unique<Minesweeper::State<5, 2, 3>>(seed);
+      state_ = newState<Minesweeper::State<5, 2, 3>>(seed);
     } else if (isGameNameMatched(
                    {"Minesweeper_5_5_10"})) {  // width, height, mines
-      state_ = std::make_unique<Minesweeper::State<5, 5, 10>>(seed);
+      state_ = newState<Minesweeper::State<5, 5, 10>>(seed);
     } else if (isGameNameMatched(
                    {"Minesweeper_10_1_5"})) {  // width, height, mines
-      state_ = std::make_unique<Minesweeper::State<10, 1, 5>>(seed);
+      state_ = newState<Minesweeper::State<10, 1, 5>>(seed);
     } else if (isGameNameMatched(
                    {"Minesweeper_7_3_10"})) {  // width, height, mines
-      state_ = std::make_unique<Minesweeper::State<7, 3, 10>>(seed);
+      state_ = newState<Minesweeper::State<7, 3, 10>>(seed);
     } else if (isGameNameMatched(
                    {"Minesweeper_5_5_15"})) {  // width, height, mines
-      state_ = std::make_unique<Minesweeper::State<5, 5, 15>>(seed);
+      state_ = newState<Minesweeper::State<5, 5, 15>>(seed);
     } else if (isGameNameMatched(
                    {"Minesweeper_8_8_10"})) {  // width, height, mines
-      state_ = std::make_unique<Minesweeper::State<8, 8, 10>>(seed);
+      state_ = newState<Minesweeper::State<8, 8, 10>>(seed);
     } else if (isGameNameMatched(
                    {"Minesweeper_9_9_10"})) {  // width, height, mines
-      state_ = std::make_unique<Minesweeper::State<9, 9, 10>>(seed);
+      state_ = newState<Minesweeper::State<9, 9, 10>>(seed);
     } else if (isGameNameMatched(
                    {"Minesweeper_16_16_40"})) {  // width, height, mines
-      state_ = std::make_unique<Minesweeper::State<16, 16, 40>>(seed);
+      state_ = newState<Minesweeper::State<16, 16, 40>>(seed);
     } else if (isGameNameMatched(
                    {"Minesweeper_30_16_99"})) {  // width, height, mines
-      state_ = std::make_unique<Minesweeper::State<30, 16, 99>>(seed);
+      state_ = newState<Minesweeper::State<30, 16, 99>>(seed);
     } else if (isGameNameMatched({"TicTacToe", "NoughtsAndCrosses", "XsAndOs",
                                   "MNKGame_3_3_3"})) {
-      state_ = std::make_unique<MNKGame::State<3, 3, 3>>(seed);
+      state_ = newState<MNKGame::State<3, 3, 3>>(seed);
     } else if (isGameNameMatched(
                    {"FreeStyleGomoku", "GomokuFreeStyle", "MNKGame_15_15_5"})) {
-      state_ = std::make_unique<MNKGame::State<15, 15, 5>>(seed);
+      state_ = newState<MNKGame::State<15, 15, 5>>(seed);
     } else if (isGameNameMatched(
                    {"Othello4", "Reversi4", "Othello04", "Reversi04"})) {
-      state_ = std::make_unique<Othello::State<6>>(seed);
+      state_ = newState<Othello::State<6>>(seed);
     } else if (isGameNameMatched(
                    {"Othello6", "Reversi6", "Othello06", "Reversi06"})) {
-      state_ = std::make_unique<Othello::State<6>>(seed);
+      state_ = newState<Othello::State<6>>(seed);
     } else if (isGameNameMatched({"Othello8", "Reversi8", "Othello08",
                                   "Reversi08", "Othello", "Reversi"})) {
-      state_ = std::make_unique<Othello::State<8>>(seed);
+      state_ = newState<Othello::State<8>>(seed);
     } else if (isGameNameMatched({"Othello10", "Reversi10"})) {
-      state_ = std::make_unique<Othello::State<10>>(seed);
+      state_ = newState<Othello::State<10>>(seed);
     } else if (isGameNameMatched({"Othello12", "Reversi12"})) {
-      state_ = std::make_unique<Othello::State<12>>(seed);
+      state_ = newState<Othello::State<12>>(seed);
     } else if (isGameNameMatched({"Othello14", "Reversi14"})) {
-      state_ = std::make_unique<Othello::State<14>>(seed);
+      state_ = newState<Othello::State<14>>(seed);
     } else if (isGameNameMatched({"Othello16", "Reversi16"})) {
-      state_ = std::make_unique<Othello::State<16>>(seed);
+      state_ = newState<Othello::State<16>>(seed);
     } else if (isGameNameMatched({"OthelloOpt8", "OthelloOpt", "ReversiOpt8",
                                   "ReversiOpt"})) {
-      state_ = std::make_unique<Othello2::State<8>>(seed);
+      state_ = newState<Othello2::State<8>>(seed);
     } else if (isGameNameMatched({"OthelloOpt10", "ReversiOpt10"})) {
-      state_ = std::make_unique<Othello2::State<10>>(seed);
+      state_ = newState<Othello2::State<10>>(seed);
     } else if (isGameNameMatched({"OthelloOpt16", "ReversiOpt16"})) {
-      state_ = std::make_unique<Othello2::State<16>>(seed);
+      state_ = newState<Othello2::State<16>>(seed);
     } else if (isGameNameMatched({"GameOfTheAmazons", "Amazons"})) {
-      state_ = std::make_unique<Amazons::State>(seed);
+      state_ = newState<Amazons::State>(seed);
     } else if (isGameNameMatched({"ChineseCheckers"})) {
-      state_ = std::make_unique<ChineseCheckers::State>(seed);
+      state_ = newState<ChineseCheckers::State>(seed);
     } else if (isGameNameMatched({"Hex5pie"})) {
-      state_ = std::make_unique<Hex::State<5, true>>(seed);
+      state_ = newState<Hex::State<5, true>>(seed);
     } else if (isGameNameMatched({"Hex11pie"})) {
-      state_ = std::make_unique<Hex::State<11, true>>(seed);
+      state_ = newState<Hex::State<11, true>>(seed);
     } else if (isGameNameMatched({"Hex13pie"})) {
-      state_ = std::make_unique<Hex::State<13, true>>(seed);
+      state_ = newState<Hex::State<13, true>>(seed);
     } else if (isGameNameMatched({"Hex19pie"})) {
-      state_ = std::make_unique<Hex::State<19, true>>(seed);
+      state_ = newState<Hex::State<19, true>>(seed);
     } else if (isGameNameMatched({"Hex5"})) {
-      state_ = std::make_unique<Hex::State<5, false>>(seed);
+      state_ = newState<Hex::State<5, false>>(seed);
     } else if (isGameNameMatched({"Hex11"})) {
-      state_ = std::make_unique<Hex::State<11, false>>(seed);
+      state_ = newState<Hex::State<11, false>>(seed);
     } else if (isGameNameMatched({"Hex13"})) {
-      state_ = std::make_unique<Hex::State<13, false>>(seed);
+      state_ = newState<Hex::State<13, false>>(seed);
     } else if (isGameNameMatched({"Hex19"})) {
-      state_ = std::make_unique<Hex::State<19, false>>(seed);
+      state_ = newState<Hex::State<19, false>>(seed);
     } else if (isGameNameMatched(
                    {"Havannah5pieExt"})) {  // ext = borders, corners
-      state_ = std::make_unique<Havannah::State<5, true, true>>(seed);
+      state_ = newState<Havannah::State<5, true, true>>(seed);
     } else if (isGameNameMatched({"Havannah10pieExt"})) {
-      state_ = std::make_unique<Havannah::State<10, true, true>>(seed);
+      state_ = newState<Havannah::State<10, true, true>>(seed);
     } else if (isGameNameMatched({"Havannah8pieExt"})) {
-      state_ = std::make_unique<Havannah::State<8, true, true>>(seed);
+      state_ = newState<Havannah::State<8, true, true>>(seed);
     } else if (isGameNameMatched({"Havannah5pie"})) {
-      state_ = std::make_unique<Havannah::State<5, true, false>>(seed);
+      state_ = newState<Havannah::State<5, true, false>>(seed);
     } else if (isGameNameMatched({"Havannah8pie"})) {
-      state_ = std::make_unique<Havannah::State<8, true, false>>(seed);
+      state_ = newState<Havannah::State<8, true, false>>(seed);
     } else if (isGameNameMatched({"Havannah10pie"})) {
-      state_ = std::make_unique<Havannah::State<10, true, false>>(seed);
+      state_ = newState<Havannah::State<10, true, false>>(seed);
     } else if (isGameNameMatched({"Havannah5"})) {
-      state_ = std::make_unique<Havannah::State<5, false, false>>(seed);
+      state_ = newState<Havannah::State<5, false, false>>(seed);
     } else if (isGameNameMatched({"Havannah8"})) {
-      state_ = std::make_unique<Havannah::State<8, false, false>>(seed);
+      state_ = newState<Havannah::State<8, false, false>>(seed);
     } else if (isGameNameMatched({"Havannah10"})) {
-      state_ = std::make_unique<Havannah::State<10, false, false>>(seed);
+      state_ = newState<Havannah::State<10, false, false>>(seed);
     } else if (isGameNameMatched({"Breakthrough"})) {
-      state_ = std::make_unique<StateForBreakthrough<false>>(seed);
+      state_ = newState<StateForBreakthrough<false>>(seed);
     } else if (isGameNameMatched({"BreakthroughV2"})) {
-      state_ = std::make_unique<StateForBreakthrough<true>>(seed);
+      state_ = newState<StateForBreakthrough<true>>(seed);
     } else if (gameName.rfind("Ludii", 0) == 0) {
 #ifdef NO_JAVA
       throw std::runtime_error(
@@ -236,8 +247,8 @@ to look into this) if the strategy is identical to knuth’s.
 
       if (jni_env) {
         Ludii::LudiiGameWrapper game_wrapper(ludii_name);
-        state_ = std::make_unique<Ludii::LudiiStateWrapper>(
-            seed, std::move(game_wrapper));
+        state_ =
+            newState<Ludii::LudiiStateWrapper>(seed, std::move(game_wrapper));
       } else {
         // Probably means we couldn't find the Ludii.jar file
         throw std::runtime_error(
@@ -245,66 +256,73 @@ to look into this) if the strategy is identical to knuth’s.
       }
 #endif
     } else if (isGameNameMatched({"Tristannogo"})) {
-      state_ = std::make_unique<StateForTristannogo>(seed);
+      state_ = newState<StateForTristannogo>(seed);
     } else if (isGameNameMatched({"OuterOpenGomoku", "OOGomoku"})) {
-      state_ = std::make_unique<StateForOOGomoku>(seed);
+      state_ = newState<StateForOOGomoku>(seed);
     } else if (isGameNameMatched({"Minishogi"})) {
-      state_ = std::make_unique<StateForMinishogi<1>>(seed);
+      state_ = newState<StateForMinishogi<1>>(seed);
     } else if (isGameNameMatched({"MinishogiV2"})) {
-      state_ = std::make_unique<StateForMinishogi<2>>(seed);
+      state_ = newState<StateForMinishogi<2>>(seed);
     } else if (isGameNameMatched({"Surakarta"})) {
-      state_ = std::make_unique<StateForSurakarta>(seed);
+      state_ = newState<StateForSurakarta>(seed);
     } else if (isGameNameMatched({"DiceShogi"})) {
-      state_ = std::make_unique<StateForDiceshogi>(seed);
+      state_ = newState<StateForDiceshogi>(seed);
     } else if (isGameNameMatched({"BlockGo"})) {
-      state_ = std::make_unique<StateForBlockGo>(seed);
+      state_ = newState<StateForBlockGo>(seed);
     } else if (isGameNameMatched({"YINSH"})) {
-      state_ = std::make_unique<StateForYinsh>(seed);
+      state_ = newState<StateForYinsh>(seed);
     } else if (isGameNameMatched({"GomokuSwap2", "Swap2Gomoku", "Gomoku"})) {
-      state_ = std::make_unique<GomokuSwap2::State>(seed);
+      state_ = newState<GomokuSwap2::State>(seed);
     } else if (isGameNameMatched({"KyotoShogi"})) {
-      state_ = std::make_unique<StateForKyotoshogi>(seed);
+      state_ = newState<StateForKyotoshogi>(seed);
     } else if (isGameNameMatched({"Einstein"})) {
-      state_ = std::make_unique<StateForEinstein>(seed);
+      state_ = newState<StateForEinstein>(seed);
     } else if (isGameNameMatched({"WeakSchur_3_20"})) {  // subsets, maxNumber
-      state_ = std::make_unique<weakschur::State<3, 20>>(seed);
+      state_ = newState<weakschur::State<3, 20>>(seed);
 
     } else if (isGameNameMatched({"WeakSchur_4_66"})) {  // subsets, maxNumber
-      state_ = std::make_unique<weakschur::State<4, 66>>(seed);
+      state_ = newState<weakschur::State<4, 66>>(seed);
       // } else if (isGameNameMatched(gameName, {"Nogo"})) {
-      //   state_ = std::make_unique<StateForNogo>();
+      //   state_ = newState<StateForNogo>();
     } else if (isGameNameMatched(
                    {"WeakSchur_5_197",
                     "WalkerSchur"})) {  // subsets, maxNumber  // is Walker
                                         // right ?   (1952! he said 197...)
-      state_ = std::make_unique<weakschur::State<5, 197>>(seed);
+      state_ = newState<weakschur::State<5, 197>>(seed);
     } else if (isGameNameMatched({"WeakSchur_3_70", "ImpossibleSchur"})) {
-      state_ = std::make_unique<weakschur::State<3, 70>>(seed);
+      state_ = newState<weakschur::State<3, 70>>(seed);
     } else if (isGameNameMatched(
                    {"WeakSchur_6_583",
                     "FabienSchur"})) {  // subsets, maxNumber  // beating F.
                                         // Teytaud et al
-      state_ = std::make_unique<weakschur::State<6, 583>>(seed);
+      state_ = newState<weakschur::State<6, 583>>(seed);
     } else if (isGameNameMatched({"WeakSchur_7_1737",
                                   "Arpad7Schur"})) {  // beating A. Rimmel et al
-      state_ = std::make_unique<weakschur::State<7, 1737>>(seed);
+      state_ = newState<weakschur::State<7, 1737>>(seed);
     } else if (isGameNameMatched({"WeakSchur_8_5197",
                                   "Arpad8Schur"})) {  // beating A. Rimmel et al
-      state_ = std::make_unique<weakschur::State<8, 5197>>(seed);
+      state_ = newState<weakschur::State<8, 5197>>(seed);
     } else if (isGameNameMatched({"WeakSchur_9_15315",
                                   "Arpad9Schur"})) {  // beating A. Rimmel et al
-      state_ = std::make_unique<weakschur::State<9, 15315>>(seed);
+      state_ = newState<weakschur::State<9, 15315>>(seed);
     } else if (isGameNameMatched({"Chess"})) {
-      state_ = std::make_unique<chess::State>(seed);
+      state_ = newState<chess::State>(seed);
     } else {
       throw std::runtime_error("Unknown game name '" + gameName + "'");
     }
-    // this is now useless thanks to the use of static variables above, but in
-    // case we want to play:
-    // state_->setFeatures(outFeatures, turnFeatures, geometricFeatures,
-    // history, randomFeatures, oneFeature);
+
+    setFeatures(outFeatures, turnFeaturesSingleChannel,
+                turnFeaturesMultiChannel, geometricFeatures, history,
+                randomFeatures, oneFeature);
 
     state_->Initialize();
+  }
+
+  template <typename T, typename... A>
+  std::unique_ptr<State> newState(A&&... args) {
+    auto r = std::make_unique<T>(std::forward<A>(args)...);
+    r->template initializeAs<T>();
+    return r;
   }
 
   virtual bool isOnePlayerGame() const {
@@ -312,13 +330,23 @@ to look into this) if the strategy is identical to knuth’s.
   }
 
   void setFeatures(bool outFeatures,
-                   bool turnFeatures,
+                   bool turnFeaturesSingleChannel,
+                   bool turnFeaturesMultiChannel,
                    bool geometricFeatures,
                    int history,
                    int randomFeatures,
                    bool oneFeature) {
-    state_->setFeatures(outFeatures, turnFeatures, geometricFeatures, history,
-                        randomFeatures, oneFeature);
+    featopts.emplace_back();
+    FeatureOptions& opt = featopts.back();
+    opt.outFeatures = outFeatures;
+    opt.turnFeaturesSingleChannel = turnFeaturesSingleChannel;
+    opt.turnFeaturesMultiChannel = turnFeaturesMultiChannel;
+    opt.geometricFeatures = geometricFeatures;
+    opt.history = history;
+    opt.randomFeatures = randomFeatures;
+    opt.oneFeature = oneFeature;
+
+    state_->setFeatures(&opt);
   }
 
   void addHumanPlayer(std::shared_ptr<HumanPlayer> player) {
@@ -334,28 +362,77 @@ to look into this) if the strategy is identical to knuth’s.
     players_.push_back(std::move(player));
   }
 
-  void addPlayer(std::shared_ptr<mcts::MctsPlayer> player,
-                 std::shared_ptr<tube::DataChannel> dc) {
+  void addPlayer(std::shared_ptr<core::ActorPlayer> player,
+                 std::shared_ptr<tube::DataChannel> dc,
+                 std::shared_ptr<Game> game,
+                 std::shared_ptr<core::ActorPlayer> devplayer) {
     assert(dc != nullptr && !evalMode);
 
-    players_.push_back(std::move(player));
+    players_.push_back(player);
+    playerGame_.push_back(game);
+
+    if (devplayer) {
+      player = devplayer;
+    }
+    int seqlen = player->rnnSeqlen();
+
+    auto addseq = [&](std::vector<int64_t> a) {
+      if (seqlen) {
+        a.insert(a.begin(), seqlen);
+      }
+      return a;
+    };
 
     auto feat = tube::EpisodicTrajectory(
-        "s", state_->GetFeatureSize(), torch::kFloat32);
+        "s", addseq(state_->GetFeatureSize()), torch::kFloat32);
+    auto rnnInitialState = tube::EpisodicTrajectory(
+        "rnn_initial_state", player->rnnStateSize(), torch::kFloat32);
+    auto rnnStateMask = tube::EpisodicTrajectory(
+        "rnn_state_mask", addseq({1}), torch::kFloat32);
     auto pi = tube::EpisodicTrajectory(
-        "pi", state_->GetActionSize(), torch::kFloat32);
+        "pi", addseq(state_->GetActionSize()), torch::kFloat32);
     auto piMask = tube::EpisodicTrajectory(
-        "pi_mask", state_->GetActionSize(), torch::kFloat32);
-    auto v = tube::EpisodicTrajectory("v", {1}, torch::kFloat32);
+        "pi_mask", addseq(state_->GetActionSize()), torch::kFloat32);
+    auto actionPi = tube::EpisodicTrajectory(
+        "action_pi", addseq(state_->GetActionSize()), torch::kFloat32);
+    auto v = tube::EpisodicTrajectory(
+        "v", addseq({player->vOutputs()}), torch::kFloat32);
+    auto predV = tube::EpisodicTrajectory(
+        "pred_v", addseq({player->vOutputs()}), torch::kFloat32);
+    int predicts = (predictEndState ? 2 : 0) + predictNStates;
+    auto predictSize = state_->GetRawFeatureSize();
+    predictSize[0] *= predicts;
+    auto predictPi = tube::EpisodicTrajectory(
+        "predict_pi", addseq(predictSize), torch::kFloat32);
+    auto predictPiMask = tube::EpisodicTrajectory(
+        "predict_pi_mask", addseq(predictSize), torch::kFloat32);
 
     tube::Dispatcher dispatcher(std::move(dc));
-    dispatcher.addDataBlocks(
-        {feat.buffer, pi.buffer, piMask.buffer, v.buffer}, {});
+    std::vector<std::shared_ptr<tube::DataBlock>> send;
+    send = {feat.buffer, pi.buffer, piMask.buffer, v.buffer, predV.buffer};
+    if (predictEndState + predictNStates) {
+      send.push_back(predictPi.buffer);
+      send.push_back(predictPiMask.buffer);
+      predictPi_.push_back(predictPi);
+      predictPiMask_.push_back(predictPiMask);
+    }
+    if (seqlen) {
+      send.push_back(rnnInitialState.buffer);
+      rnnInitialState_.push_back(rnnInitialState);
+      send.push_back(rnnStateMask.buffer);
+      rnnStateMask_.push_back(rnnStateMask);
+    }
+    if (dynamic_cast<ForwardPlayer*>(&*player) != nullptr) {
+      send.push_back(actionPi.buffer);
+      actionPi_.push_back(actionPi);
+    }
+    dispatcher.addDataBlocks(send, {});
 
     feature_.push_back(feat);
     pi_.push_back(pi);
     piMask_.push_back(piMask);
     v_.push_back(v);
+    predV_.push_back(predV);
     dispatchers_.push_back(dispatcher);
   }
 
@@ -400,13 +477,11 @@ to look into this) if the strategy is identical to knuth’s.
   virtual EnvThread::Stats get_stats() override;
 
   const int numEpisode;
-  // const int threadIdx;
   const bool evalMode;
   const int perThreadBatchSize;
-  // const bool humanModeFirst;
-  // const bool humanModeSecond;
-  // const bool strong_baseline;        // = true;
-  // const bool use_also_mcts_in_eval;  // = true;
+  const int maxRewinds;
+  const bool predictEndState;
+  const int predictNStates;
 
  private:
   bool isGameNameMatched(const std::vector<std::string>&& allowedNames) {
@@ -427,30 +502,34 @@ to look into this) if the strategy is identical to knuth’s.
 
   void reset() {
     state_->reset();
-    for (auto& player : players_) {
-      player->newEpisode();
-    }
   }
 
   std::optional<int> parseSpecialAction(const std::string& str);
 
   void step();
 
-  void setReward(const State& state, int resigned = -1);
-
   void sendTrajectory();
 
   bool prepareForSend(int playerId);
 
   std::unique_ptr<State> state_;
-  std::vector<std::shared_ptr<mcts::Player>> players_;
+  std::vector<std::shared_ptr<Player>> players_;
+  std::vector<std::shared_ptr<Game>> playerGame_;
 
   std::vector<tube::EpisodicTrajectory> feature_;
+  std::vector<tube::EpisodicTrajectory> rnnStateMask_;
+  std::vector<tube::EpisodicTrajectory> rnnInitialState_;
   std::vector<tube::EpisodicTrajectory> pi_;
   std::vector<tube::EpisodicTrajectory> piMask_;
+  std::vector<tube::EpisodicTrajectory> actionPi_;
   std::vector<tube::EpisodicTrajectory> v_;
+  std::vector<tube::EpisodicTrajectory> predV_;
+  std::vector<tube::EpisodicTrajectory> predictPi_;
+  std::vector<tube::EpisodicTrajectory> predictPiMask_;
 
   std::vector<tube::Dispatcher> dispatchers_;
+
+  std::list<FeatureOptions> featopts;
 
   std::vector<float> result_;
 
@@ -461,10 +540,9 @@ to look into this) if the strategy is identical to knuth’s.
   bool hasPrintedHumanHelp_ = false;
   bool isInSingleMoveMode_ = false;
   float lastMctsValue_ = 0.0f;
-
+  bool printMoves_ = false;
   std::string gameName_;
-  std::minstd_rand rng_{std::random_device{}()};
-  bool canResign_ = false;
-  std::vector<int> resignCounter_;
-  int resigned_ = -1;
+  std::vector<torch::Tensor> rnnState_;
 };
+
+}  // namespace core
