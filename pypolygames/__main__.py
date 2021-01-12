@@ -215,7 +215,8 @@ def parse_args() -> argparse.Namespace:
             simulation_params_group.add_argument(
                 arg_field.name, **{**arg_field.opts, **dict(help=argparse.SUPPRESS)}
             )
-        if arg_name in {"num_actor", "num_rollouts"}:
+        #if arg_name in {"num_actor", "num_rollouts"}:
+        if True:
             human_simulation_params_group.add_argument(arg_field.name, **arg_field.opts)
 
     # Execution params
@@ -322,7 +323,8 @@ def run_training_from_args(args: argparse.Namespace):
 
 def run_evaluation_from_args(args: argparse.Namespace):
     eval_params = instanciate_params_from_args(EvalParams, args)
-    run_evaluation(eval_params=eval_params)
+    execution_params = instanciate_params_from_args(ExecutionParams, args)
+    run_evaluation(eval_params=eval_params, execution_params=execution_params)
 
 
 def run_training_and_evaluation_from_args(args: argparse.Namespace):

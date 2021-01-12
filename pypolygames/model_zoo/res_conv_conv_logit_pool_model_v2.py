@@ -24,7 +24,6 @@ class ResConvConvLogitPoolModelV2(torch.jit.ScriptModule):
         "mono",
         "resnets",
         "global_pooling",
-        "af",
     ]
 
     DEFAULT_NB_NETS = 5
@@ -213,45 +212,12 @@ class ResConvConvLogitPoolModelV2(torch.jit.ScriptModule):
             else:
                 return v, pi_logit, torch.empty(0)
         s = pi_logit.shape
-        pi = F.softmax(pi_logit, 1).reshape(s)
+        pi = F.softmax(pi_logit.float(), 1).reshape(s)
         return v, pi, torch.empty(0)
 
     @torch.jit.script_method
     def forward(self, x: torch.Tensor):
-        v, pi, _ = self._forward(x, False)
-        pi = pi.view(-1, self.c_prime, x.size(2), x.size(3))
-        reply = {"v": v, "pi": pi}
+        v, pi_logit, _ = self._forward(x, True)
+        pi_logit = pi_logit.view(-1, self.c_prime, x.size(2), x.size(3))
+        reply = {"v": v, "pi_logit": pi_logit}
         return reply
-
-    def loss(
-        self,
-        model,
-        x: torch.Tensor,
-        v: torch.Tensor,
-        pi: torch.Tensor,
-        pi_mask: torch.Tensor,
-        predict_pi: torch.Tensor = None,
-        predict_pi_mask: torch.Tensor = None,
-        #stat: utils.MultiCounter,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        pi = pi.flatten(1)
-        pred_v, pred_logit, pred_predict_logit = model._forward(x, return_logit=True)
-        #utils.assert_eq(v.size(), pred_v.size())
-        #utils.assert_eq(pred_logit.size(), pi.size())
-        #utils.assert_eq(pred_logit.dim(), 2)
-
-        pi_mask = pi_mask.view(pred_logit.shape);
-        pred_logit = pred_logit * pi_mask - 400 * (1 - pi_mask)
-        if self.predicts > 0:
-            predict_pi_err = (F.mse_loss(pred_predict_logit, predict_pi, reduction="none") * predict_pi_mask).flatten(2).sum(2).flatten(1).mean(1)
-
-        v_err = F.mse_loss(pred_v, v, reduction="none").squeeze(1)
-        pred_log_pi = nn.functional.log_softmax(pred_logit.flatten(1), dim=1).view_as(pred_logit) * pi_mask
-        pi_err = -(pred_log_pi * pi).sum(1)
-
-        #utils.assert_eq(v_err.size(), pi_err.size())
-        err = v_err + pi_err + (predict_pi_err * 0.15 if self.predicts > 0 else 0)
-
-        #stat["v_err"].feed(v_err.detach().mean().item())
-        #stat["pi_err"].feed(pi_err.detach().mean().item())
-        return err.mean(), v_err.detach().mean(), pi_err.detach().mean(), (predict_pi_err.detach().mean() if self.predicts > 0 else None)

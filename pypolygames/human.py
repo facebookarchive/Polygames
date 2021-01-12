@@ -34,6 +34,7 @@ def create_human_environment(
     simulation_params: SimulationParams,
     execution_params: ExecutionParams,
     pure_mcts: bool,
+    model
 ) -> Tuple[tube.Context, Optional[tube.DataChannel], Callable[[], int]]:
     human_first = execution_params.human_first
     time_ratio = execution_params.time_ratio
@@ -42,24 +43,41 @@ def create_human_environment(
     actor_channel = (
         None if pure_mcts else tube.DataChannel("act", simulation_params.num_actor, 1)
     )
+    rnn_state_shape = []
+    if model is not None and hasattr(model, "rnn_cells") and model.rnn_cells > 0:
+      rnn_state_shape = [model.rnn_cells, model.rnn_channels]
+    rnn_state_size = 0
+    if len(rnn_state_shape) >= 2:
+      rnn_state_size = rnn_state_shape[0] * rnn_state_shape[1]
+    logit_value = getattr(model, "logit_value", False)
     game = create_game(
         game_params,
         num_episode=1,
         seed=next(seed_generator),
         eval_mode=True,
         per_thread_batchsize=0,
+        rewind=simulation_params.rewind,
+        predict_end_state=game_params.predict_end_state,
+        predict_n_states=game_params.predict_n_states,
     )
     player = create_player(
         seed_generator=seed_generator,
         game=game,
+        player="mcts",
         num_actor=simulation_params.num_actor,
         num_rollouts=simulation_params.num_rollouts,
         pure_mcts=pure_mcts,
         actor_channel=actor_channel,
-        assembler=None,
+        model_manager=None,
         human_mode=True,
         total_time=total_time,
         time_ratio=time_ratio,
+        sample_before_step_idx=80,
+        randomized_rollouts=False,
+        sampling_mcts=False,
+        rnn_state_shape=rnn_state_shape,
+        rnn_seqlen=execution_params.rnn_seqlen,
+        logit_value=logit_value,
     )
     human_player = polygames.HumanPlayer()
     if game.is_one_player_game():
@@ -109,7 +127,7 @@ def create_tp_environment(
         num_rollouts=simulation_params.num_rollouts,
         pure_mcts=pure_mcts,
         actor_channel=actor_channel,
-        assembler=None,
+        model_manager=None,
         human_mode=True,
         total_time=total_time,
         time_ratio=time_ratio,
@@ -140,11 +158,16 @@ def create_tp_environment(
 
 
 def _forward_pass_on_device(
-    device: torch.device, model: torch.jit.ScriptModule, batch_s: torch.Tensor
+    device: torch.device, model: torch.jit.ScriptModule, batch_s: torch.Tensor, batch_rnn_state: torch.Tensor = None
 ) -> Dict[str, torch.Tensor]:
     batch_s = utils.to_device(batch_s, device)
-    with torch.no_grad():
-        reply = model(batch_s)
+    if batch_rnn_state is not None:
+        batch_rnn_state = utils.to_device(batch_rnn_state, device)
+        with torch.no_grad():
+            reply = model(batch_s, batch_rnn_state)
+    else:
+      with torch.no_grad():
+          reply = model(batch_s)
     return reply
 
 
@@ -163,31 +186,48 @@ def _play_game_against_neural_mcts(
     nb_devices = len(devices)
     context.start()
     dcm = DataChannelManager([actor_channel])
-    while not context.terminated():
-        batch = dcm.get_input(max_timeout_s=1)
-        if len(batch) == 0:
-            continue
+    # multithread
+    with ThreadPoolExecutor(max_workers=nb_devices) as executor:
+        while not context.terminated():
+            batch = dcm.get_input(max_timeout_s=1)
+            if len(batch) == 0:
+                continue
 
-        assert len(batch) == 1
+            assert len(batch) == 1
 
-        # split in as many part as there are devices
-        batches_s = torch.chunk(
-            batch[actor_channel.name]["s"], nb_devices, dim=0
-        )
-        futures = []
-        reply_eval = {"v": None, "pi": None}
-        # multithread
-        with ThreadPoolExecutor(max_workers=nb_devices) as executor:
-            for device, model, batch_s in zip(
-                devices, models, batches_s
-            ):
-                futures.append(
-                    executor.submit(_forward_pass_on_device, device, model, batch_s)
+            # split in as many part as there are devices
+            batches_s = torch.chunk(
+                batch[actor_channel.name]["s"], nb_devices, dim=0
+            )
+            has_rnn = "rnn_state" in batch[actor_channel.name]
+            if has_rnn:
+                batches_rnn_state = torch.chunk(
+                    batch[actor_channel.name]["rnn_state"], nb_devices, dim=0
                 )
-            results = [future.result() for future in futures]
-            reply_eval["v"] = torch.cat([result["v"] for result in results], dim=0)
-            reply_eval["pi"] = torch.cat([result["pi"] for result in results], dim=0)
-        dcm.set_reply(actor_channel.name, reply_eval)
+            futures = []
+            reply_eval = {"v": None, "pi_logit": None}
+            if has_rnn:
+                for device, model, batch_s, batch_rnn_state in zip(
+                    devices, models, batches_s, batches_rnn_state
+                ):
+                    futures.append(
+                        executor.submit(_forward_pass_on_device, device, model, batch_s, batch_rnn_state)
+                    )
+                results = [future.result() for future in futures]
+                reply_eval["v"] = torch.cat([result["v"] for result in results], dim=0)
+                reply_eval["pi_logit"] = torch.cat([result["pi_logit"] for result in results], dim=0)
+                reply_eval["rnn_state_out"] = torch.cat([result["rnn_state"] for result in results], dim=0)
+            else:
+                for device, model, batch_s in zip(
+                    devices, models, batches_s
+                ):
+                    futures.append(
+                        executor.submit(_forward_pass_on_device, device, model, batch_s)
+                    )
+                results = [future.result() for future in futures]
+                reply_eval["v"] = torch.cat([result["v"] for result in results], dim=0)
+                reply_eval["pi_logit"] = torch.cat([result["pi_logit"] for result in results], dim=0)
+            dcm.set_reply(actor_channel.name, reply_eval)
     dcm.terminate()
 
 
@@ -256,7 +296,7 @@ def run_human_played_game(
         del checkpoint
         print("creating model(s) and device(s)...")
         models = []
-        devices = [torch.device(device) for device in execution_params.device]
+        devices = [torch.device(device) for device in execution_params.devices]
         for device in devices:
             model = create_model(game_params=game_params, model_params=model_params).to(
                 device
@@ -273,6 +313,7 @@ def run_human_played_game(
         simulation_params=simulation_params,
         execution_params=execution_params,
         pure_mcts=model_params.pure_mcts,
+        model=model
     )
 
     print("playing against a human player...")
