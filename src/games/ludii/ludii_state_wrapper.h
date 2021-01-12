@@ -109,6 +109,8 @@ class LudiiStateWrapper : public core::State {
 
   virtual bool isOnePlayerGame() const override;
 
+  virtual float getRandomRolloutReward(int player) const override;
+
   LudiiStateWrapper& operator=(LudiiStateWrapper const& other);
 
  private:
@@ -149,9 +151,12 @@ class LudiiStateWrapper : public core::State {
 
   /** Method ID for the reset() method in Java */
   jmethodID resetMethodID;
-  
+
   /** Method ID for the copyFrom() method in Java */
   jmethodID copyFromMethodID;
+
+  /** Method ID for the getRandomRolloutsReward() method in Java */
+  jmethodID getRandomRolloutsRewardMethodID;
 };
 
 }  // namespace Ludii

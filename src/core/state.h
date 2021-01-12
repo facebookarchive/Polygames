@@ -246,7 +246,7 @@ class State {
             _status == GameStatus::player1Win);
   };
 
-  float getRandomRolloutReward(int player) const {
+  virtual float getRandomRolloutReward(int player) const {
     const int numSimulation = 10;
     float sumReward = 0.0;
     for (int i = 0; i < numSimulation; ++i) {
