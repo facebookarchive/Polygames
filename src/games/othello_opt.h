@@ -7,46 +7,34 @@
 
 #pragma once
 
-#include <array>
-#include <mutex>
 #include "../core/state.h"
 #include "commons/hash.h"
+#include <array>
+#include <mutex>
 
 namespace Othello2 {
 
-template <size_t SIZE>
-class Action : public ::_Action {
-
-public:
-  Action(size_t row, size_t col, bool skipTurn);
-
-}; // class Action
-
-template <size_t SIZE>
-class State : public ::State {
+template <size_t SIZE> class State : public core::State {
 
   static_assert(SIZE >= 4, "Board too small");
   static_assert(SIZE % 2 == 0, "Board has odd size");
   static constexpr size_t NUM_PIECE_TYPES = 2;
   static constexpr size_t NUM_FIELD_TYPES = NUM_PIECE_TYPES + 1;
-  using _Action = Action<SIZE>;
+  // using _Action = Action<SIZE>;
   static constexpr size_t HASHBOOK_SIZE = SIZE * SIZE * NUM_FIELD_TYPES + 1;
   static constexpr size_t HASH_BLACK_OFFSET = SIZE * SIZE;
   static constexpr size_t HASH_WHITE_OFFSET = 2 * SIZE * SIZE;
   static constexpr size_t WHITE_INIT_OFFSET_1 =
       SIZE * (SIZE / 2 - 1) + SIZE / 2 - 1;
-  static constexpr size_t WHITE_INIT_OFFSET_2 =
-      SIZE * SIZE / 2 + SIZE / 2;
+  static constexpr size_t WHITE_INIT_OFFSET_2 = SIZE * SIZE / 2 + SIZE / 2;
   static constexpr size_t BLACK_INIT_OFFSET_1 =
       SIZE * (SIZE / 2 - 1) + SIZE / 2;
-  static constexpr size_t BLACK_INIT_OFFSET_2 =
-      SIZE * SIZE / 2 + SIZE / 2 - 1;
+  static constexpr size_t BLACK_INIT_OFFSET_2 = SIZE * SIZE / 2 + SIZE / 2 - 1;
   using _HashBook = HashBook<uint64_t, HASHBOOK_SIZE>;
   using _Hasher = Hasher<uint64_t, HASHBOOK_SIZE>;
   using Cache = std::array<uint8_t, SIZE * SIZE>;
 
-public:
-
+ public:
   using Field = uint8_t;
   using Board = std::array<Field, SIZE * SIZE>;
 
@@ -59,7 +47,7 @@ public:
 
   State(int seed);
   virtual void Initialize() override;
-  virtual std::unique_ptr<mcts::State> clone_() const override;
+  virtual std::unique_ptr<core::State> clone_() const override;
   virtual void ApplyAction(const ::_Action& action) override;
   virtual void DoGoodAction() override;
   virtual void printCurrentBoard() const override;
@@ -68,8 +56,7 @@ public:
     return _board;
   }
 
-private:
-
+ private:
   std::string boardToString() const;
   bool CanPutStone(Field stone) const;
   bool CanPutStone(Field stone, size_t row, size_t col) const;
@@ -91,12 +78,10 @@ private:
   Board _board;
   Cache _cache;
 
-}; // class State 
+};  // class State
 
-template<size_t SIZE>
-std::once_flag State<SIZE>::hashBookConfigured;
+template <size_t SIZE> std::once_flag State<SIZE>::hashBookConfigured;
 
-template<size_t SIZE>
-typename State<SIZE>::_HashBook State<SIZE>::hashBook;
+template <size_t SIZE> typename State<SIZE>::_HashBook State<SIZE>::hashBook;
 
-} // namespace Othello2
+}  // namespace Othello2

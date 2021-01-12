@@ -19,7 +19,6 @@
 using namespace std;
 namespace Connect6 {
 
-
 const int C6White = 0;
 const int C6Black = 1;
 const int C6Empty = 2;
@@ -199,6 +198,5 @@ class C6Board {
     }
     return nb;
   }
-
 };
-}
+}  // namespace Connect6

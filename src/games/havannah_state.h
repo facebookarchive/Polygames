@@ -7,8 +7,8 @@
 
 #pragma once
 
-#include "havannah.h"
 #include "../core/state.h"
+#include "havannah.h"
 
 #include <algorithm>
 #include <chrono>
@@ -20,22 +20,22 @@ template <int SIZE> class Action : public ::_Action {
   Action(int i, int j, int indexInActions);
 };
 
-template <int SIZE, bool PIE, bool EXTENDED> class State : public ::State {
+template <int SIZE, bool PIE, bool EXTENDED> class State : public core::State {
  private:
   Board<SIZE, PIE> _board;
 
  public:
   State(int seed);
-  State(int seed, int history, bool turnFeatures);
+  // State(int seed, int history, bool turnFeatures);
   void findActions();
   void Initialize() override;
   void ApplyAction(const _Action& action) override;
   void DoGoodAction() override;
-  std::unique_ptr<mcts::State> clone_() const override;
+  std::unique_ptr<core::State> clone_() const override;
   std::string stateDescription() const override;
-  std::string actionDescription(const _Action & action) const override;
-  std::string actionsDescription() override;
-  int parseAction(const std::string& str) override;
+  std::string actionDescription(const _Action& action) const override;
+  std::string actionsDescription() const override;
+  int parseAction(const std::string& str) const override;
   virtual int getCurrentPlayerColor() const override;
 };
 }  // namespace Havannah
@@ -44,7 +44,8 @@ template <int SIZE, bool PIE, bool EXTENDED> class State : public ::State {
 // Havannah::Action
 ///////////////////////////////////////////////////////////////////////////////
 
-template <int SIZE> Havannah::Action<SIZE>::Action(int i, int j, int indexInActions) {
+template <int SIZE>
+Havannah::Action<SIZE>::Action(int i, int j, int indexInActions) {
   _loc[0] = 0;
   _loc[1] = i;
   _loc[2] = j;
@@ -56,29 +57,23 @@ template <int SIZE> Havannah::Action<SIZE>::Action(int i, int j, int indexInActi
 // Havannah::State
 ///////////////////////////////////////////////////////////////////////////////
 
-template <int SIZE, bool PIE, bool EXTENDED> Havannah::State<SIZE, PIE, EXTENDED>::State(int seed) : ::State(seed) {
-  Initialize();
+template <int SIZE, bool PIE, bool EXTENDED>
+Havannah::State<SIZE, PIE, EXTENDED>::State(int seed)
+    : core::State(seed) {
 }
 
-template <int SIZE, bool PIE, bool EXTENDED> Havannah::State<SIZE, PIE, EXTENDED>::State(int seed, int history,
-  bool turnFeatures) : ::State(seed) {
-
-  _history = history;
-  _turnFeatures = turnFeatures;
-  Initialize();
-}
-
-template <int SIZE, bool PIE, bool EXTENDED> void Havannah::State<SIZE, PIE, EXTENDED>::findActions() {
+template <int SIZE, bool PIE, bool EXTENDED>
+void Havannah::State<SIZE, PIE, EXTENDED>::findActions() {
   auto legalIndices = _board.findLegalIndices();
-  _legalActions.clear();
-  _legalActions.reserve(legalIndices.size());
-  for (unsigned k=0; k<legalIndices.size(); ++k) {
+  clearActions();
+  for (unsigned k = 0; k < legalIndices.size(); ++k) {
     auto c = _board.convertIndexToCell(legalIndices[k]);
-    _legalActions.push_back(std::make_shared<Havannah::Action<SIZE>>(c.first, c.second, k));
+    addAction(0, c.first, c.second);
   }
 }
 
-template <int SIZE, bool PIE, bool EXTENDED> void Havannah::State<SIZE, PIE, EXTENDED>::Initialize() {
+template <int SIZE, bool PIE, bool EXTENDED>
+void Havannah::State<SIZE, PIE, EXTENDED>::Initialize() {
   _board.reset();
   _moves.clear();
   _hash = 0;
@@ -87,10 +82,10 @@ template <int SIZE, bool PIE, bool EXTENDED> void Havannah::State<SIZE, PIE, EXT
   // features
   _featSize = {EXTENDED ? 27 : 3, fullsize(SIZE), fullsize(SIZE)};
   _features =
-    std::vector<float>(_featSize[0] * _featSize[1] * _featSize[2], 0.f);
+      std::vector<float>(_featSize[0] * _featSize[1] * _featSize[2], 0.f);
 
-  for (int k=0; k<fullsize(SIZE)*fullsize(SIZE); k++)
-    _features[2*fullsize(SIZE)*fullsize(SIZE) + k] = _board.isValidIndex(k);
+  for (int k = 0; k < fullsize(SIZE) * fullsize(SIZE); k++)
+    _features[2 * fullsize(SIZE) * fullsize(SIZE) + k] = _board.isValidIndex(k);
 
   fillFullFeatures();
 
@@ -113,34 +108,36 @@ void Havannah::State<SIZE, PIE, EXTENDED>::ApplyAction(const _Action& action) {
   // update features
   if (not lastIndex or *lastIndex != index) {
     Color currentColor = _board.getCurrentColor();
-    _features[((currentColor*fullsize(SIZE)) + i)*fullsize(SIZE) + j] = 1.f;
+    _features[((currentColor * fullsize(SIZE)) + i) * fullsize(SIZE) + j] = 1.f;
   }
 
   // add connections to borders/corners
   if (EXTENDED) {
-      const int fs2 = fullsize(SIZE) * fullsize(SIZE);
-      const unsigned mask = 1;
-      for (int k=0; k<fs2; k++) {
-          if (_board.isValidIndex(k)) {
+    const int fs2 = fullsize(SIZE) * fullsize(SIZE);
+    const unsigned mask = 1;
+    for (int k = 0; k < fs2; k++) {
+      if (_board.isValidIndex(k)) {
 
-              int iPath = _board._pathBoard[k];
-              if (iPath != 0) {
-                  assert(iPath < _board._pathsEnd);
-                  const auto & pathInfo = _board._paths[iPath];
+        int iPath = _board._pathBoard[k];
+        if (iPath != 0) {
+          assert(iPath < _board._pathsEnd);
+          const auto& pathInfo = _board._paths[iPath];
 
-                  unsigned borders = pathInfo._borders;
-                  Color color = _board.getColorAtIndex(k);
-                  for (int iBorder=0; iBorder<6; iBorder++) {
-                      _features[(2*iBorder+color+3)*fs2+k] = (borders >> iBorder) & mask;
-                  }
-
-                  unsigned corners = pathInfo._corners;
-                  for (int iCorner=0; iCorner<6; iCorner++) {
-                      _features[(2*iCorner+12+color+3)*fs2+k] = (corners >> iCorner) & mask;
-                  }
-              }
+          unsigned borders = pathInfo._borders;
+          Color color = _board.getColorAtIndex(k);
+          for (int iBorder = 0; iBorder < 6; iBorder++) {
+            _features[(2 * iBorder + color + 3) * fs2 + k] =
+                (borders >> iBorder) & mask;
           }
+
+          unsigned corners = pathInfo._corners;
+          for (int iCorner = 0; iCorner < 6; iCorner++) {
+            _features[(2 * iCorner + 12 + color + 3) * fs2 + k] =
+                (corners >> iCorner) & mask;
+          }
+        }
       }
+    }
   }
 
   // play move
@@ -168,12 +165,14 @@ void Havannah::State<SIZE, PIE, EXTENDED>::ApplyAction(const _Action& action) {
   _hash = _board.getHashValue();
 }
 
-template <int SIZE, bool PIE, bool EXTENDED> void Havannah::State<SIZE, PIE, EXTENDED>::DoGoodAction() {
- return DoRandomAction();
+template <int SIZE, bool PIE, bool EXTENDED>
+void Havannah::State<SIZE, PIE, EXTENDED>::DoGoodAction() {
+  return DoRandomAction();
 }
 
 template <int SIZE, bool PIE, bool EXTENDED>
-std::unique_ptr<mcts::State> Havannah::State<SIZE, PIE, EXTENDED>::clone_() const {
+std::unique_ptr<core::State> Havannah::State<SIZE, PIE, EXTENDED>::clone_()
+    const {
   return std::make_unique<Havannah::State<SIZE, PIE, EXTENDED>>(*this);
 }
 
@@ -186,110 +185,121 @@ std::string Havannah::State<SIZE, PIE, EXTENDED>::stateDescription() const {
   int ni = sizes[1];
   int nj = sizes[2];
 
-  auto ind = [ni,nj](int i, int j, int k) 
-    { return (k*ni + i)*nj + j; };
+  auto ind = [ni, nj](int i, int j, int k) { return (k * ni + i) * nj + j; };
 
   std::string str;
 
   str += "Havannah\n";
 
   str += "  ";
-  for (int k=0; k<ni; k++) {
+  for (int k = 0; k < ni; k++) {
     str += " ";
-    if (k<10) str += " ";
+    if (k < 10)
+      str += " ";
     str += std::to_string(k) + " ";
   }
   str += "\n";
 
-  for (int i=0; i<ni; i++) {
+  for (int i = 0; i < ni; i++) {
 
     str += "   ";
-    for (int k=0; k<i; k++) str += "  ";
+    for (int k = 0; k < i; k++)
+      str += "  ";
 
-    for (int k=0; k<SIZE-i-1; k++) str += "    ";
-    for (int k=0; k<SIZE+i and k<3*SIZE-i-1; k++) str += "----";
+    for (int k = 0; k < SIZE - i - 1; k++)
+      str += "    ";
+    for (int k = 0; k < SIZE + i and k < 3 * SIZE - i - 1; k++)
+      str += "----";
     str += "\n";
 
-    if (i<10) str += " ";
+    if (i < 10)
+      str += " ";
     str += std::to_string(i) + " ";
-    for (int k=0; k<i; k++) str += "  ";
-    for (int j=0; j<nj; j++) {
+    for (int k = 0; k < i; k++)
+      str += "  ";
+    for (int j = 0; j < nj; j++) {
 
-      if (_board.isValidCell({i,j}))
+      if (_board.isValidCell({i, j}))
         str += "\\ ";
-      else if (j<SIZE)
+      else if (j < SIZE)
         str += "  ";
 
-      if (feats[ind(i,j,0)] && feats[ind(i,j,1)])
-	str += "! ";
-      else if (feats[ind(i,j,0)])
-	str += "X ";
-      else if (feats[ind(i,j,1)])
-	str += "O ";
-      else if (_board.isValidCell({i,j}))
-	str += ". ";
-      else if (j<SIZE)
-	str += "  ";
+      if (feats[ind(i, j, 0)] && feats[ind(i, j, 1)])
+        str += "! ";
+      else if (feats[ind(i, j, 0)])
+        str += "X ";
+      else if (feats[ind(i, j, 1)])
+        str += "O ";
+      else if (_board.isValidCell({i, j}))
+        str += ". ";
+      else if (j < SIZE)
+        str += "  ";
       else
-	continue;
+        continue;
     }
 
     str += "\\ \n";
   }
 
   str += "  ";
-  for (int k=0; k<ni; k++) str += "  ";
-  for (int k=SIZE-2; _board.isValidCell({SIZE,k}); k++) str += "----";
+  for (int k = 0; k < ni; k++)
+    str += "  ";
+  for (int k = SIZE - 2; _board.isValidCell({SIZE, k}); k++)
+    str += "----";
   str += "\n";
 
   str += "    ";
-  for (int k=0; k<SIZE-1; k++) str += "    ";
-  for (int k=0; k<ni; k++) {
+  for (int k = 0; k < SIZE - 1; k++)
+    str += "    ";
+  for (int k = 0; k < ni; k++) {
     str += " ";
-    if (k<10) str += " ";
+    if (k < 10)
+      str += " ";
     str += std::to_string(k) + " ";
   }
   str += "\n";
 
   return str;
-
 }
 
 template <int SIZE, bool PIE, bool EXTENDED>
-std::string Havannah::State<SIZE, PIE, EXTENDED>::actionDescription(const _Action & action) const {
+std::string Havannah::State<SIZE, PIE, EXTENDED>::actionDescription(
+    const _Action& action) const {
   return std::to_string(action.GetY()) + "," + std::to_string(action.GetZ());
 }
 
 template <int SIZE, bool PIE, bool EXTENDED>
-std::string Havannah::State<SIZE, PIE, EXTENDED>::actionsDescription() {
+std::string Havannah::State<SIZE, PIE, EXTENDED>::actionsDescription() const {
   std::ostringstream oss;
-  for (const auto & a : _legalActions) {
-    oss << a->GetY() << "," << a->GetZ() << " ";
+  for (const auto& a : _legalActions) {
+    oss << a.GetY() << "," << a.GetZ() << " ";
   }
   oss << std::endl;
   return oss.str();
 }
 
 template <int SIZE, bool PIE, bool EXTENDED>
-int Havannah::State<SIZE, PIE, EXTENDED>::parseAction(const std::string& str) {
+int Havannah::State<SIZE, PIE, EXTENDED>::parseAction(
+    const std::string& str) const {
   std::istringstream iss(str);
   try {
     std::string token;
-    if (not std::getline(iss, token, ',')) throw -1;
+    if (not std::getline(iss, token, ','))
+      throw - 1;
     int i = std::stoi(token);
-    if (not std::getline(iss, token)) throw -1;
+    if (not std::getline(iss, token))
+      throw - 1;
     int j = std::stoi(token);
-    for (unsigned k=0; k<_legalActions.size(); k++)
-      if (_legalActions[k]->GetY() == i and _legalActions[k]->GetZ() == j)
+    for (unsigned k = 0; k < _legalActions.size(); k++)
+      if (_legalActions[k].GetY() == i and _legalActions[k].GetZ() == j)
         return k;
-  }
-  catch (...) {
+  } catch (...) {
     std::cout << "failed to parse action" << std::endl;
   }
   return -1;
 }
 
-template<int SIZE, bool PIE, bool EXTENDED>
-int Havannah::State<SIZE, PIE, EXTENDED>::getCurrentPlayerColor() const {
-	  return _board.getCurrentColor();
+template <int SIZE, bool PIE, bool EXTENDED>
+int Havannah ::State<SIZE, PIE, EXTENDED>::getCurrentPlayerColor() const {
+  return _board.getCurrentColor();
 }

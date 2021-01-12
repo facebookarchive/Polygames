@@ -9,19 +9,7 @@
 
 #include "../core/state.h"
 
-class ActionForEinstein : public _Action {
- public:
-  ActionForEinstein(int x, int y, int t, size_t index)
-      : _Action() {
-    _loc[0] = t;
-    _loc[1] = x;
-    _loc[2] = y;
-    _hash = (uint32_t)(x + y * 5) * 3 + t;
-    _i = (int)index;
-  }
-};
-
-class StateForEinstein : public State {
+class StateForEinstein : public core::State {
  public:
   class Piece {
    public:
@@ -79,13 +67,12 @@ class StateForEinstein : public State {
   int dice;
   int round;
   std::vector<Move> moves;
-//  unsigned long long HashArray[2][6][5][5];
+  //  unsigned long long HashArray[2][6][5][5];
   unsigned long long HashTurn;
 
   StateForEinstein(int seed)
       : State(seed) {
-	_stochasticReset = true;
-    Initialize();
+    _stochasticReset = true;
   }
   /*~StateForEinstein() {
   }*/
@@ -113,19 +100,19 @@ class StateForEinstein : public State {
   }
 
   void initHash() {
-/*    for (int i = 0; i < 2; ++i)
-      for (int j = 0; j < 6; ++j)
-        for (int x = 0; x < boardWidth; ++x)
-          for (int y = 0; y < boardHeight; ++y) {
-            HashArray[i][j][x][y] = 0;
-            for (int k = 0; k < 64; ++k)
-              if ((_rng() / (RAND_MAX + 1.0)) > 0.5)
-                HashArray[i][j][x][y] |= (1ULL << k);
-          }
-    HashTurn = 0;
-    for (int k = 0; k < 64; ++k)
-      if ((_rng() / (RAND_MAX + 1.0)) > 0.5)
-        HashTurn |= (1ULL << k);*/
+    /*    for (int i = 0; i < 2; ++i)
+          for (int j = 0; j < 6; ++j)
+            for (int x = 0; x < boardWidth; ++x)
+              for (int y = 0; y < boardHeight; ++y) {
+                HashArray[i][j][x][y] = 0;
+                for (int k = 0; k < 64; ++k)
+                  if ((_rng() / (RAND_MAX + 1.0)) > 0.5)
+                    HashArray[i][j][x][y] |= (1ULL << k);
+              }
+        HashTurn = 0;
+        for (int k = 0; k < 64; ++k)
+          if ((_rng() / (RAND_MAX + 1.0)) > 0.5)
+            HashTurn |= (1ULL << k);*/
   }
 
   void gameInit() {
@@ -138,16 +125,16 @@ class StateForEinstein : public State {
       player[1][i].setPiece(1, i + 1, false);
     }
     if (forcedDice > 0) {
-	  dice = forcedDice - 1;
-	} else {
+      dice = forcedDice - 1;
+    } else {
       dice = _rng() % 6;
     }
     _hash = dice;
     round = 1;
   }
 
-  virtual void setStateFromStr(const std::string& str) override{
-    //example: ABCDEF0000000000000abcdef
+  virtual void setStateFromStr(const std::string& str) override {
+    // example: ABCDEF0000000000000abcdef
     /* -> x1 x2 x3 x4 x5
           x6 0 0 0 0
           0 0 0 0 0
@@ -179,8 +166,8 @@ class StateForEinstein : public State {
       board[y][x] = player[color][t];
     }
     if (forcedDice > 0) {
-	    dice = forcedDice - 1;
-	  } else {
+      dice = forcedDice - 1;
+    } else {
       dice = _rng() % 6;
     }
     _hash = dice;
@@ -188,27 +175,25 @@ class StateForEinstein : public State {
     findActions();
   }
 
-  virtual std::unique_ptr<mcts::State> clone_() const override {
+  virtual std::unique_ptr<core::State> clone_() const override {
     return std::make_unique<StateForEinstein>(*this);
   }
 
   virtual std::string stateDescription() const override {
     std::string str;
     str += "  A |B |C |D |E \n";
-    for(int j = 0; j < boardHeight; j++) {
-      str += to_string(j+1) + ' ';
-      for(int i = 0; i < boardWidth; i++) {
-        if(i > 0)
+    for (int j = 0; j < boardHeight; j++) {
+      str += to_string(j + 1) + ' ';
+      for (int i = 0; i < boardWidth; i++) {
+        if (i > 0)
           str += '|';
-        if(board[j][i].color == 0) {
+        if (board[j][i].color == 0) {
           str += 'x';
           str += static_cast<char>(board[j][i].type + '0');
-        }
-        else if(board[j][i].color == 1) {
+        } else if (board[j][i].color == 1) {
           str += 'o';
           str += static_cast<char>(board[j][i].type + '0');
-        }
-        else
+        } else
           str += "  ";
       }
       str += '\n';
@@ -217,13 +202,13 @@ class StateForEinstein : public State {
     return str;
   }
 
-  virtual std::string actionsDescription() override {
+  virtual std::string actionsDescription() const override {
     std::stringstream ss;
     char c, p, x1, y1;
-    for(int i = 0; i < (int)_legalActions.size(); i++) {
-      _Action &action = *(_legalActions[i]);
-      c = (_status == GameStatus::player0Turn) ? 'x': 'o';
-      p = static_cast<char>(action.GetX() + ((round <= 12) ? '0':'1'));
+    for (int i = 0; i < (int)_legalActions.size(); i++) {
+      const _Action& action = _legalActions[i];
+      c = (_status == GameStatus::player0Turn) ? 'x' : 'o';
+      p = static_cast<char>(action.GetX() + ((round <= 12) ? '0' : '1'));
       x1 = static_cast<char>(action.GetY() + 'A');
       y1 = static_cast<char>(action.GetZ() + '1');
       ss << "Action " << i << ": " << c << p << " to " << x1 << y1 << std::endl;
@@ -233,11 +218,11 @@ class StateForEinstein : public State {
     return ss.str();
   }
 
-  virtual std::string actionDescription(const _Action &action) const {
+  virtual std::string actionDescription(const _Action& action) const override {
     std::stringstream ss;
     char c, p, x1, y1;
-    c = (_status == GameStatus::player0Turn) ? 'o': 'x';
-    p = static_cast<char>(action.GetX() + ((round <= 12) ? '0':'1'));
+    c = (_status == GameStatus::player0Turn) ? 'o' : 'x';
+    p = static_cast<char>(action.GetX() + ((round <= 12) ? '0' : '1'));
     x1 = static_cast<char>(action.GetY() + 'A');
     y1 = static_cast<char>(action.GetZ() + '1');
     ss << c << p << " to " << x1 << y1;
@@ -283,7 +268,7 @@ class StateForEinstein : public State {
 
     // 325 ~
     std::fill(_features.begin() + 325, _features.end(), (float)_status);
-	fillFullFeatures();
+    fillFullFeatures();
   }
 
   void legalMoves(int color, std::vector<Move>& moves) {
@@ -294,8 +279,8 @@ class StateForEinstein : public State {
 
         for (int j = 0; j < 3; ++j) {
           for (int i = 0; i < 3 - j; ++i) {
-            if (board[j][i].type == 0) {        // if empty
-              Move m(i, j, p + 1);  // p+1 = piece type
+            if (board[j][i].type == 0) {  // if empty
+              Move m(i, j, p + 1);        // p+1 = piece type
               moves.push_back(m);
             }
           }
@@ -379,11 +364,10 @@ class StateForEinstein : public State {
     }
     // fprintf(stderr, "round %d moves: %d\n", round, moves.size());
 
-    _legalActions.clear();
+    clearActions();
     for (auto m : moves) {
       // fprintf(stderr, "%d: (%d, %d)\n", m.type, m.x, m.y);
-      _legalActions.push_back(std::make_shared<ActionForEinstein>(
-          m.x, m.y, m.type - 1, _legalActions.size()));
+      addAction(m.type - 1, m.x, m.y);
     }
   }
 
@@ -399,11 +383,11 @@ class StateForEinstein : public State {
     }
 
     int t = action.GetX();
-	assert(t<6);
+    assert(t < 6);
     int x = action.GetY();
     int y = action.GetZ();
-	assert(y<6);
-	assert(x<6);
+    assert(y < 6);
+    assert(x < 6);
     // fprintf(stderr, "get: %d %d %d\n", t, x, y);
     if (round <= 12) {
       p0_drop.type = t + 1;
@@ -417,13 +401,13 @@ class StateForEinstein : public State {
     if (board[y][x].type != 0) {  // eat
       player[board[y][x].color][board[y][x].type - 1].onboard = false;
       player[board[y][x].color][board[y][x].type - 1].setPosition(-1, -1);
-//      _hash ^= HashArray[board[y][x].color][board[y][x].type - 1][x][y];
+      //      _hash ^= HashArray[board[y][x].color][board[y][x].type - 1][x][y];
     }
     player[color][t].onboard = true;
     player[color][t].setPosition(x, y);
     board[y][x] = player[color][t];
-//    _hash ^= HashArray[color][t][x][y];
-//    _hash ^= HashTurn;
+    //    _hash ^= HashArray[color][t][x][y];
+    //    _hash ^= HashTurn;
     // fprintf(stderr, "(%d %d) t:%d c:%d\n", x, y, board[y][x].type,
     // board[y][x].color);
 

@@ -9,12 +9,12 @@
 
 #include <list>
 #include <math.h>
+#include <mutex>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
 #include <time.h>
-#include <mutex>
 
 using namespace std;
 
@@ -40,7 +40,7 @@ extern unsigned long long BTHashTurn;
 // timeval stop, start;
 // unsigned long long previousTime = 0;
 
-//extern bool BTinitHashCalled = false;
+// extern bool BTinitHashCalled = false;
 extern std::once_flag BTinitHashCalled;
 
 extern void BTinitHash();
@@ -66,8 +66,13 @@ class BTMove {
   int codePrevious;
 
   BTMove() {
-    x = -1; y = -1; x1 = -1; y1 = -1;
-    color = -1; code = -1; codePrevious = -1;
+    x = -1;
+    y = -1;
+    x1 = -1;
+    y1 = -1;
+    color = -1;
+    code = -1;
+    codePrevious = -1;
   }
 
   int numberPrevious() {
@@ -114,8 +119,19 @@ class BTBoard {
       BTinitHash();
       BTinitHashCalled = true;
     }*/
-	std::call_once(BTinitHashCalled, BTinitHash);
+    std::call_once(BTinitHashCalled, BTinitHash);
+  }
 
+  int countPieces(int color) const {
+    int r = 0;
+    for (int i = 0; i < BTDx; i++) {
+      for (int j = 0; j < BTDy; j++) {
+        if (board[i][j] == color) {
+          ++r;
+        }
+      }
+    }
+    return r;
   }
 
   bool won(int color) {
@@ -179,7 +195,7 @@ class BTBoard {
     return (float)(nbOpponent - nb);
   }
 
-  int opponent(int joueur) {
+  int opponent(int joueur) const {
     if (joueur == White)
       return Black;
     return White;

@@ -22,23 +22,11 @@ const int StateForKyotoshogiZ = 5;
 
 #include "kyotoshogi.h"
 
-class ActionForKyotoshogi : public _Action {
+class StateForKyotoshogi : public core::State {
  public:
-  // each action has a position (_x[0], _x[1], _x[2])
-  // here for Kyotoshogi, there is (0, 0, 0) and (1, 0, 0),
-  // corresponding to steps 2 and 3 respectively.
-  ActionForKyotoshogi(int x, int y, int piece)
-      : _Action() {
-    _loc[0] = piece;
-    _loc[1] = x;
-    _loc[2] = y;
-    _hash = (x + y * 5) * 17 + piece;
+  StateForKyotoshogi(int seed)
+      : State(seed) {
   }
-};
-
-class StateForKyotoshogi : public State {
- public:
-  StateForKyotoshogi(int seed) : State(seed) {}
   KSPiece board[KSDx][KSDy];
   unsigned long long hash;
   KSMove rollout[KSMaxPlayoutLength];
@@ -90,32 +78,33 @@ class StateForKyotoshogi : public State {
       return true;
     if (_legalActions.empty())
       return true;
-    
+
     return false;
   }
 
   virtual std::string stateDescription() const override {
     std::string str;
-      str += "   A| B| C| D| E\n";
-      for (int i = KSDy - 1; i >= 0; --i) {
-        str += to_string(i+1) + ' ';
-        for (int j = 0; j < KSDx; ++j) {
-          if(j > 0)
-            str += '|';
-          str += board[j][i].print();
-        }
-        str += '\n';
+    str += "   A| B| C| D| E\n";
+    for (int i = KSDy - 1; i >= 0; --i) {
+      str += std::to_string(i + 1) + ' ';
+      for (int j = 0; j < KSDx; ++j) {
+        if (j > 0)
+          str += '|';
+        str += board[j][i].print();
       }
+      str += '\n';
+    }
 
     return str;
   }
 
-  virtual std::string actionsDescription() override {
+  virtual std::string actionsDescription() const override {
     std::stringstream ss;
     char x1, y1;
     for (int i = 0; i < (int)_legalActions.size(); i++) {
-      _Action & action = *(_legalActions[i]);
-      int color = (GameStatus)_status == GameStatus::player1Turn ? KyotoWhite : KyotoBlack;
+      const _Action& action = _legalActions[i];
+      int color = (GameStatus)_status == GameStatus::player1Turn ? KyotoWhite
+                                                                 : KyotoBlack;
       KSPieceType type = z_to_type(action.GetX());
       bool promote = z_promoted(action.GetX());
       KSPiece piece = KSPiece(color, type, promote);
@@ -123,13 +112,14 @@ class StateForKyotoshogi : public State {
 
       x1 = static_cast<char>(action.GetY() + 'A');
       y1 = static_cast<char>(action.GetZ() + '1');
-      ss << "Action " << i << ": " << piece.print() << " -> " << flip.print() << "-" << x1 << y1 << std::endl;
+      ss << "Action " << i << ": " << piece.print() << " -> " << flip.print()
+         << "-" << x1 << y1 << std::endl;
     }
     ss << "\nInput format : action index e.g. 0\n";
     return ss.str();
   }
 
-  virtual std::string actionDescription(const _Action & action) const {
+  virtual std::string actionDescription(const _Action& action) const {
     std::stringstream ss;
     char x1, y1;
     int color = (turn + 1) % 2;
@@ -370,7 +360,7 @@ class StateForKyotoshogi : public State {
     for (it = king_moves.begin(); it != king_moves.end(); ++it)
       if (!can_eat((*it).pos1, king.color))
         return false;
-    
+
     return true;
   }
 
@@ -470,14 +460,17 @@ class StateForKyotoshogi : public State {
   void play(KSMove m) {
     turn = opponent(turn);
     if (m.piece.pos.on_board()) {
-      hash ^= KSHashArray[m.piece.color][getHashNum(m.piece)][m.piece.pos.x][m.piece.pos.y];
+      hash ^= KSHashArray[m.piece.color][getHashNum(m.piece)][m.piece.pos.x]
+                         [m.piece.pos.y];
 
       if (board[m.pos1.x][m.pos1.y].color != KyotoEmpty) {
         assert(m.pos1.on_board());
-        hash ^= KSHashArray[turn][getHashNum(board[m.pos1.x][m.pos1.y])][m.pos1.x][m.pos1.y];
+        hash ^= KSHashArray[turn][getHashNum(board[m.pos1.x][m.pos1.y])]
+                           [m.pos1.x][m.pos1.y];
         hash ^= KSHashArrayE[getHashNumE(m.piece)];
 
-        KSPiece tmp(m.piece.color, new_type(board[m.pos1.x][m.pos1.y].type), false);
+        KSPiece tmp(
+            m.piece.color, new_type(board[m.pos1.x][m.pos1.y].type), false);
         chess[m.piece.color].push_back(tmp);
 
         std::vector<KSPiece>::iterator it;
@@ -499,7 +492,8 @@ class StateForKyotoshogi : public State {
       board[m.piece.pos.x][m.piece.pos.y] = KSPiece(KyotoEmpty, KSNone, false);
     } else {
       hash ^= KSHashArrayE[getHashNumE(m.piece)];
-      board[m.pos1.x][m.pos1.y] = KSPiece(m.piece.color, m.piece.type, m.piece.promoted);
+      board[m.pos1.x][m.pos1.y] =
+          KSPiece(m.piece.color, m.piece.type, m.piece.promoted);
       board[m.pos1.x][m.pos1.y].pos = KSPosition(m.pos1.x, m.pos1.y);
     }
 
@@ -518,7 +512,8 @@ class StateForKyotoshogi : public State {
       }
     }
 
-    hash ^= KSHashArray[m.piece.color][getHashNum(board[m.pos1.x][m.pos1.y])][m.pos1.x][m.pos1.y];
+    hash ^= KSHashArray[m.piece.color][getHashNum(board[m.pos1.x][m.pos1.y])]
+                       [m.pos1.x][m.pos1.y];
     hash ^= KSHashTurn;
 
     if (length < KSMaxPlayoutLength) {
@@ -579,7 +574,8 @@ class StateForKyotoshogi : public State {
     // _hash is an unsigned int, it has to be *unique*.
     _hash = 0;
 
-    _features.resize(StateForKyotoshogiX * StateForKyotoshogiY * StateForKyotoshogiZ);
+    _features.resize(StateForKyotoshogiX * StateForKyotoshogiY *
+                     StateForKyotoshogiZ);
     std::fill(_features.begin(), _features.end(), 0);
 
     init();
@@ -589,7 +585,7 @@ class StateForKyotoshogi : public State {
     fillFullFeatures();
   }
 
-  virtual std::unique_ptr<mcts::State> clone_() const override {
+  virtual std::unique_ptr<core::State> clone_() const override {
     return std::make_unique<StateForKyotoshogi>(*this);
   }
 
@@ -615,7 +611,8 @@ class StateForKyotoshogi : public State {
       return PPawn_Rook2;
 
     default:
-      fprintf(stderr, "%s type to z error %d\n", p.print().c_str(), (int)p.type);
+      fprintf(
+          stderr, "%s type to z error %d\n", p.print().c_str(), (int)p.type);
       break;
     }
     return -1;
@@ -667,15 +664,14 @@ class StateForKyotoshogi : public State {
     legalKSMoves(color, moves);
 
     int nb = moves.size();
-    _legalActions.clear();
+    clearActions();
 
     for (int i = 0; i < nb; ++i) {
       int x = moves[i].pos1.x;
       int y = moves[i].pos1.y;
       int z = type_to_z(moves[i].piece);
 
-      _legalActions.push_back(std::make_shared<ActionForKyotoshogi>(x, y, z));
-      _legalActions[i]->SetIndex(i);
+      addAction(z, x, y);
     }
   }
 
@@ -863,7 +859,7 @@ class StateForKyotoshogi : public State {
         _status = GameStatus::player1Win;  // KyotoWhite win
       else
         _status = GameStatus::player0Turn;  // KyotoBlack turn
-    } else {                               // KyotoBlack
+    } else {                                // KyotoBlack
       m.piece.color = KyotoBlack;
       m.pos1 = KSPosition(action.GetY(), action.GetZ());
       m.piece.type = z_to_type(action.GetX());
@@ -894,7 +890,7 @@ class StateForKyotoshogi : public State {
       repet.push(_hash);
     } else
       repet.push(_hash);
-    
+
     fillFullFeatures();
   }
 

@@ -28,7 +28,7 @@ std::once_flag StateForYinsh::table_flag = once_flag();
 string StateForYinsh::stateDescription(void) const {
   return "empty_state";
 }
-string StateForYinsh::actionsDescription(void) {
+string StateForYinsh::actionsDescription(void) const {
   return "empty_act";
 }
 
@@ -772,7 +772,7 @@ void StateForYinsh::findActions() {
   // printf("enter:    findActions\n");
 
   // cout<<"frequency_check"<<endl;
-  _legalActions.clear();
+  clearActions();
 
   if (initial_fill < 10) {
     // you can only try to fill the empty spaces
@@ -782,16 +782,14 @@ void StateForYinsh::findActions() {
     for (int i = 0; i < 13; i++) {
       for (int j = 0; j < 13; j++) {
         if (board[i][j] == (int)(piece::empty)) {
-          _legalActions.push_back(make_shared<ActionForYinsh>(
-              56, i - 1, j - 1, _legalActions.size()));
+          addAction(56, i - 1, j - 1);
         }
       }
     }
   } else if (still_have_to_remove_ring) {
     for (int i = 0; i < (int)rings[player].size(); i++) {
-      _legalActions.push_back(make_shared<ActionForYinsh>(
-          57, get<0>((rings[player])[i]) - 1, get<1>((rings[player])[i]) - 1,
-          _legalActions.size()));
+      addAction(
+          57, get<0>((rings[player])[i]) - 1, get<1>((rings[player])[i]) - 1);
     }
   } else if (still_have_to_remove_marker) {
     vector<vector<int>> all_5s = find_all_5s(true);
@@ -805,7 +803,8 @@ void StateForYinsh::findActions() {
       // FIX LATER
       // i just put the first point to make this quick
       // _legalActions.push_back(make_shared<ActionForYinsh>(
-      //     58, (all_5s[i][0]) - 1, (all_5s[i][1]) - 1, _legalActions.size()));
+      //     58, (all_5s[i][0]) - 1, (all_5s[i][1]) - 1,
+      //     _legalActions.size()));
       m_x = all_5s[i][0];
       m_y = all_5s[i][1];
       d_x = all_5s[i][2];
@@ -826,8 +825,7 @@ void StateForYinsh::findActions() {
       // fill the chosen marker
       //  printf("chose %d, %d \n", (m_x + d_x*j), (m_y + d_y*j));
 
-      _legalActions.push_back(make_shared<ActionForYinsh>(
-          58, (m_x + d_x * j) - 1, (m_y + d_y * j) - 1, _legalActions.size()));
+      addAction(58, (m_x + d_x * j) - 1, (m_y + d_y * j) - 1);
       vector<int> temp_pt;
       temp_pt.push_back(m_x + d_x * j);
       temp_pt.push_back(m_y + d_y * j);
@@ -859,9 +857,8 @@ void StateForYinsh::findActions() {
               if (!start) {
                 if (board[x][y] == (int)(piece::empty)) {
                   // possible move
-                  _legalActions.push_back(make_shared<ActionForYinsh>(
-                      (jump - 1) + 9 * map_direction_to_num(i, j), start_x - 1,
-                      start_y - 1, _legalActions.size()));
+                  addAction((jump - 1) + 9 * map_direction_to_num(i, j),
+                            start_x - 1, start_y - 1);
                 } else {
                   start = true;
                 }
@@ -872,9 +869,8 @@ void StateForYinsh::findActions() {
                   // do nothing
                   // continur
                 } else if (board[x][y] == (int)(piece::empty)) {
-                  _legalActions.push_back(make_shared<ActionForYinsh>(
-                      (jump - 1) + 9 * map_direction_to_num(i, j), start_x - 1,
-                      start_y - 1, _legalActions.size()));
+                  addAction((jump - 1) + 9 * map_direction_to_num(i, j),
+                            start_x - 1, start_y - 1);
                   break;
                 } else {
                   // must be invalid or someones ring
@@ -905,9 +901,9 @@ void StateForYinsh::findActions() {
   // printf("leave:    findActions\n");
 }
 
-unique_ptr<mcts::State> StateForYinsh::clone_() const {
+unique_ptr<core::State> StateForYinsh::clone_() const {
   // printf("enter:    clone_\n");
-  unique_ptr<mcts::State> temp = std::make_unique<StateForYinsh>(*this);
+  unique_ptr<core::State> temp = std::make_unique<StateForYinsh>(*this);
   // printf("leave:    clone_\n");
   return temp;
 }
@@ -920,7 +916,7 @@ void StateForYinsh::DoGoodAction() {
   if (_legalActions.size() == 0)
     cout << "NO MOVES" << endl;
   // printf("No of legal moves are %d\n",_legalActions.size() );
-  _Action a = *(_legalActions[i]);
+  _Action a = _legalActions[i];
   ApplyAction(a);
   // printf("leave:    DoGoodAction\n");
 }

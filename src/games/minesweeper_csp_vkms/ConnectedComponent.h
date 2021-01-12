@@ -15,7 +15,7 @@ namespace vkms {
 struct ConnectedComponent {
   Minesweeper::SparseMask _constraints;
   Minesweeper::SparseMask _variables;
-}; // struct ConnectedComponent
+};  // struct ConnectedComponent
 
-} // namespace vkms
-} // namespace csp
+}  // namespace vkms
+}  // namespace csp

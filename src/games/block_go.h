@@ -10,19 +10,7 @@
 #include "../core/state.h"
 #include <algorithm>
 
-class ActionForBlockGo : public _Action {
- public:
-  ActionForBlockGo(int x, int y, int p, size_t index)
-      : _Action() {
-    _loc[0] = p;
-    _loc[1] = x;
-    _loc[2] = y;
-    _hash = (uint32_t)(x + y * 13) * 36 + p;
-    _i = (int)index;
-  }
-};
-
-class StateForBlockGo : public State {
+class StateForBlockGo : public core::State {
  public:
   class Point {
    public:
@@ -88,8 +76,8 @@ class StateForBlockGo : public State {
   };
 
  public:
-  const int boardWidth = 13;
-  const int boardHeight = 13;
+  static const int boardWidth = 13;
+  static const int boardHeight = 13;
   int board[13][13];
   int territory[13][13];
   int round;
@@ -101,7 +89,6 @@ class StateForBlockGo : public State {
 
   StateForBlockGo(int seed)
       : State(seed) {
-    Initialize();
   }
 
   virtual void Initialize() override {
@@ -263,7 +250,7 @@ class StateForBlockGo : public State {
     player1[8].tail[3].setxy(0, 1);
   }
 
-  virtual std::unique_ptr<mcts::State> clone_() const override {
+  virtual std::unique_ptr<core::State> clone_() const override {
     return std::make_unique<StateForBlockGo>(*this);
   }
 
@@ -423,14 +410,13 @@ class StateForBlockGo : public State {
       legalMoves(player1, moves);
     }
     // fprintf(stderr, "moves: %d\n", moves.size());
-    _legalActions.clear();
+    clearActions();
     for (auto m : moves) {
       int x = m.x;
       int y = m.y;
       int p = m.piece * 4 + m.dir;
 
-      _legalActions.push_back(
-          std::make_shared<ActionForBlockGo>(x, y, p, _legalActions.size()));
+      addAction(p, x, y);
     }
   }
 
@@ -593,15 +579,21 @@ class StateForBlockGo : public State {
   virtual std::string stateDescription() const override {
     std::stringstream ss;
     ss << "    0  1  2  3  4  5  6  7  8  9  10 11 12\n";
-    for(int i=0; i<boardHeight; ++i) {
+    for (int i = 0; i < boardHeight; ++i) {
       char buff[12];
       sprintf(buff, "%2d ", i);
       ss << buff;
-      for(int j=0; j<boardWidth; ++j) {
+      for (int j = 0; j < boardWidth; ++j) {
         switch (board[i][j]) {
-          case 0: ss << " O "; break;
-          case 1: ss << " X "; break;
-          default: ss << " - "; break;
+        case 0:
+          ss << " O ";
+          break;
+        case 1:
+          ss << " X ";
+          break;
+        default:
+          ss << " - ";
+          break;
         }
       }
       ss << std::endl;
@@ -615,33 +607,36 @@ class StateForBlockGo : public State {
   };
 
   static bool compareAction(Actions a, Actions b) {
-    if (a.z != b.z) return a.z < b.z; 
-    if (a.x != b.x) return a.x < b.x;
+    if (a.z != b.z)
+      return a.z < b.z;
+    if (a.x != b.x)
+      return a.x < b.x;
     return a.y < b.y;
   };
 
-  virtual std::string actionsDescription() override {
+  virtual std::string actionsDescription() const override {
     std::stringstream ss;
     Actions a[_legalActions.size()];
-    int i=0;
-    for(auto action : _legalActions) {
-      a[i].x = (*action).GetY();
-      a[i].y = (*action).GetZ();
-      a[i].z = (*action).GetX();
+    int i = 0;
+    for (auto action : _legalActions) {
+      a[i].x = action.GetY();
+      a[i].y = action.GetZ();
+      a[i].z = action.GetX();
       a[i].i = i;
       i++;
     }
-    std::sort(a, a+_legalActions.size(), compareAction);
-    for(auto action : a) {
+    std::sort(a, a + _legalActions.size(), compareAction);
+    for (auto action : a) {
       char buff[54];
-      sprintf(buff, "%d: (%d %d) ---%d\n", action.z, action.x, action.y, action.i);
+      sprintf(
+          buff, "%d: (%d %d) ---%d\n", action.z, action.x, action.y, action.i);
       ss << buff;
     }
     ss << "\nInput format: action index e.g. 0\n";
     return ss.str();
   }
 
-  virtual std::string actionDescription(const _Action & action) const {
+  virtual std::string actionDescription(const _Action& action) const {
     std::stringstream ss;
     int z = action.GetX();
     int x = action.GetY();
@@ -651,7 +646,7 @@ class StateForBlockGo : public State {
   }
 
   virtual void DoGoodAction() override {
-//    std::cerr << "DoGoodAction" << std::endl;
+    //    std::cerr << "DoGoodAction" << std::endl;
     return DoRandomAction();
   }
 };

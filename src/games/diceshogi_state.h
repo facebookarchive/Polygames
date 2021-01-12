@@ -42,7 +42,7 @@ class ActionForDiceshogi : public _Action {
   }  // step is 2 or 3.
 };
 
-class StateForDiceshogi : public State {
+class StateForDiceshogi : public core::State {
  public:
   StateForDiceshogi(int seed)
       : State(seed) {
@@ -105,7 +105,7 @@ class StateForDiceshogi : public State {
     situation.push(hash);
   }
 
-  virtual std::unique_ptr<mcts::State> clone_() const override {
+  virtual std::unique_ptr<core::State> clone_() const override {
     return std::make_unique<StateForDiceshogi>(*this);
   }
 
@@ -821,15 +821,14 @@ class StateForDiceshogi : public State {
 
     int nb = dice_moves.size();
 
-    _legalActions.clear();
+    clearActions();
     for (int i = 0; i < nb; ++i) {
       int x = dice_moves[i].next.x;
       int y = dice_moves[i].next.y;
       dice_moves[i].piece.promoted |= dice_moves[i].promote;
       int z = type_to_z(dice_moves[i].piece);
 
-      _legalActions.push_back(std::make_shared<ActionForDiceshogi>(x, y, z));
-      _legalActions[i]->SetIndex(i);
+      addAction(z, x, y);
     }
   }
 
