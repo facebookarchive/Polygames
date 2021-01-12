@@ -27,6 +27,7 @@ from .evaluation import run_evaluation
 from .human import run_human_played_game
 from .human import run_tp_played_game
 from .convert import convert_checkpoint
+from .draw_model import draw_model
 
 DOC = """The python package `pypolygames` can be used in either of the following modes:
 
@@ -127,6 +128,11 @@ def parse_args() -> argparse.Namespace:
         '--auto_tune_nnsize', action="store_true",
         help='Tune nnsize automatically such that number of filters in hidden layers remains unchanged.'
     )
+    
+    # DRAW MODEL COMMAND
+    parser_draw_model = subparsers.add_parser("draw_model")
+    parser_draw_model.set_defaults(func=draw_model_from_args)
+    parser_draw_model.add_argument('--out', type=str, required=True, help='File name (without extension) to save figure to.')
 
     # Game params
     train_game_params_group = parser_train.add_argument_group(
@@ -154,6 +160,7 @@ def parse_args() -> argparse.Namespace:
         )
         human_game_params_group.add_argument(arg_field.name, **arg_field.opts)
         parser_convert.add_argument(arg_field.name, **arg_field.opts)
+        parser_draw_model.add_argument(arg_field.name, **arg_field.opts)
 
     # Model params
     train_model_params_group = parser_train.add_argument_group(
@@ -181,6 +188,7 @@ def parse_args() -> argparse.Namespace:
             human_model_params_group.add_argument(arg_field.name, **arg_field.opts)
         if arg_name != "pure_mcts":
             parser_convert.add_argument(arg_field.name, **arg_field.opts)
+            parser_draw_model.add_argument(arg_field.name, **arg_field.opts)
 
     # Optimizer params
     train_optim_params_group = parser_train.add_argument_group("Optimizer parameters")
@@ -408,6 +416,15 @@ def convert_checkpoint_from_args(args: argparse.Namespace):
         out=args.out,
         skip=args.skip,
         auto_tune_nnsize=args.auto_tune_nnsize,
+    )
+    
+def draw_model_from_args(args: argparse.Namespace):
+    game_params = instanciate_params_from_args(GameParams, args)
+    model_params = instanciate_params_from_args(ModelParams, args)
+    draw_model(
+        game_params=game_params,
+        model_params=model_params,
+        out=args.out,
     )
 
 
