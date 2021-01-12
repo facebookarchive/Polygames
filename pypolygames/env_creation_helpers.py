@@ -23,6 +23,10 @@ def sanitize_game_params(game_params: GameParams) -> None:
     # EDIT: now it a simulation parameter, but for retro-compatibility
     #  we keep that function
     game_params.per_thread_batchsize = 0
+    
+    # Many old models don't have the game_options attribute
+    if not hasattr(game_params, 'game_options'):
+        game_params.game_options = list()
 
 
 def create_game(
@@ -35,8 +39,17 @@ def create_game(
     predict_end_state: bool = False,
     predict_n_states: int = 0,
 ) -> polygames.Game:
+    # Many old models don't have the game_options attribute
+    if hasattr(game_params, 'game_options'):
+        game_options = game_params.game_options
+        if game_options is None:
+            game_options = list()
+    else:
+        game_options = list()
+
     return polygames.Game(
         game_params.game_name,
+        game_options,
         num_episode,
         seed,
         eval_mode,

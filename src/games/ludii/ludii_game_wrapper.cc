@@ -90,9 +90,9 @@ LudiiGameWrapper::LudiiGameWrapper(
       game_options.size(), jenv->FindClass("java/lang/String"), nullptr);
   JNIUtils::CheckJniException(jenv);
   for (size_t i = 0; i < game_options.size(); ++i) {
-    jenv->SetObjectArrayElement(
-        java_game_options, i, jenv->NewStringUTF(game_options[i].c_str()));
-    JNIUtils::CheckJniException(jenv);
+    jstring jstr = jenv->NewStringUTF(game_options[i].c_str());
+    jenv->SetObjectArrayElement(java_game_options, i, jstr);
+    jenv->DeleteLocalRef(jstr);
   }
 
   // Call our Java construct method to instantiate new object

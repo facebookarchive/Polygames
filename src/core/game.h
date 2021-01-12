@@ -62,6 +62,7 @@ class Game : public tube::EnvThread {
 
  public:
   Game(std::string gameName,
+       std::vector<std::string> gameOptions,
        int numEpisode,
        int seed,
        bool evalMode,
@@ -246,9 +247,18 @@ to look into this) if the strategy is identical to knuth’s.
       JNIEnv* jni_env = Ludii::JNIUtils::GetEnv();
 
       if (jni_env) {
-        Ludii::LudiiGameWrapper game_wrapper(ludii_name);
-        state_ =
-            newState<Ludii::LudiiStateWrapper>(seed, std::move(game_wrapper));
+        if (gameOptions.size() > 0) {
+          Ludii::LudiiGameWrapper game_wrapper(ludii_name, gameOptions);
+          for (const std::string option : gameOptions) {
+            std::cout << "Using Game Option: " << option << std::endl;
+          }
+          state_ =
+              newState<Ludii::LudiiStateWrapper>(seed, std::move(game_wrapper));
+        } else {
+          Ludii::LudiiGameWrapper game_wrapper(ludii_name);
+          state_ =
+              newState<Ludii::LudiiStateWrapper>(seed, std::move(game_wrapper));
+        }
       } else {
         // Probably means we couldn't find the Ludii.jar file
         throw std::runtime_error(
