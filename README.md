@@ -52,7 +52,7 @@ make -j
 
 ```
 
-LUDII support can be disabled by appending `-DWITH_LUDII=OFF` to the cmake command (required if you don't have jdk)
+Ludii support can be disabled by appending `-DWITH_LUDII=OFF` to the cmake command (required if you don't have jdk)
 
 ## Content
 
@@ -382,6 +382,10 @@ architecture when playing `Hex5pie`, and save it to `/private/home/$USER/ImageNa
 
 Any arguments that can be used to modify the game, or any aspect of the Neural Network
 architecture, can be used in this command.
+
+### Running games through Ludii
+
+See [detailed documentation on the Ludii integration here](./src/games/ludii/).
 
 ## Contributing
 
