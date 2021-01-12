@@ -123,6 +123,10 @@ def parse_args() -> argparse.Namespace:
 
     parser_convert.add_argument('--out', type=str, required=True, help='File name to save the converted checkpoint to')
     parser_convert.add_argument('--skip', type=str, nargs="*", help='List of attributes to not copy, leaving them initialized')
+    parser_convert.add_argument(
+        '--auto_tune_nnsize', action="store_true",
+        help='Tune nnsize automatically such that number of filters in hidden layers remains unchanged.'
+    )
 
     # Game params
     train_game_params_group = parser_train.add_argument_group(
@@ -402,7 +406,8 @@ def convert_checkpoint_from_args(args: argparse.Namespace):
         game_params=game_params,
         model_params=model_params,
         out=args.out,
-        skip=args.skip
+        skip=args.skip,
+        auto_tune_nnsize=args.auto_tune_nnsize,
     )
 
 
