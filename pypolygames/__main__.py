@@ -128,6 +128,20 @@ def parse_args() -> argparse.Namespace:
         '--auto_tune_nnsize', action="store_true",
         help='Tune nnsize automatically such that number of filters in hidden layers remains unchanged.'
     )
+    parser_convert.add_argument(
+        '--zero_shot', type=bool, default=False, 
+        help='Convert for zero-shot evaluation without training; this will initialise any skipped or new params to 0.'
+    )
+    parser_convert.add_argument(
+        '--move_source_channels', type=int, nargs="*", 
+        help=('For fully convolutional architectures, for every channel in the destination game\'s move tensors, '
+              'specify the channel from the original tensor that we should transfer weights from.')
+    )
+    parser_convert.add_argument(
+        '--state_source_channels', type=int, nargs="*", 
+        help=('For fully convolutional architectures, for every channel in the destination game\'s state tensors, '
+              'specify the channel from the original tensor that we should transfer weights from.')
+    )
     
     # DRAW MODEL COMMAND
     parser_draw_model = subparsers.add_parser("draw_model")
@@ -416,6 +430,9 @@ def convert_checkpoint_from_args(args: argparse.Namespace):
         out=args.out,
         skip=args.skip,
         auto_tune_nnsize=args.auto_tune_nnsize,
+        zero_shot=args.zero_shot,
+        move_source_channels=args.move_source_channels,
+        state_source_channels=args.state_source_channels,
     )
     
 def draw_model_from_args(args: argparse.Namespace):
