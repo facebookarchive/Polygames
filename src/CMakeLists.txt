@@ -13,7 +13,7 @@ add_subdirectory(mcts)
 file(GLOB _zstd_SOURCES third_party/zstd/lib/common/*.c third_party/zstd/lib/compress/*.c third_party/zstd/lib/decompress/*.c)
 add_library(_zstd OBJECT ${_zstd_SOURCES})
 
-target_include_directories(_zstd PUBLIC third_party/zstd/lib third_party/zstd/lib/common)
+target_include_directories(_zstd BEFORE PUBLIC third_party/zstd/lib third_party/zstd/lib/common)
 
 find_path(IBV_INCLUDE_DIR infiniband/verbs.h)
 find_library(IBV_LIBRARY ibverbs)
