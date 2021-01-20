@@ -116,7 +116,11 @@ class Actor {
     torch::Tensor policy;
     if (useValue_ && resultsAreValid) {
       if (logitValue_) {
+#ifdef PYTORCH12
+        float* begin = value_->data.data<float>();
+#else
         float* begin = value_->data.data_ptr<float>();
+#endif
         float* end = begin + 3;
         softmax_(begin, end);
       }

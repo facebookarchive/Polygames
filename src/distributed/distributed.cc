@@ -13,6 +13,7 @@
 
 #include <cstring>
 #include <functional>
+#include <list>
 #include <optional>
 #include <random>
 #include <string>
