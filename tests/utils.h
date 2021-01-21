@@ -11,6 +11,7 @@
 
 #include <iomanip>
 #include <iostream>
+#include <vector>
 
 // Print a feature plane:
 // printPlanes<const std::vector<float>&>(state.GetFeatures(), indexChannels, nbRows, nbCols);
@@ -40,6 +41,16 @@ template <typename T>
 void printData(T data) {
  for (const auto & x : data)
   std::cout << x << " ";
+ std::cout << std::endl;
+}
+
+template <typename T>
+void printActions(std::vector<T> actions) {
+ for (const auto & a : actions)
+  std::cout << a.GetIndex() << " "
+   << a.GetX() << " "
+   << a.GetY() << " "
+   << a.GetZ() << std::endl;
  std::cout << std::endl;
 }
 
