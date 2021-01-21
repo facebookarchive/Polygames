@@ -13,8 +13,6 @@
 #include "utils.h"
 #include <games/connectfour.h>
 
-/*
-   TODO
 TEST(Connectfour, init_1) {
 
  StateForConnectFour state(0);
@@ -29,7 +27,7 @@ TEST(Connectfour, init_1) {
   ASSERT_EQ(i, a_i.GetX());
   ASSERT_EQ(0, a_i.GetY());
   ASSERT_EQ(0, a_i.GetZ());
-  ASSERT_EQ(i, a_i.GetHash());
+  ASSERT_EQ(0, a_i.GetHash());
   ASSERT_EQ(i, a_i.GetIndex());
  }
 
@@ -73,13 +71,12 @@ TEST(Connectfour, init_1) {
 
 }
 
-
 TEST(Connectfour, play_1) {
 
  StateForConnectFour state(0);
  state.Initialize();
 
- _Action action(1, 7, 0, 0);
+ _Action action(0, 1, 0, 0);
  state.ApplyAction(action);
 
  ASSERT_EQ((std::vector<int64_t>{3, 6, 7}), state.GetFeatureSize());
@@ -91,7 +88,7 @@ TEST(Connectfour, play_1) {
   ASSERT_EQ(i, a_i.GetX());
   ASSERT_EQ(0, a_i.GetY());
   ASSERT_EQ(0, a_i.GetZ());
-  ASSERT_EQ(i, a_i.GetHash());
+  ASSERT_EQ(0, a_i.GetHash());
   ASSERT_EQ(i, a_i.GetIndex());
  }
 
@@ -132,6 +129,4 @@ TEST(Connectfour, play_1) {
  ASSERT_EQ(expectedFeatures, state.GetFeatures());
 
 }
-
-*/
 
