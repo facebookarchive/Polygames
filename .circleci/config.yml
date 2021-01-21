@@ -32,11 +32,11 @@ jobs:
         #-           sudo apt-get update
         #-       sudo apt-get install -y singularity-container
 
-      - restore_cache:
-          keys:
-          - tag3-conda-{{ checksum "singularity/environment.yml" }}-pytorch
-          - tag3-conda-{{ checksum "singularity/environment.yml" }}
-          - tag1-conda
+        #- restore_cache:
+        #    keys:
+        #    - tag3-conda-{{ checksum "singularity/environment.yml" }}-pytorch
+        #    - tag3-conda-{{ checksum "singularity/environment.yml" }}
+        #    - tag1-conda
 
       - run:
           name: Install miniconda and clone pytorch
