@@ -9,7 +9,10 @@
 
 #include <gtest/gtest.h>
 
+std::string LUDII_PATH = "";
+
 int main(int argc, char** argv) {
+  if (argc > 1) LUDII_PATH = argv[1];
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }

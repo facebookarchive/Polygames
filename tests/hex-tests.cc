@@ -7,7 +7,7 @@
 
 // Unit tests for the Hex game.
 
-#include <hex.h>
+#include <games/hex.h>
 #include <gtest/gtest.h>
 #include "utils.h"
 
