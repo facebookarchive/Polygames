@@ -21,7 +21,7 @@ std::unordered_map<std::string, at::Tensor> convertIValueToMap(
   std::unordered_map<std::string, torch::Tensor> map;
   auto dict = value.toGenericDict();
 
-#ifdef PYTORCH12
+#if TORCH_VERSION_MINOR >= 2
   for (auto& name2tensor : dict) {
     auto name = name2tensor.key().toString();
     torch::Tensor tensor = name2tensor.value().toTensor();
@@ -189,7 +189,7 @@ class ModelManagerImpl {
         "train", trainChannelNumSlots, trainChannelTimeoutMs);
     actChannel_ = std::make_shared<tube::DataChannel>("act", actBatchsize, -1);
 
-#ifdef PYTORCH12
+#if TORCH_VERSION_MINOR >= 2
     model_ =
         std::make_shared<TorchJitModel>(torch::jit::load(jitModel_, device));
 #else
@@ -333,7 +333,7 @@ class ModelManagerImpl {
     }
   }
 
-#ifdef PYTORCH15
+#if TORCH_VERSION_MINOR >= 5
   void loadModelStateDict(
       TorchJitModel& model,
       const std::unordered_map<std::string, torch::Tensor>& stateDict) {

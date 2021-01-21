@@ -116,7 +116,7 @@ class Actor {
     torch::Tensor policy;
     if (useValue_ && resultsAreValid) {
       if (logitValue_) {
-#ifdef PYTORCH12
+#if TORCH_VERSION_MINOR >= 2
         float* begin = value_->data.data<float>();
 #else
         float* begin = value_->data.data_ptr<float>();

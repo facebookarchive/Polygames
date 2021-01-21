@@ -2,14 +2,6 @@ cmake_minimum_required( VERSION 3.3 )
 project( polygames-tests )
 set(CMAKE_CXX_STANDARD 17)
 
-OPTION(PYTORCH12 "Is PyTorch >= 1.2" OFF)
-OPTION(PYTORCH15 "Is PyTorch >= 1.5" OFF)
-IF(PYTORCH15)
-    ADD_DEFINITIONS(-DPYTORCH15 -DPYTORCH12)
-ELSEIF(PYTORCH12)
-    ADD_DEFINITIONS(-DPYTORCH12)
-ENDIF()
-
 execute_process(
     COMMAND python -c "import torch; import os; print(os.path.dirname(torch.__file__), end='')"
     OUTPUT_VARIABLE TorchPath
@@ -17,6 +9,9 @@ execute_process(
 set(CMAKE_PREFIX_PATH ${TorchPath})
 find_package(Torch REQUIRED)
 include_directories(${TORCH_INCLUDE_DIRS})
+message(STATUS "Torch VERSION: ${Torch_VERSION}")
+add_definitions(-DTORCH_VERSION_MAJOR=${Torch_VERSION_MAJOR})
+add_definitions(-DTORCH_VERSION_MINOR=${Torch_VERSION_MINOR})
 
 find_package( PythonInterp 3.7 REQUIRED )
 find_package( PythonLibs 3.7 REQUIRED )

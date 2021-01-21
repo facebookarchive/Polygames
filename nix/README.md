@@ -88,7 +88,7 @@ the [Dockerfile](./Dockerfile).
     ```
     mkdir build
     cd build
-    cmake -DPYTORCH12=ON ..
+    cmake ..
     make -j4
     cd ..
     ```
