@@ -37,6 +37,7 @@ template <int SIZE, bool PIE, bool EXTENDED> class State : public core::State {
   std::string actionsDescription() const override;
   int parseAction(const std::string& str) const override;
   virtual int getCurrentPlayerColor() const override;
+  virtual int getNumPlayerColors() const override;
 };
 }  // namespace Havannah
 
@@ -302,4 +303,9 @@ int Havannah::State<SIZE, PIE, EXTENDED>::parseAction(
 template <int SIZE, bool PIE, bool EXTENDED>
 int Havannah ::State<SIZE, PIE, EXTENDED>::getCurrentPlayerColor() const {
   return _board.getCurrentColor();
+}
+
+template <int SIZE, bool PIE, bool EXTENDED>
+int Havannah::State<SIZE, PIE, EXTENDED>::getNumPlayerColors() const {
+  return 2;
 }
