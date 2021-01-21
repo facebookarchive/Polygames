@@ -16,7 +16,7 @@ execute_process(
     OUTPUT_VARIABLE TorchPath
 )
 set(CMAKE_PREFIX_PATH ${TorchPath})
-find_package(Torch REQUIRED)
+find_package(Torch 1.2 REQUIRED)
 message(STATUS "Torch VERSION: ${Torch_VERSION}")
 add_definitions(-DTORCH_VERSION_MAJOR=${Torch_VERSION_MAJOR})
 add_definitions(-DTORCH_VERSION_MINOR=${Torch_VERSION_MINOR})

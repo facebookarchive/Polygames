@@ -7,11 +7,11 @@ execute_process(
     OUTPUT_VARIABLE TorchPath
 )
 set(CMAKE_PREFIX_PATH ${TorchPath})
-find_package(Torch REQUIRED)
-include_directories(${TORCH_INCLUDE_DIRS})
+find_package(Torch 1.2 REQUIRED)
 message(STATUS "Torch VERSION: ${Torch_VERSION}")
 add_definitions(-DTORCH_VERSION_MAJOR=${Torch_VERSION_MAJOR})
 add_definitions(-DTORCH_VERSION_MINOR=${Torch_VERSION_MINOR})
+include_directories(${TORCH_INCLUDE_DIRS})
 
 find_package( PythonInterp 3.7 REQUIRED )
 find_package( PythonLibs 3.7 REQUIRED )
