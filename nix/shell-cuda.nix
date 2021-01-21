@@ -73,7 +73,7 @@ in pkgs.mkShell {
   shellHook = ''
       export CFLAGS="-I${pybind11}/include -I${pytorch}/${python.sitePackages}/torch/include -I${pytorch}/${python.sitePackages}/torch/include/torch/csrc/api/include"
       export CXXFLAGS=$CFLAGS
-      export LDFLAGS="-L${pytorch}/${python.sitePackages}/torch/lib -L$out/${python.sitePackages} -L${pkgs.cudatoolkit}/lib"
+      export LDFLAGS="-lpython3 -L${pytorch}/${python.sitePackages}/torch/lib -L$out/${python.sitePackages} -L${pkgs.cudatoolkit}/lib"
       export LD_LIBRARY_PATH="${pkgs.linuxPackages.nvidia_x11}/lib"
       export PYTHONPATH="$PYTHONPATH:build:build/torchRL/mcts:build/torchRL/tube"
       export OMP_NUM_THREADS=1

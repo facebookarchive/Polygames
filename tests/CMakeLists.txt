@@ -46,7 +46,6 @@ add_executable( polygames-tests
 
 target_link_libraries( polygames-tests 
     libpolygames
-    python3
     ${CMAKE_THREAD_LIBS_INIT}
     ${GTEST_LIBRARIES}
     ${JNI_LIBRARIES}
