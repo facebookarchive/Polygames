@@ -13,9 +13,7 @@ add_definitions(-DTORCH_VERSION_MAJOR=${Torch_VERSION_MAJOR})
 add_definitions(-DTORCH_VERSION_MINOR=${Torch_VERSION_MINOR})
 include_directories(${TORCH_INCLUDE_DIRS})
 
-find_package( PythonInterp 3.7 REQUIRED )
 find_package( PythonLibs 3.7 REQUIRED )
-include_directories( ${PYTHON_INCLUDE_DIRS} )
 
 find_package (Threads)
 
@@ -44,6 +42,7 @@ target_link_libraries( polygames-tests
     ${CMAKE_THREAD_LIBS_INIT}
     ${GTEST_LIBRARIES}
     ${JNI_LIBRARIES}
+    ${PYTHON_LIBRARIES}
     ${TORCH_LIBRARIES}
     )
 

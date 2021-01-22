@@ -21,6 +21,8 @@ message(STATUS "Torch VERSION: ${Torch_VERSION}")
 add_definitions(-DTORCH_VERSION_MAJOR=${Torch_VERSION_MAJOR})
 add_definitions(-DTORCH_VERSION_MINOR=${Torch_VERSION_MINOR})
 
+find_package( PythonLibs 3.7 REQUIRED )
+
 find_package(Boost COMPONENTS system)
 if( Boost_FOUND )
 include_directories( ${Boost_INCLUDE_DIRS})
@@ -50,7 +52,8 @@ add_subdirectory(src/games/minesweeper_csp_vkms)
 
 # tests
 add_executable(test_state src/core/test_state.cc src/core/state.cc)
-target_link_libraries(test_state PUBLIC _tube _mcts _games ${JNI_LIBRARIES})
+target_link_libraries(test_state PUBLIC
+    _tube _mcts _games ${JNI_LIBRARIES} ${PYTHON_LIBRARIES})
 
 enable_testing()
 
