@@ -7,12 +7,13 @@ execute_process(
     OUTPUT_VARIABLE TorchPath
 )
 set(CMAKE_PREFIX_PATH ${TorchPath})
-find_package(Torch REQUIRED)
+find_package(Torch 1.2 REQUIRED)
+message(STATUS "Torch VERSION: ${Torch_VERSION}")
+add_definitions(-DTORCH_VERSION_MAJOR=${Torch_VERSION_MAJOR})
+add_definitions(-DTORCH_VERSION_MINOR=${Torch_VERSION_MINOR})
 include_directories(${TORCH_INCLUDE_DIRS})
 
-find_package( PythonInterp 3.7 REQUIRED )
 find_package( PythonLibs 3.7 REQUIRED )
-include_directories( ${PYTHON_INCLUDE_DIRS} )
 
 find_package (Threads)
 
@@ -22,20 +23,9 @@ include_directories( ${GTEST_INCLUDE_DIRS} )
 find_package(JNI REQUIRED)
 include_directories( ${JNI_INCLUDE_DIRS})
 
-include_directories(
- ../games
- ../torchRL
- ../torchRL/third_party/fmt/include
- ../torchRL/tube/src_cpp
- )
+add_subdirectory(../src build-libpolygames)
 
 add_executable( polygames-tests
- ../core/game.cc
- ../core/state.cc
- ../torchRL/mcts/mcts.cc
- ../torchRL/mcts/node.cc
- ../torchRL/tube/src_cpp/data_channel.cc
- ../torchRL/tube/src_cpp/replay_buffer.cc
  tests.cc
 
  # Include your tests here.
@@ -44,17 +34,15 @@ add_executable( polygames-tests
  havannah-tests.cc
  hex-state-tests.cc
  hex-tests.cc
-
  ludii-game-tests.cc
- ../games/ludii/jni_utils.cc
- ../games/ludii/ludii_game_wrapper.cc
- ../games/ludii/ludii_state_wrapper.cc
  )
 
 target_link_libraries( polygames-tests 
+    libpolygames
     ${CMAKE_THREAD_LIBS_INIT}
     ${GTEST_LIBRARIES}
     ${JNI_LIBRARIES}
+    ${PYTHON_LIBRARIES}
     ${TORCH_LIBRARIES}
     )
 

@@ -47,7 +47,7 @@ cd polygames
 mkdir build
 cd build
 
-cmake .. -DCMAKE_BUILD_TYPE=relwithdebinfo -DPYTORCH15=ON
+cmake .. -DCMAKE_BUILD_TYPE=relwithdebinfo 
 make -j
 
 ```

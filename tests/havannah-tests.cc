@@ -7,7 +7,7 @@
 
 // Unit tests for the Havannah game.
 
-#include <havannah.h>
+#include <games/havannah.h>
 #include <gtest/gtest.h>
 #include "utils.h"
 

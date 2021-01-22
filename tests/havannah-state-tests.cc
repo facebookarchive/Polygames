@@ -7,7 +7,7 @@
 
 // Unit tests for Havannah Action/State.
 
-#include <havannah_state.h>
+#include <games/havannah_state.h>
 #include <gtest/gtest.h>
 #include "utils.h"
 
@@ -20,9 +20,14 @@ namespace Havannah {
  template <int SIZE, bool PIE, bool EXTENDED> class StateTest :
    public Havannah::State<SIZE, PIE, EXTENDED> {
   public:
+   core::FeatureOptions _opts;
    StateTest<SIZE, PIE, EXTENDED>(int seed, int history, bool turnFeatures) :
-    Havannah::State<SIZE, PIE, EXTENDED>(seed, history, turnFeatures) {}
-   GameStatus GetStatus() { return ::State::_status; };
+    Havannah::State<SIZE, PIE, EXTENDED>(seed) {
+     _opts.history = history;
+     _opts.turnFeaturesMultiChannel = turnFeatures;
+     core::State::setFeatures(&_opts);
+    }
+   GameStatus GetStatus() { return core::State::_status; };
  };
 
 };
@@ -38,16 +43,18 @@ TEST(HavannahStateGroup, init_0) {
  const int history = 0;
  const bool turnFeatures = true;
  const int fullsize = 2*size - 1;
- const int nbChannels = 3*(1+history) + (turnFeatures ? 1 : 0);
+ const int nbChannels = 3*(1+history) + (turnFeatures ? 1 : 0) + 1;
  const int nbActions = fullsize*fullsize - size*(size-1);
 
  Havannah::StateTest<size, true, false> state(0, history, turnFeatures);
+ state.Initialize();
 
  ASSERT_EQ(GameStatus::player0Turn, state.GetStatus());
 
  // features
  std::vector<float> expectedFeatures(nbChannels*fullsize*fullsize, 0.f);
  const std::vector<float> boardFeatures = {
+
   0, 0, 0, 0, 1, 1, 1, 1, 1, 
   0, 0, 0, 1, 1, 1, 1, 1, 1, 
   0, 0, 1, 1, 1, 1, 1, 1, 1, 
@@ -56,7 +63,18 @@ TEST(HavannahStateGroup, init_0) {
   1, 1, 1, 1, 1, 1, 1, 1, 0, 
   1, 1, 1, 1, 1, 1, 1, 0, 0, 
   1, 1, 1, 1, 1, 1, 0, 0, 0, 
-  1, 1, 1, 1, 1, 0, 0, 0, 0
+  1, 1, 1, 1, 1, 0, 0, 0, 0,
+
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1
+
  };
  const int f2 = fullsize*fullsize;
  std::copy(boardFeatures.begin(), boardFeatures.end(), expectedFeatures.begin() + 2*f2);
@@ -83,16 +101,50 @@ TEST(HavannahStateGroup, init_1) {
  const int history = 2;
  const bool turnFeatures = true;
  const int fullsize = 2*size - 1;
- const int nbChannels = 3*(1+history) + (turnFeatures ? 1 : 0);
+ const int nbChannels = 3*(1+history) + (turnFeatures ? 1 : 0) + 1; 
  const int nbActions = fullsize*fullsize - size*(size-1);
 
  Havannah::StateTest<size, true, false> state(0, history, turnFeatures);
+ state.Initialize();
 
  ASSERT_EQ(GameStatus::player0Turn, state.GetStatus());
 
  // features
- std::vector<float> expectedFeatures(nbChannels*fullsize*fullsize, 0.f);
- const std::vector<float> boardFeatures = {
+ const std::vector<float> expectedFeatures = {
+
+  // 1
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+
   0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 
   0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
   0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
@@ -107,12 +159,141 @@ TEST(HavannahStateGroup, init_1) {
   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 
   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 
   1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 
-  1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0
+  1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
+
+  // 2
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+
+  0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 
+  0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 
+  1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
+
+  // 3
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+
+  0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 
+  0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 
+  1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
+
+  // 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+
+  // 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+
  };
- const int f2 = fullsize*fullsize;
- std::copy(boardFeatures.begin(), boardFeatures.end(), expectedFeatures.begin() + 2*f2);
- std::copy(boardFeatures.begin(), boardFeatures.end(), expectedFeatures.begin() + 5*f2);
- std::copy(boardFeatures.begin(), boardFeatures.end(), expectedFeatures.begin() + 8*f2);
 
  // DEBUG
  // std::cout << "*** expected ***" << std::endl;
@@ -140,6 +321,7 @@ TEST(HavannahStateGroup, init_2) {
  const int nbActions = fullsize*fullsize - size*(size-1);
 
  Havannah::StateTest<size, true, false> state(0, history, turnFeatures);
+ state.Initialize();
 
  ASSERT_EQ(GameStatus::player0Turn, state.GetStatus());
 
@@ -185,12 +367,12 @@ TEST(HavannahStateGroup, init_2) {
   auto action = state.GetLegalActions()[k];
   int i = expectedAction.first;
   int j = expectedAction.second;
-  int h = i*fullsize + j;
-  ASSERT_EQ(0, action->GetX());
-  ASSERT_EQ(i, action->GetY());
-  ASSERT_EQ(j, action->GetZ());
-  ASSERT_EQ(h, action->GetHash());
-  ASSERT_EQ(k, action->GetIndex());
+  // int h = i*fullsize + j;
+  ASSERT_EQ(0, action.GetX());
+  ASSERT_EQ(i, action.GetY());
+  ASSERT_EQ(j, action.GetZ());
+  ASSERT_EQ(0, action.GetHash());
+  ASSERT_EQ(k, action.GetIndex());
  }
 
 }
@@ -200,9 +382,11 @@ TEST(HavannahStateGroup, clone_1) {
 
  try {
   Havannah::State<4, true, false> state(0);
+  state.Initialize();
   auto clone = state.clone();
   auto ptrClone = dynamic_cast<Havannah::State<4, true, false> *>(clone.get());
 
+  ASSERT_NE(nullptr, ptrClone);
   ASSERT_NE(&state, ptrClone);
   ASSERT_EQ(37, state.GetLegalActions().size());
   ASSERT_EQ(37, ptrClone->GetLegalActions().size());
@@ -241,6 +425,7 @@ TEST(HavannahStateGroup, clone_2) {
 
  try {
   Havannah::State<4, true, false> state(0);
+  state.Initialize();
   auto clone = state.clone();
   auto ptrClone = dynamic_cast<Havannah::State<4, true, false> *>(clone.get());
 
@@ -267,10 +452,11 @@ TEST(HavannahStateGroup, features_1_pie) {
  const int history = 2;
  const bool turnFeatures = true;
  const int fullsize = 2*size - 1;
- const int nbChannels = 3*(1+history) + (turnFeatures ? 1 : 0);
+ const int nbChannels = 3*(1+history) + (turnFeatures ? 1 : 0) + 1;
  const int nbActions = fullsize*fullsize - size*(size-1);
 
  Havannah::StateTest<size, true, false> state(0, history, turnFeatures);
+ state.Initialize();
 
  // apply actions
 
@@ -378,6 +564,13 @@ TEST(HavannahStateGroup, features_1_pie) {
      1.f, 1.f, 1.f, 1.f, 0.f, 
      1.f, 1.f, 1.f, 0.f, 0.f, 
 
+  // 
+     0.f, 0.f, 0.f, 0.f, 0.f, 
+     0.f, 0.f, 0.f, 0.f, 0.f, 
+     0.f, 0.f, 0.f, 0.f, 0.f, 
+     0.f, 0.f, 0.f, 0.f, 0.f, 
+     0.f, 0.f, 0.f, 0.f, 0.f,
+
   // turn
      1.f, 1.f, 1.f, 1.f, 1.f, 
      1.f, 1.f, 1.f, 1.f, 1.f, 
@@ -404,10 +597,11 @@ TEST(HavannahStateGroup, features_1_nopie) {
  const int history = 2;
  const bool turnFeatures = true;
  const int fullsize = 2*size - 1;
- const int nbChannels = 3*(1+history) + (turnFeatures ? 1 : 0);
+ const int nbChannels = 3*(1+history) + (turnFeatures ? 1 : 0) + 1;
  const int nbActions = fullsize*fullsize - size*(size-1);
 
  Havannah::StateTest<size, false, false> state(0, history, turnFeatures);
+ state.Initialize();
 
  // apply actions
 
@@ -499,6 +693,13 @@ TEST(HavannahStateGroup, features_1_nopie) {
      1.f, 1.f, 1.f, 1.f, 0.f, 
      1.f, 1.f, 1.f, 0.f, 0.f, 
 
+  // 
+     0.f, 0.f, 0.f, 0.f, 0.f, 
+     0.f, 0.f, 0.f, 0.f, 0.f, 
+     0.f, 0.f, 0.f, 0.f, 0.f, 
+     0.f, 0.f, 0.f, 0.f, 0.f, 
+     0.f, 0.f, 0.f, 0.f, 0.f, 
+
   // turn
      1.f, 1.f, 1.f, 1.f, 1.f, 
      1.f, 1.f, 1.f, 1.f, 1.f, 
@@ -525,10 +726,11 @@ TEST(HavannahStateGroup, features_2_nopie) {
  const int history = 2;
  const bool turnFeatures = true;
  const int fullsize = 2*size - 1;
- const int nbChannels = 3*(1+history) + (turnFeatures ? 1 : 0);
+ const int nbChannels = 3*(1+history) + (turnFeatures ? 1 : 0) + 1;
  const int nbActions = fullsize*fullsize - size*(size-1);
 
  Havannah::StateTest<size, false, false> state(0, history, turnFeatures);
+ state.Initialize();
 
  // apply actions
 
@@ -619,6 +821,13 @@ TEST(HavannahStateGroup, features_2_nopie) {
      1.f, 1.f, 1.f, 1.f, 0.f, 
      1.f, 1.f, 1.f, 0.f, 0.f, 
 
+  // 
+     1.f, 1.f, 1.f, 1.f, 1.f, 
+     1.f, 1.f, 1.f, 1.f, 1.f, 
+     1.f, 1.f, 1.f, 1.f, 1.f, 
+     1.f, 1.f, 1.f, 1.f, 1.f, 
+     1.f, 1.f, 1.f, 1.f, 1.f, 
+
   // turn
      0.f, 0.f, 0.f, 0.f, 0.f,
      0.f, 0.f, 0.f, 0.f, 0.f,
@@ -650,10 +859,11 @@ TEST(HavannahStateGroup, features_3_nopie) {
  const int history = 2;
  const bool turnFeatures = true;
  const int fullsize = 2*size - 1;
- const int nbChannels = 3*(1+history) + (turnFeatures ? 1 : 0);
+ const int nbChannels = 3*(1+history) + (turnFeatures ? 1 : 0) + 1;
  const int nbActions = fullsize*fullsize - size*(size-1);
 
  Havannah::StateTest<size, false, false> state(0, history, turnFeatures);
+ state.Initialize();
 
  // apply actions
 
@@ -768,6 +978,15 @@ TEST(HavannahStateGroup, features_3_nopie) {
    1.f, 1.f, 1.f, 1.f, 1.f, 0.f, 0.f, 
    1.f, 1.f, 1.f, 1.f, 0.f, 0.f, 0.f, 
 
+   // 
+   0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 
+   0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 
+   0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 
+   0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 
+   0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 
+   0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 
+   0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 
+
    // turn
    1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 
    1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 
@@ -811,5 +1030,4 @@ TEST(HavannahStateGroup, features_3_nopie) {
  // }
 
 }
-
 

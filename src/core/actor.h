@@ -116,7 +116,13 @@ class Actor {
     torch::Tensor policy;
     if (useValue_ && resultsAreValid) {
       if (logitValue_) {
+#if TORCH_VERSION_MINOR >= 5
         float* begin = value_->data.data_ptr<float>();
+#elif TORCH_VERSION_MINOR >= 2
+        float* begin = value_->data.data<float>();
+#else
+#error UNSUPPORTED PYTORCH VERSION
+#endif
         float* end = begin + 3;
         softmax_(begin, end);
       }

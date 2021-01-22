@@ -72,7 +72,7 @@ jobs:
                   wget -O ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
                   bash ~/miniconda.sh -b -p /opt/conda
                   rm ~/miniconda.sh
-                  git clone --recursive https://github.com/pytorch/pytorch --branch=v1.1.0 ~/pytorch
+                  git clone --recursive https://github.com/pytorch/pytorch --branch=v1.2.0 ~/pytorch
               fi
 
       - save_cache:
@@ -161,7 +161,7 @@ jobs:
       - run:
           name: Test polygames-tests (unit tests)
           command: |
-              ./tests/build/polygames-tests
+              ./tests/build/polygames-tests ludii/Ludii.jar
 
       - run:
           name: Test Mcts

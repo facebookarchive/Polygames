@@ -11,20 +11,17 @@ set(CMAKE_CXX_FLAGS
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-OPTION(PYTORCH12 "Is PyTorch >= 1.2" OFF)
-OPTION(PYTORCH15 "Is PyTorch >= 1.5" OFF)
-IF(PYTORCH15)
-    ADD_DEFINITIONS(-DPYTORCH15 -DPYTORCH12)
-ELSEIF(PYTORCH12)
-    ADD_DEFINITIONS(-DPYTORCH12)
-ENDIF()
-
 execute_process(
     COMMAND python -c "import torch; import os; print(os.path.dirname(torch.__file__), end='')"
     OUTPUT_VARIABLE TorchPath
 )
 set(CMAKE_PREFIX_PATH ${TorchPath})
-find_package(Torch REQUIRED)
+find_package(Torch 1.2 REQUIRED)
+message(STATUS "Torch VERSION: ${Torch_VERSION}")
+add_definitions(-DTORCH_VERSION_MAJOR=${Torch_VERSION_MAJOR})
+add_definitions(-DTORCH_VERSION_MINOR=${Torch_VERSION_MINOR})
+
+find_package( PythonLibs 3.7 REQUIRED )
 
 find_package(Boost COMPONENTS system)
 if( Boost_FOUND )
@@ -55,7 +52,8 @@ add_subdirectory(src/games/minesweeper_csp_vkms)
 
 # tests
 add_executable(test_state src/core/test_state.cc src/core/state.cc)
-target_link_libraries(test_state PUBLIC _tube _mcts _games ${JNI_LIBRARIES})
+target_link_libraries(test_state PUBLIC
+    _tube _mcts _games ${JNI_LIBRARIES} ${PYTHON_LIBRARIES})
 
 enable_testing()
 
